@@ -5,9 +5,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { commonText } from "config/commonText";
-import {
-  sharedErrorMessages,
-} from "internal/shared/errors/sharedErrorMessages";
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import { PageShell } from "templates/layout/PageShell/PageShell";
 
 export default function ErrorPage({
