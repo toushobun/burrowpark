@@ -1,25 +1,27 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
+
 import { FailureFeedbackDialog } from "./FailureFeedbackDialog";
 
 const meta = {
   component: FailureFeedbackDialog,
   title: "Molecules/Feedback/FailureFeedbackDialog",
   args: {
-    state: { error: "访问码不对，请再试一次。", errorKey: "storybook-error" },
+    state: { error: "操作失败，请稍后再试。", errorKey: "storybook-error" },
   },
 } satisfies Meta<typeof FailureFeedbackDialog>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const IncorrectAccessCode: Story = {};
+export const GenericFailure: Story = {};
 
-export const RateLimited: Story = {
+export const ServiceUnavailable: Story = {
   args: {
     state: {
-      error: "输错太多次了，请 15 分钟后再试。",
-      errorKey: "rate-limit",
+      error: sharedErrorMessages.authUnavailable,
+      errorKey: "service-unavailable",
     },
   },
 };
