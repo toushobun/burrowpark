@@ -56,7 +56,8 @@ export function PageShell({
           sx={{
             bgcolor: "background.default",
             bottom: 0,
-            pb: (t) => `calc(${t.spacing(2)} + env(safe-area-inset-bottom, 0px))`,
+            pb: (t) =>
+              `calc(${t.spacing(2)} + env(safe-area-inset-bottom, 0px))`,
             position: "sticky",
             pt: 1,
             px: 2,

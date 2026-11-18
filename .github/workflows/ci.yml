@@ -74,12 +74,7 @@ jobs:
         run: npm ci
 
       - name: Check formatting
-        run: |
-          npm run format:check || {
-            npx prettier src/internal/shared/auth/authContext.test.ts src/components/templates/layout/PageShell/PageShell.tsx --write
-            git diff -- src/internal/shared/auth/authContext.test.ts src/components/templates/layout/PageShell/PageShell.tsx
-            exit 1
-          }
+        run: npm run format:check
 
   lint:
     name: Lint

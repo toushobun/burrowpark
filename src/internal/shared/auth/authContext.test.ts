@@ -71,20 +71,23 @@ describe("getAuthContext", () => {
     );
   });
 
-  it.each([400, 401, 403, 404])("AuthApiError %i 时视为未登录", async (status) => {
-    const supabase = createSupabaseStub(
-      null,
-      new AuthApiError("session rejected", status, "invalid_session"),
-    );
+  it.each([400, 401, 403, 404])(
+    "AuthApiError %i 时视为未登录",
+    async (status) => {
+      const supabase = createSupabaseStub(
+        null,
+        new AuthApiError("session rejected", status, "invalid_session"),
+      );
 
-    await expect(getAuthContext(supabase, createLoggerStub())).resolves.toEqual(
-      {
+      await expect(
+        getAuthContext(supabase, createLoggerStub()),
+      ).resolves.toEqual({
         email: null,
         isAuthenticated: false,
         userId: null,
-      },
-    );
-  });
+      });
+    },
+  );
 
   it.each([
     new AuthRetryableFetchError("x", 0),
