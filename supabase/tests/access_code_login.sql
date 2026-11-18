@@ -41,7 +41,7 @@ update public.login_attempts
 select is((select allowed from public.consume_login_attempt('ip:' || repeat('a', 64))), false, '窗口到期不能提前解除未过期锁定');
 
 truncate public.login_attempts;
-do $
+do $$
 begin
   for i in 1..30 loop
     perform * from public.consume_login_attempt('ip:' || lpad(to_hex(i), 64, '0'));
