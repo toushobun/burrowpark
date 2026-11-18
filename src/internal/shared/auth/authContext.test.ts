@@ -34,7 +34,9 @@ describe("getAuthContext", () => {
       id: "user-1",
     });
 
-    await expect(getAuthContext(supabase, createLoggerStub())).resolves.toEqual({
+    await expect(
+      getAuthContext(supabase, createLoggerStub()),
+    ).resolves.toEqual({
       email: "user@example.com",
       isAuthenticated: true,
       userId: "user-1",
@@ -44,7 +46,9 @@ describe("getAuthContext", () => {
   it("没有用户时返回 isAuthenticated: false", async () => {
     const supabase = createSupabaseStub(null);
 
-    await expect(getAuthContext(supabase, createLoggerStub())).resolves.toEqual({
+    await expect(
+      getAuthContext(supabase, createLoggerStub()),
+    ).resolves.toEqual({
       email: null,
       isAuthenticated: false,
       userId: null,
@@ -54,7 +58,9 @@ describe("getAuthContext", () => {
   it("会话缺失时视为未登录", async () => {
     const supabase = createSupabaseStub(null, new AuthSessionMissingError());
 
-    await expect(getAuthContext(supabase, createLoggerStub())).resolves.toEqual({
+    await expect(
+      getAuthContext(supabase, createLoggerStub()),
+    ).resolves.toEqual({
       email: null,
       isAuthenticated: false,
       userId: null,
@@ -64,10 +70,12 @@ describe("getAuthContext", () => {
   it.each([401, 403])("AuthApiError %i 时视为未登录", async (status) => {
     const supabase = createSupabaseStub(
       null,
-      new AuthApiError("session rejected", status),
+      new AuthApiError("session rejected", status, "invalid_session"),
     );
 
-    await expect(getAuthContext(supabase, createLoggerStub())).resolves.toEqual({
+    await expect(
+      getAuthContext(supabase, createLoggerStub()),
+    ).resolves.toEqual({
       email: null,
       isAuthenticated: false,
       userId: null,

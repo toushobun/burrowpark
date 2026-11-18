@@ -3,6 +3,7 @@ import Box from "@mui/material/Box";
 import { slotStatusLabels } from "config/slotStatusText";
 import { designTokens } from "theme/designTokens";
 import { slotStatusColors, type SlotStatus } from "theme/slotStatusTokens";
+import { theme } from "theme/theme";
 
 type SlotStatusBadgeProps = {
   status: SlotStatus;
@@ -25,7 +26,7 @@ export function SlotStatusBadge({ status, label }: SlotStatusBadgeProps) {
         color: colors.text,
         display: "inline-flex",
         typography: "body2",
-        fontWeight: (theme) => theme.typography.button.fontWeight,
+        fontWeight: theme.typography.button.fontWeight,
         px: 1.5,
         py: 0.25,
       }}

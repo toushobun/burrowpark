@@ -4,6 +4,7 @@ import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
 import { designTokens } from "theme/designTokens";
+import { theme } from "theme/theme";
 
 type PageShellProps = {
   title: string;
@@ -34,8 +35,7 @@ export function PageShell({
         component="header"
         sx={{
           pb: 1.5,
-          pt: (theme) =>
-            `calc(${theme.spacing(2)} + env(safe-area-inset-top, 0px))`,
+          pt: `calc(${theme.spacing(2)} + env(safe-area-inset-top, 0px))`,
           px: 2,
         }}
       >
@@ -57,8 +57,7 @@ export function PageShell({
           sx={{
             bgcolor: "background.default",
             bottom: 0,
-            pb: (theme) =>
-              `calc(${theme.spacing(2)} + env(safe-area-inset-bottom, 0px))`,
+            pb: `calc(${theme.spacing(2)} + env(safe-area-inset-bottom, 0px))`,
             position: "sticky",
             pt: 1,
             px: 2,
