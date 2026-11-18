@@ -29,7 +29,8 @@
 
 ```bash
 cp .env.example .env.local   # 填入 Supabase 连接信息
-npm install
+npm install             # Node 24 / npm 11
+npx supabase start      # 首次启动本地 Supabase，自动应用迁移与 seed
 npm run dev                  # http://localhost:3000
 npm run storybook            # http://localhost:6006
 npm run check                # 类型检查 + Lint + 格式检查 + 单元测试
@@ -54,3 +55,25 @@ docs/                     开发规则（AI_RULES.md、backend-rules.md）
 ## 开发状态
 
 工程框架已搭建，业务功能按 Issue 逐步实现中。
+## 部署
+
+部署前先准备 Supabase 项目、Vercel 环境变量和域名。不要把生产访问码或家庭账号密码提交到仓库。
+
+1. 在 Supabase 控制台 Authentication 关闭 **Allow new users to sign up** 和 **Anonymous sign-ins**；Sessions 中保持 **Time-box user sessions**、**Inactivity timeout** 关闭。
+2. 在 Authentication 的 Users 中选择 **Add user**，勾选 **Auto Confirm**，创建家庭共用账号并设置随机长密码。
+3. 在 SQL Editor 中执行（替换实际 UID）：
+
+   ```sql
+   insert into public.family_account (user_id) values ('<家庭账号 uid>');
+   ```
+
+4. 在 Vercel 的 **Production 与 Preview** 都配置 `ACCESS_CODE`（6～12 位随机数字）、`FAMILY_ACCOUNT_EMAIL`、`FAMILY_ACCOUNT_PASSWORD`、`SUPABASE_SECRET_KEY`；同时需要已有的 `NEXT_PUBLIC_SUPABASE_URL` 和 `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`。
+5. 手机遗失后修改 `ACCESS_CODE` 并重新部署，再在 SQL Editor 执行：
+
+   ```sql
+   delete from auth.sessions where user_id = '<uid>';
+   ```
+
+   已发出的 access token 可能最长 1 小时后才失效；仅修改访问码不会立即踢出旧会话。
+
+本地 `.env.example` 的访问码和密码仅用于 seed 账号；生产必须更换。数据库迁移、pgTAP 测试与类型生成使用 `npx supabase start`、`npx supabase test db`、`npm run db:types`。

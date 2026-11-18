@@ -17,7 +17,8 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "type-check": "tsc --noEmit",
-    "check": "tsc --noEmit && eslint . && prettier . --check && npm test"
+    "check": "tsc --noEmit && eslint . && prettier . --check && npm test",
+    "db:types": "supabase gen types typescript --local --schema public > src/internal/shared/supabase/database.types.ts"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -50,6 +51,7 @@
     "storybook": "^10.4.2",
     "typescript": "^5",
     "vite": "^8.0.16",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "supabase": "2.122.1"
   }
 }
