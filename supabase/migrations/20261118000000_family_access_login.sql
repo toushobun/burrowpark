@@ -89,7 +89,7 @@ begin
       v_retry := pg_catalog.greatest(
         v_retry,
         pg_catalog.ceil(
-          pg_catalog.extract(epoch from (v_locked_until - v_now))
+          extract(epoch from (v_locked_until - v_now))
         )::int
       );
     end if;
