@@ -7,7 +7,7 @@ import DialogContent from "@mui/material/DialogContent";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 
-import { authMessages } from "internal/auth";
+import { commonText } from "config/commonText";
 import type { ActionState } from "types/actions";
 
 type FailureFeedbackDialogProps = {
@@ -49,7 +49,7 @@ export function FailureFeedbackDialog({
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
         <Button fullWidth onClick={close} size="large" variant="contained">
-          {authMessages.acknowledge}
+          {commonText.acknowledge}
         </Button>
       </DialogActions>
     </Dialog>
