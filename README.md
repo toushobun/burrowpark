@@ -62,14 +62,17 @@ docs/                     开发规则（AI_RULES.md、backend-rules.md）
 
 1. 在 Supabase 控制台 Authentication 关闭 **Allow new users to sign up** 和 **Anonymous sign-ins**；Sessions 中保持 **Time-box user sessions**、**Inactivity timeout** 关闭。
 2. 在 Authentication 的 Users 中选择 **Add user**，勾选 **Auto Confirm**，创建家庭共用账号并设置随机长密码。
-3. 在 SQL Editor 中执行（替换实际 UID）：
+3. 推送数据库 migration（在 GitHub Actions 上执行，本地不需要 Docker）：
+   - 在 GitHub 仓库 Settings → Secrets and variables → Actions 添加两个 Repository secret：`SUPABASE_ACCESS_TOKEN`（Supabase 控制台右上角头像 → Account preferences → Access Tokens 生成）、`SUPABASE_DB_PASSWORD`（创建项目时设置的数据库密码）。
+   - 在 Actions 页面手动运行 **Deploy database**。之后每次合并到 main 且 `supabase/migrations/` 有变更时会自动运行。
+4. migration 推送成功后，在 SQL Editor 中执行（替换实际 UID）：
 
    ```sql
    insert into public.family_account (user_id) values ('<家庭账号 uid>');
    ```
 
-4. 在 Vercel 的 **Production 与 Preview** 都配置 `ACCESS_CODE`（6～12 位随机数字）、`FAMILY_ACCOUNT_EMAIL`、`FAMILY_ACCOUNT_PASSWORD`、`SUPABASE_SECRET_KEY`；同时需要已有的 `NEXT_PUBLIC_SUPABASE_URL` 和 `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`。
-5. 手机遗失后修改 `ACCESS_CODE` 并重新部署，再在 SQL Editor 执行：
+5. 在 Vercel 的 **Production 与 Preview** 都配置 `ACCESS_CODE`（6～12 位随机数字）、`FAMILY_ACCOUNT_EMAIL`、`FAMILY_ACCOUNT_PASSWORD`、`SUPABASE_SECRET_KEY`；同时需要已有的 `NEXT_PUBLIC_SUPABASE_URL` 和 `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`。
+6. 手机遗失后修改 `ACCESS_CODE` 并重新部署，再在 SQL Editor 执行：
 
    ```sql
    delete from auth.sessions where user_id = '<uid>';
