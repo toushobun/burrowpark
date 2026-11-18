@@ -16,6 +16,14 @@
 
 `AGENTS.md`（Codex）与 `CLAUDE.md`（Claude Code）只保留指向本文件的最小说明，二者内容必须保持一致（仅工具名与文件名不同），由 `agentInstructions.test.ts` 校验。新增或修改通用 AI Agent 行为规则统一写入本文件；后端架构模型与统一错误处理的专属规则统一维护在 `docs/backend-rules.md`。不得回退到在 `AGENTS.md` / `CLAUDE.md` 中堆叠规则。
 
+## CodeGraph
+
+如果仓库根目录存在 `.codegraph/`，需要优先使用 CodeGraph 理解或定位代码，再使用 grep/find 或直接读取文件。
+
+- MCP 工具可用时，优先使用 `codegraph_explore` 获取相关符号源码、调用路径和影响范围。工具名称可能以 `mcp__codegraph__` 为前缀，用 ToolSearch 加载。
+- 需要读取单个符号或文件时，使用 `codegraph_node`。
+- 如果 MCP 工具不可用，可以使用 shell 命令 `codegraph explore "<query>"` 或 `codegraph node <symbol-or-file>`。
+
 ## 语言规范
 
 - Issue 正文、PR 正文、PR 描述一律使用中文。
