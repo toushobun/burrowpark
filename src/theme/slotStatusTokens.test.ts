@@ -25,6 +25,15 @@ describe("slotStatusColors", () => {
     );
   });
 
+  it("任意两种状态的边框和文字配色组合不相同", () => {
+    const pairs = slotStatuses.map((status) => {
+      const { border, text } = slotStatusColors[status];
+      return `${border}:${text}`;
+    });
+
+    expect(new Set(pairs).size).toBe(slotStatuses.length);
+  });
+
   it.each(slotStatuses)("%s 的文字与背景对比度满足 WCAG AA", (status) => {
     const { background, text } = slotStatusColors[status];
 

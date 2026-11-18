@@ -24,6 +24,15 @@ export const CustomLabel: Story = {
   args: { label: "剩 6 分钟", status: "privateBorrowed" },
 };
 
+export const DistinctWarningAndBorrowed: Story = {
+  render: () => (
+    <Stack direction="row" spacing={1.5}>
+      <SlotStatusBadge status="expiringSoon" />
+      <SlotStatusBadge status="privateBorrowed" />
+    </Stack>
+  ),
+};
+
 export const AllStatuses: Story = {
   render: () => (
     <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap" }} useFlexGap>

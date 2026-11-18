@@ -105,7 +105,7 @@
 - 保持最小差分，不混入无关重构。
 - 同一个 Issue 下，如果多个模块采用完全相同且已经定型的机械模式、模块之间没有耦合，并且拆分后子 PR 因 base 不是 `main` 而无法独立触发 CI，必须合并为一个以 `main` 为 base 的 PR，不得按模块堆叠。
 - 只有当后一个改动确实依赖前一个先合并才能验证或避免冲突，并且每个子 PR 都能以 `main` 为 base 独立运行 CI 时，才允许使用堆叠 PR。
-- 开 PR 或将 draft 转为 ready for review 前，常规 TypeScript 改动必须在本地运行 `npm run check`（依次执行 `tsc --noEmit`、`eslint .`、`prettier . --check`、`vitest run --exclude "tests/rsc/**"`）并全部通过。不得以"本轮暂不以 CI 结果作为处理重点"等说明替代本地验证。
+- 开 PR 或将 draft 转为 ready for review 前，常规 TypeScript 改动必须在本地运行 `npm run check`（依次执行 `tsc --noEmit` → `eslint .` → `prettier . --check` → `vitest run`）并全部通过。不得以"本轮暂不以 CI 结果作为处理重点"等说明替代本地验证。
 
 ## PR 正文规则
 
@@ -158,6 +158,7 @@ Review（包括 review 他人 PR、自查 diff、处理 review 意见）的核�
 - 前端继续使用 Atomic Design。
 - 不新增 `features/` 目录。
 - 不新增 `containers/` 目录。
+- 只依赖业务枚举、没有交互的纯展示小组件可放在 `atoms/<module>/`，例如 `atoms/slots/SlotStatusBadge`。
 - 业务组件继续放在 `organisms` 下，并按业务模块归属管理，例如：
   - `organisms/slots/`
   - `organisms/parkingSessions/`
@@ -169,7 +170,7 @@ Review（包括 review 他人 PR、自查 diff、处理 review 意见）的核�
 ## 视觉方向
 
 - 途泊属的主要用户是 60 岁以上、不熟悉手机操作的长辈管理员，一切设计以「看得清、点得准、不迷路」为第一优先级。
-- 正文字号不低于 18px，任何文字不低于 14px；可点击区域不小于 56px，主操作按钮使用 `size="large"`。
+- 正文字号不低于 18px，任何文字不低于 16px；可点击区域不小于 56px，主操作按钮使用 `size="large"`。
 - 一个画面只突出一个主操作；尽量用大按钮选择代替键盘输入，用「撤销」代替二次确认弹窗。
 - 状态必须同时用颜色和文字表达，不能只依赖颜色区分；车位状态配色统一来自 `src/theme/slotStatusTokens.ts`。
 - 页面采用浅色背景、柔和卡片、低信息密度；避免高密度表格、ERP 感、暗色模式优先设计。

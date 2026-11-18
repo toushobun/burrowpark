@@ -11,9 +11,15 @@ const typographyVariants = [
   "h1",
   "h2",
   "h3",
+  "h4",
+  "h5",
+  "h6",
+  "subtitle1",
+  "subtitle2",
   "body1",
   "body2",
   "caption",
+  "overline",
   "button",
 ] as const;
 
@@ -22,6 +28,15 @@ describe("theme", () => {
     expect(remToPx(theme.typography[variant].fontSize)).toBeGreaterThanOrEqual(
       designTokens.typography.minSize,
     );
+  });
+
+  it("标题从 h1 到 h6 字号非递增", () => {
+    const sizes = (["h1", "h2", "h3", "h4", "h5", "h6"] as const).map(
+      (variant) => remToPx(theme.typography[variant].fontSize),
+    );
+    for (let index = 1; index < sizes.length; index++) {
+      expect(sizes[index - 1]).toBeGreaterThanOrEqual(sizes[index]);
+    }
   });
 
   it("正文字号不低于 18px", () => {

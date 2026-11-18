@@ -3,6 +3,8 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
+import { designTokens } from "theme/designTokens";
+
 type PageShellProps = {
   title: string;
   /** 标题下方的辅助信息，例如日期。 */
@@ -23,12 +25,20 @@ export function PageShell({
     <Stack
       sx={{
         bgcolor: "background.default",
-        maxWidth: 480,
+        maxWidth: designTokens.size.contentMaxWidth,
         minHeight: "100dvh",
         mx: "auto",
       }}
     >
-      <Box component="header" sx={{ pb: 1.5, pt: 2, px: 2 }}>
+      <Box
+        component="header"
+        sx={{
+          pb: 1.5,
+          pt: (theme) =>
+            `calc(${theme.spacing(2)} + env(safe-area-inset-top, 0px))`,
+          px: 2,
+        }}
+      >
         <Typography component="h1" variant="h1">
           {title}
         </Typography>
@@ -47,7 +57,8 @@ export function PageShell({
           sx={{
             bgcolor: "background.default",
             bottom: 0,
-            pb: "calc(16px + env(safe-area-inset-bottom, 0px))",
+            pb: (theme) =>
+              `calc(${theme.spacing(2)} + env(safe-area-inset-bottom, 0px))`,
             position: "sticky",
             pt: 1,
             px: 2,

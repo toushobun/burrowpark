@@ -24,9 +24,8 @@ export function SlotStatusBadge({ status, label }: SlotStatusBadgeProps) {
         borderRadius: `${designTokens.radius.full}px`,
         color: colors.text,
         display: "inline-flex",
-        fontSize: "1rem",
-        fontWeight: 900,
-        lineHeight: 1.4,
+        typography: "body2",
+        fontWeight: (theme) => theme.typography.button.fontWeight,
         px: 1.5,
         py: 0.25,
       }}

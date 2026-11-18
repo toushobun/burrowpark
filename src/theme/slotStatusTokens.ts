@@ -67,9 +67,9 @@ export const slotStatusColors: Record<SlotStatus, SlotStatusColor> = {
     text: "#3E3832",
   },
   privateBorrowed: {
-    background: "#FFF1DE",
-    border: "#B85600",
+    background: "#DDF2EE",
+    border: "#00796B",
     borderStyle: "solid",
-    text: "#7A3900",
+    text: "#004D40",
   },
 };

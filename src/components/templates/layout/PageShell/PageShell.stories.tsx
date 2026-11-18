@@ -22,6 +22,12 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
+export const WithLongTitle: Story = {
+  args: {
+    title: "途泊属 · 今天的车位使用情况",
+  },
+};
+
 export const WithPrimaryAction: Story = {
   args: {
     footer: (

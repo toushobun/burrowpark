@@ -55,7 +55,7 @@ Repository / Service / Controller / Router 或错误处理的任务，必须先�
 - HTTP API 失败通过真实 `4xx` / `5xx` 与统一 `error` 响应体表达。
 - Server Action 不是独立 HTTP API。失败态以 `BaseActionState` 为基础返回
   inline `{ error, errorKey? }`，由当前页面复用 `FailureFeedbackDialog`
-  展示；Action 记录未知异常并返回安全 message，不得为制造 HTTP `500`
+  展示（该组件由首个包含 Server Action 的 Issue 建立）；Action 记录未知异常并返回安全 message，不得为制造 HTTP `500`
   破坏 `useActionState`。`errorKey` 仅用于区分连续发生的失败并触发本次
   反馈，每次失败可生成新的随机值，不是稳定业务错误码；禁止为各 flow
   新增 `{ ok, error }` 协议或失败 `redirect()`，成功后的真实页面导航仍

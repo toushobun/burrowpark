@@ -27,6 +27,7 @@ export const designTokens = {
     // 长辈用户的最小点击区域，高于 WCAG 推荐的 44px。
     touchTargetMin: 56,
     primaryActionHeight: 68,
+    contentMaxWidth: 480,
   },
   radius: {
     sm: 10,
@@ -40,6 +41,6 @@ export const designTokens = {
     // 正文基准字号（px）。不得低于 18。
     bodySize: 18,
     // 任何场景允许的最小字号（px），包括注释、图例。
-    minSize: 14,
+    minSize: 16,
   },
 } as const;
