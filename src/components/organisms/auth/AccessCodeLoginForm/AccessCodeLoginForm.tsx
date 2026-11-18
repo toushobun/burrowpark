@@ -22,7 +22,6 @@ export function AccessCodeLoginForm({ action }: AccessCodeLoginFormProps) {
 
   function dismissError() {
     setCode("");
-
   }
 
   function restoreFocus() {
@@ -73,7 +72,11 @@ export function AccessCodeLoginForm({ action }: AccessCodeLoginFormProps) {
           </Button>
         </Stack>
       </form>
-      <FailureFeedbackDialog onClose={dismissError} onExited={restoreFocus} state={state} />
+      <FailureFeedbackDialog
+        onClose={dismissError}
+        onExited={restoreFocus}
+        state={state}
+      />
     </>
   );
 }
