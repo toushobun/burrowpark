@@ -1,5 +1,5 @@
 begin;
-select plan(20);
+select plan(22);
 
 -- 匿名角色既不可读取两张表，也不能执行三个 RPC。
 set local role anon;
@@ -39,6 +39,17 @@ update public.login_attempts
   set window_started_at = now() - interval '2 hours'
   where key = 'ip:' || repeat('a', 64);
 select is((select allowed from public.consume_login_attempt('ip:' || repeat('a', 64))), false, '窗口到期不能提前解除未过期锁定');
+
+-- 单一 IP 的持续请求不应耗尽全局额度，也不能影响其他 IP。
+truncate public.login_attempts;
+do $
+begin
+  for i in 1..40 loop
+    perform * from public.consume_login_attempt('ip:' || repeat('a', 64));
+  end loop;
+end $;
+select ok((select attempt_count <= 6 from public.login_attempts where key = 'global'), '同 IP 连续四十次不推高全局计数');
+select is((select allowed from public.consume_login_attempt('ip:' || repeat('c', 64))), true, '其他 IP 仍允许尝试');
 
 truncate public.login_attempts;
 do $$
