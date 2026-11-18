@@ -45,8 +45,9 @@ begin
   perform pg_catalog.pg_advisory_xact_lock(731205::bigint);
   v_now := pg_catalog.clock_timestamp();
 
-  -- 固定顺序：global → IP；两个 key 在同一事务内都增加计数。
-  foreach v_key in array array['global', p_ip_key] loop
+  -- 阈值：同 IP 15 分钟 5 次锁 15 分钟；全局 1 小时 30 次锁 1 小时。
+  -- 先处理 IP，已锁定的 IP 不消耗全局额度。
+  foreach v_key in array array[p_ip_key, 'global'] loop
     if v_key = 'global' then
       v_window := interval '1 hour';
       v_limit := 30;
@@ -93,6 +94,11 @@ begin
           extract(epoch from (v_locked_until - v_now))
         )::int
       );
+    end if;
+
+    if v_key = p_ip_key and v_retry > 0 then
+      return query select false, v_retry;
+      return;
     end if;
   end loop;
 
