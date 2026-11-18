@@ -19,7 +19,11 @@ function createApp() {
   app.use("*", async (c, next) => {
     c.set("container", {} as RequestContainer);
     c.set("requestDependencies", {
-      auth: { email: null, isAuthenticated: false, userId: null },
+      getAuth: vi.fn().mockResolvedValue({
+        email: null,
+        isAuthenticated: false,
+        userId: null,
+      }),
       logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
       requestId: "request-1",
       supabase: {} as never,

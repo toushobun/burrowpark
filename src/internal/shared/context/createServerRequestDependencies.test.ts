@@ -9,7 +9,11 @@ vi.mock("internal/shared/context/requestDependencies", async () => {
   return {
     ...actual,
     createRequestDependencies: vi.fn().mockResolvedValue({
-      auth: { email: null, isAuthenticated: false, userId: null },
+      getAuth: vi.fn().mockResolvedValue({
+        email: null,
+        isAuthenticated: false,
+        userId: null,
+      }),
       logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
       requestId: "fixed-request-id",
       supabase: {},
@@ -24,7 +28,7 @@ describe("createServerRequestDependencies", () => {
     const dependencies = await createServerRequestDependencies();
 
     expect(dependencies.requestId).toBe("fixed-request-id");
-    expect(dependencies.auth).toEqual({
+    await expect(dependencies.getAuth()).resolves.toEqual({
       email: null,
       isAuthenticated: false,
       userId: null,

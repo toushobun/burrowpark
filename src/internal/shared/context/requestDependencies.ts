@@ -1,3 +1,5 @@
+import "server-only";
+
 import {
   getAuthContext,
   type AuthContext,
@@ -16,7 +18,7 @@ import { createRequestId } from "internal/shared/context/requestId";
  */
 export type RequestDependencies = {
   requestId: string;
-  auth: AuthContext;
+  getAuth: () => Promise<AuthContext>;
   logger: Logger;
   supabase: AuthenticatedSupabaseClient;
 };
@@ -31,7 +33,11 @@ export async function createRequestDependencies(): Promise<RequestDependencies> 
   const requestId = createRequestId();
   const logger = createLogger(requestId);
   const supabase = await createAuthenticatedSupabaseClient();
-  const auth = await getAuthContext(supabase);
+  let authPromise: Promise<AuthContext> | undefined;
+  const getAuth = () => {
+    authPromise ??= getAuthContext(supabase, logger);
+    return authPromise;
+  };
 
-  return { auth, logger, requestId, supabase };
+  return { getAuth, logger, requestId, supabase };
 }

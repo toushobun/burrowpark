@@ -187,7 +187,11 @@ describe("errorHandlingMiddleware", () => {
     app.use("*", async (c, next) => {
       c.set("requestId", "req-1");
       c.set("requestDependencies", {
-        auth: { email: null, isAuthenticated: false, userId: null },
+        getAuth: vi.fn().mockResolvedValue({
+          email: null,
+          isAuthenticated: false,
+          userId: null,
+        }),
         logger: { error: loggerError, info: vi.fn(), warn: vi.fn() },
         requestId: "req-1",
         supabase: {} as never,
