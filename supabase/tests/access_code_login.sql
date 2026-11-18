@@ -25,22 +25,22 @@ reset role;
 
 -- 第六次同 IP 尝试被锁定；全局第 31 次也被锁定。
 truncate public.login_attempts;
-do $
+do $$
 begin
   for i in 1..5 loop
     perform * from public.consume_login_attempt('ip:' || repeat('a', 64));
   end loop;
-end $;
+end $$;
 select is((select allowed from public.consume_login_attempt('ip:' || repeat('a', 64))), false, '同 IP 第六次尝试被锁定');
 select ok((select retry_after_seconds from public.consume_login_attempt('ip:' || repeat('a', 64)) > 0), '锁定返回大于零的秒数');
 
 truncate public.login_attempts;
-do $
+do $$
 begin
   for i in 1..30 loop
     perform * from public.consume_login_attempt('ip:' || lpad(to_hex(i), 64, '0'));
   end loop;
-end $;
+end $$;
 select is((select allowed from public.consume_login_attempt('ip:' || repeat('f', 64))), false, '全局第 31 次尝试被锁定');
 
 -- 窗口过期后重计数。
@@ -50,9 +50,9 @@ select is((select allowed from public.consume_login_attempt('ip:' || repeat('f',
 
 -- 重置一个 IP 时不能删除 global 或别的 IP。
 truncate public.login_attempts;
-do $ begin perform * from public.consume_login_attempt('ip:' || repeat('a', 64)); end $;
-do $ begin perform * from public.consume_login_attempt('ip:' || repeat('b', 64)); end $;
-do $ begin perform public.reset_login_attempts('ip:' || repeat('a', 64)); end $;
+do $$ begin perform * from public.consume_login_attempt('ip:' || repeat('a', 64)); end $$;
+do $$ begin perform * from public.consume_login_attempt('ip:' || repeat('b', 64)); end $$;
+do $$ begin perform public.reset_login_attempts('ip:' || repeat('a', 64)); end $$;
 select is((select count(*) from public.login_attempts where key = 'ip:' || repeat('a', 64)), 0::bigint, '只删除指定 IP');
 select is((select count(*) from public.login_attempts where key = 'global'), 1::bigint, '不清除 global');
 select is((select count(*) from public.login_attempts where key = 'ip:' || repeat('b', 64)), 1::bigint, '不删除其他 IP');
