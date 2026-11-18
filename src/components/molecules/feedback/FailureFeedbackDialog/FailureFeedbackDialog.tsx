@@ -5,7 +5,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import Typography from "@mui/material/Typography";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { authMessages } from "internal/auth";
 import type { ActionState } from "types/actions";
@@ -20,16 +20,14 @@ export function FailureFeedbackDialog({
   state,
   onClose,
 }: FailureFeedbackDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [dismissedKey, setDismissedKey] = useState<string | undefined>();
 
-  useEffect(() => {
-    if (state.error && state.errorKey) {
-      setOpen(true);
-    }
-  }, [state.error, state.errorKey]);
+  const open = Boolean(
+    state.error && state.errorKey && state.errorKey !== dismissedKey,
+  );
 
   const close = () => {
-    setOpen(false);
+    setDismissedKey(state.errorKey);
     onClose?.();
   };
 
@@ -37,7 +35,7 @@ export function FailureFeedbackDialog({
     <Dialog
       aria-describedby="failure-feedback-message"
       onClose={close}
-      open={open && Boolean(state.error && state.errorKey)}
+      open={open}
       fullWidth
       maxWidth="xs"
     >
