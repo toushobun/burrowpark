@@ -22,6 +22,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      leases: {
+        Row: {
+          created_at: string;
+          ended_on: string | null;
+          id: string;
+          note: string | null;
+          phone: string | null;
+          plate: string | null;
+          slot_code: string;
+          starts_on: string;
+          tenant_name: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          ended_on?: string | null;
+          id?: string;
+          note?: string | null;
+          phone?: string | null;
+          plate?: string | null;
+          slot_code: string;
+          starts_on: string;
+          tenant_name: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          ended_on?: string | null;
+          id?: string;
+          note?: string | null;
+          phone?: string | null;
+          plate?: string | null;
+          slot_code?: string;
+          starts_on?: string;
+          tenant_name?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "leases_slot_code_fkey";
+            columns: ["slot_code"];
+            isOneToOne: false;
+            referencedRelation: "slots";
+            referencedColumns: ["code"];
+          },
+        ];
+      };
       login_attempts: {
         Row: {
           attempt_count: number;
@@ -44,6 +92,224 @@ export type Database = {
         };
         Relationships: [];
       };
+      parking_sessions: {
+        Row: {
+          billing_type: Database["public"]["Enums"]["billing_type"];
+          borrow_until: string | null;
+          created_at: string;
+          entered_at: string;
+          id: string;
+          lease_id: string | null;
+          left_at: string | null;
+          note: string | null;
+          photo_path: string | null;
+          plate: string;
+          slot_code: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          billing_type: Database["public"]["Enums"]["billing_type"];
+          borrow_until?: string | null;
+          created_at?: string;
+          entered_at?: string;
+          id?: string;
+          lease_id?: string | null;
+          left_at?: string | null;
+          note?: string | null;
+          photo_path?: string | null;
+          plate: string;
+          slot_code: string;
+          updated_at?: string;
+        };
+        Update: {
+          billing_type?: Database["public"]["Enums"]["billing_type"];
+          borrow_until?: string | null;
+          created_at?: string;
+          entered_at?: string;
+          id?: string;
+          lease_id?: string | null;
+          left_at?: string | null;
+          note?: string | null;
+          photo_path?: string | null;
+          plate?: string;
+          slot_code?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "parking_sessions_lease_id_fkey";
+            columns: ["lease_id"];
+            isOneToOne: false;
+            referencedRelation: "leases";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "parking_sessions_slot_code_fkey";
+            columns: ["slot_code"];
+            isOneToOne: false;
+            referencedRelation: "slots";
+            referencedColumns: ["code"];
+          },
+        ];
+      };
+      payments: {
+        Row: {
+          amount_cents: number;
+          created_at: string;
+          id: string;
+          lease_id: string | null;
+          method: Database["public"]["Enums"]["payment_method"];
+          paid_at: string;
+          paid_until: string | null;
+          purpose: Database["public"]["Enums"]["payment_purpose"];
+          session_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          amount_cents: number;
+          created_at?: string;
+          id?: string;
+          lease_id?: string | null;
+          method: Database["public"]["Enums"]["payment_method"];
+          paid_at?: string;
+          paid_until?: string | null;
+          purpose: Database["public"]["Enums"]["payment_purpose"];
+          session_id?: string | null;
+        };
+        Update: {
+          amount_cents?: number;
+          created_at?: string;
+          id?: string;
+          lease_id?: string | null;
+          method?: Database["public"]["Enums"]["payment_method"];
+          paid_at?: string;
+          paid_until?: string | null;
+          purpose?: Database["public"]["Enums"]["payment_purpose"];
+          session_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payments_lease_id_fkey";
+            columns: ["lease_id"];
+            isOneToOne: false;
+            referencedRelation: "leases";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payments_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "parking_sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      pricing_settings: {
+        Row: {
+          hotel_checkout_hour: number;
+          hotel_daily_price_cents: number;
+          hotel_previous_day_before_hour: number;
+          hourly_price_cents: number;
+          id: boolean;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          hotel_checkout_hour: number;
+          hotel_daily_price_cents: number;
+          hotel_previous_day_before_hour: number;
+          hourly_price_cents: number;
+          id?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          hotel_checkout_hour?: number;
+          hotel_daily_price_cents?: number;
+          hotel_previous_day_before_hour?: number;
+          hourly_price_cents?: number;
+          id?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      reservations: {
+        Row: {
+          closed_at: string | null;
+          created_at: string;
+          guest_name: string | null;
+          id: string;
+          note: string | null;
+          outcome: Database["public"]["Enums"]["reservation_outcome"] | null;
+          session_id: string | null;
+          slot_code: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          closed_at?: string | null;
+          created_at?: string;
+          guest_name?: string | null;
+          id?: string;
+          note?: string | null;
+          outcome?: Database["public"]["Enums"]["reservation_outcome"] | null;
+          session_id?: string | null;
+          slot_code: string;
+        };
+        Update: {
+          closed_at?: string | null;
+          created_at?: string;
+          guest_name?: string | null;
+          id?: string;
+          note?: string | null;
+          outcome?: Database["public"]["Enums"]["reservation_outcome"] | null;
+          session_id?: string | null;
+          slot_code?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reservations_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "parking_sessions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reservations_slot_code_fkey";
+            columns: ["slot_code"];
+            isOneToOne: false;
+            referencedRelation: "slots";
+            referencedColumns: ["code"];
+          },
+        ];
+      };
+      slots: {
+        Row: {
+          code: string;
+          is_active: boolean;
+          kind: Database["public"]["Enums"]["slot_kind"];
+          name: string;
+          sort_order: number;
+          yard: Database["public"]["Enums"]["yard"];
+        };
+        ComputedFields: never;
+        Insert: {
+          code: string;
+          is_active?: boolean;
+          kind: Database["public"]["Enums"]["slot_kind"];
+          name: string;
+          sort_order: number;
+          yard: Database["public"]["Enums"]["yard"];
+        };
+        Update: {
+          code?: string;
+          is_active?: boolean;
+          kind?: Database["public"]["Enums"]["slot_kind"];
+          name?: string;
+          sort_order?: number;
+          yard?: Database["public"]["Enums"]["yard"];
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -60,7 +326,12 @@ export type Database = {
       reset_login_attempts: { Args: { p_ip_key: string }; Returns: undefined };
     };
     Enums: {
-      [_ in never]: never;
+      billing_type: "hotel_daily" | "hourly" | "lease" | "free";
+      payment_method: "wechat" | "alipay" | "cash";
+      payment_purpose: "prepay" | "renewal" | "settlement";
+      reservation_outcome: "arrived" | "cancelled";
+      slot_kind: "regular" | "aisle" | "private";
+      yard: "inner" | "outer";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -190,6 +461,13 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      billing_type: ["hotel_daily", "hourly", "lease", "free"],
+      payment_method: ["wechat", "alipay", "cash"],
+      payment_purpose: ["prepay", "renewal", "settlement"],
+      reservation_outcome: ["arrived", "cancelled"],
+      slot_kind: ["regular", "aisle", "private"],
+      yard: ["inner", "outer"],
+    },
   },
 } as const;
