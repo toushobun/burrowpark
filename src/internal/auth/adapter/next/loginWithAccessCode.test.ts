@@ -3,9 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ValidationError } from "internal/shared/errors/appError";
-import {
-  sharedErrorMessages,
-} from "internal/shared/errors/sharedErrorMessages";
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 
 import { loginWithAccessCode } from "./loginWithAccessCode";
 
