@@ -35,7 +35,11 @@ export async function getAuthContext(
       return { email: null, isAuthenticated: false, userId: null };
     }
 
-    return { email: user.email ?? null, isAuthenticated: true, userId: user.id };
+    return {
+      email: user.email ?? null,
+      isAuthenticated: true,
+      userId: user.id,
+    };
   } catch (error) {
     if (
       isAuthSessionMissingError(error) ||

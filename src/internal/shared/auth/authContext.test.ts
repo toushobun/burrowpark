@@ -34,37 +34,37 @@ describe("getAuthContext", () => {
       id: "user-1",
     });
 
-    await expect(
-      getAuthContext(supabase, createLoggerStub()),
-    ).resolves.toEqual({
-      email: "user@example.com",
-      isAuthenticated: true,
-      userId: "user-1",
-    });
+    await expect(getAuthContext(supabase, createLoggerStub())).resolves.toEqual(
+      {
+        email: "user@example.com",
+        isAuthenticated: true,
+        userId: "user-1",
+      },
+    );
   });
 
   it("没有用户时返回 isAuthenticated: false", async () => {
     const supabase = createSupabaseStub(null);
 
-    await expect(
-      getAuthContext(supabase, createLoggerStub()),
-    ).resolves.toEqual({
-      email: null,
-      isAuthenticated: false,
-      userId: null,
-    });
+    await expect(getAuthContext(supabase, createLoggerStub())).resolves.toEqual(
+      {
+        email: null,
+        isAuthenticated: false,
+        userId: null,
+      },
+    );
   });
 
   it("会话缺失时视为未登录", async () => {
     const supabase = createSupabaseStub(null, new AuthSessionMissingError());
 
-    await expect(
-      getAuthContext(supabase, createLoggerStub()),
-    ).resolves.toEqual({
-      email: null,
-      isAuthenticated: false,
-      userId: null,
-    });
+    await expect(getAuthContext(supabase, createLoggerStub())).resolves.toEqual(
+      {
+        email: null,
+        isAuthenticated: false,
+        userId: null,
+      },
+    );
   });
 
   it.each([401, 403])("AuthApiError %i 时视为未登录", async (status) => {
@@ -73,13 +73,13 @@ describe("getAuthContext", () => {
       new AuthApiError("session rejected", status, "invalid_session"),
     );
 
-    await expect(
-      getAuthContext(supabase, createLoggerStub()),
-    ).resolves.toEqual({
-      email: null,
-      isAuthenticated: false,
-      userId: null,
-    });
+    await expect(getAuthContext(supabase, createLoggerStub())).resolves.toEqual(
+      {
+        email: null,
+        isAuthenticated: false,
+        userId: null,
+      },
+    );
   });
 
   it("网络错误抛出安全的 RepositoryError 并记录安全字段", async () => {
