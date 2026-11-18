@@ -26,7 +26,9 @@ describe("FailureFeedbackDialog", () => {
   it("相同错误文案的新 errorKey 再次弹出", async () => {
     const state = { error: "访问码不对，请再试一次。", errorKey: "error-1" };
     const { rerender } = render(<FailureFeedbackDialog state={state} />);
-    fireEvent.click(await screen.findByRole("button", { name: commonText.acknowledge }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: commonText.acknowledge }),
+    );
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
@@ -42,7 +44,9 @@ describe("FailureFeedbackDialog", () => {
     const { rerender } = render(
       <FailureFeedbackDialog state={state} onClose={onClose} />,
     );
-    fireEvent.click(await screen.findByRole("button", { name: commonText.acknowledge }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: commonText.acknowledge }),
+    );
     expect(onClose).toHaveBeenCalledOnce();
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
