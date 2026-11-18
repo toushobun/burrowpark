@@ -42,12 +42,12 @@ select is((select allowed from public.consume_login_attempt('ip:' || repeat('a',
 
 -- 单一 IP 的持续请求不应耗尽全局额度，也不能影响其他 IP。
 truncate public.login_attempts;
-do $
+do $$
 begin
   for i in 1..40 loop
     perform * from public.consume_login_attempt('ip:' || repeat('a', 64));
   end loop;
-end $;
+end $$;
 select ok((select attempt_count <= 6 from public.login_attempts where key = 'global'), '同 IP 连续四十次不推高全局计数');
 select is((select allowed from public.consume_login_attempt('ip:' || repeat('c', 64))), true, '其他 IP 仍允许尝试');
 
