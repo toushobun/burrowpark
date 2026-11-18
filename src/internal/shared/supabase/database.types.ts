@@ -113,7 +113,7 @@ export type Database = {
           borrow_until?: string | null;
           created_at?: string;
           entered_at?: string;
-          id: string;
+          id?: string;
           lease_id?: string | null;
           left_at?: string | null;
           note?: string | null;
@@ -169,7 +169,7 @@ export type Database = {
         Insert: {
           amount_cents: number;
           created_at?: string;
-          id: string;
+          id?: string;
           lease_id?: string | null;
           method: Database["public"]["Enums"]["payment_method"];
           paid_at?: string;
@@ -249,7 +249,7 @@ export type Database = {
           closed_at?: string | null;
           created_at?: string;
           guest_name?: string | null;
-          id: string;
+          id?: string;
           note?: string | null;
           outcome?: Database["public"]["Enums"]["reservation_outcome"] | null;
           session_id?: string | null;
