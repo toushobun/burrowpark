@@ -55,6 +55,7 @@ docs/                     开发规则（AI_RULES.md、backend-rules.md）
 ## 开发状态
 
 工程框架已搭建，业务功能按 Issue 逐步实现中。
+
 ## 部署
 
 部署前先准备 Supabase 项目、Vercel 环境变量和域名。不要把生产访问码或家庭账号密码提交到仓库。

@@ -1,4 +1,7 @@
-export type ProxyAuthStatus = "authenticated" | "unauthenticated" | "unavailable";
+export type ProxyAuthStatus =
+  | "authenticated"
+  | "unauthenticated"
+  | "unavailable";
 export type ProxyRoutingDecision = "allow" | "login" | "home";
 
 /** 认证状态和 URL 的组合决策；API 自行返回 401，服务异常保留原路径。 */

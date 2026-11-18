@@ -31,7 +31,10 @@ export async function proxy(request: NextRequest) {
 
   let status: "authenticated" | "unauthenticated" | "unavailable";
   try {
-    const auth = await getAuthContext(supabase, createLogger(crypto.randomUUID()));
+    const auth = await getAuthContext(
+      supabase,
+      createLogger(crypto.randomUUID()),
+    );
     status = auth.isAuthenticated ? "authenticated" : "unauthenticated";
   } catch (error) {
     if (!(error instanceof RepositoryError)) throw error;
@@ -42,8 +45,12 @@ export async function proxy(request: NextRequest) {
   if (decision === "allow") return response;
 
   const destination = decision === "home" ? "/" : "/login";
-  const redirectResponse = NextResponse.redirect(new URL(destination, request.url));
-  response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+  const redirectResponse = NextResponse.redirect(
+    new URL(destination, request.url),
+  );
+  response.cookies
+    .getAll()
+    .forEach((cookie) => redirectResponse.cookies.set(cookie));
   return redirectResponse;
 }
 

@@ -1,6 +1,4 @@
-import {
-  createAuthRepository,
-} from "internal/auth/repository/authRepository";
+import { createAuthRepository } from "internal/auth/repository/authRepository";
 import { createAuthService } from "internal/auth/service/authService";
 import type { AuthService } from "internal/auth";
 import type { RequestDependencies } from "internal/shared/context/requestDependencies";

@@ -14,11 +14,15 @@ describe("getClientIp", () => {
   });
 
   it("缺少 x-forwarded-for 时使用 x-real-ip", () => {
-    expect(getClientIp(new Headers({ "x-real-ip": "198.51.100.8" }))).toBe("198.51.100.8");
+    expect(getClientIp(new Headers({ "x-real-ip": "198.51.100.8" }))).toBe(
+      "198.51.100.8",
+    );
   });
 
   it("没有 IP 头时稳定归入同一限流键", () => {
-    expect(hashClientIp(getClientIp(new Headers()))).toMatch(/^ip:[0-9a-f]{64}$/);
+    expect(hashClientIp(getClientIp(new Headers()))).toMatch(
+      /^ip:[0-9a-f]{64}$/,
+    );
     expect(hashClientIp("a")).not.toBe(hashClientIp("b"));
   });
 });

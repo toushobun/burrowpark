@@ -17,6 +17,9 @@ export const IncorrectAccessCode: Story = {};
 
 export const RateLimited: Story = {
   args: {
-    state: { error: "输错太多次了，请 15 分钟后再试。", errorKey: "rate-limit" },
+    state: {
+      error: "输错太多次了，请 15 分钟后再试。",
+      errorKey: "rate-limit",
+    },
   },
 };

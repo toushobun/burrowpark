@@ -42,7 +42,10 @@ export function createAuthService(
 
       const config = getConfig();
       if (!accessCodesMatch(code, config.ACCESS_CODE)) {
-        throw new ValidationError("incorrect_access_code", authMessages.incorrectCode);
+        throw new ValidationError(
+          "incorrect_access_code",
+          authMessages.incorrectCode,
+        );
       }
 
       await repository.signInFamily(

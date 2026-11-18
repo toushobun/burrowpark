@@ -7,7 +7,12 @@ import Typography from "@mui/material/Typography";
 import { authMessages } from "internal/auth";
 import { PageShell } from "templates/layout/PageShell/PageShell";
 
-export default function ErrorPage({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function ErrorPage({
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   return (
     <PageShell title={authMessages.title}>
       <Stack spacing={3}>

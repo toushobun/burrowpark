@@ -4,7 +4,10 @@ import { ValidationError } from "internal/shared/errors/appError";
 
 import { authMessages } from "./errors";
 
-const accessCodeSchema = z.string().trim().regex(/^\d{6,12}$/);
+const accessCodeSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6,12}$/);
 
 export function parseAccessCode(value: FormDataEntryValue | null): string {
   const result = accessCodeSchema.safeParse(value);

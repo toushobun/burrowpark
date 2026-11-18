@@ -37,7 +37,9 @@ export function AccessCodeLoginForm({ action }: AccessCodeLoginFormProps) {
             label={authMessages.accessCodeLabel}
             name="accessCode"
             onChange={(event) => setCode(event.target.value)}
-            slotProps={{ htmlInput: { inputMode: "numeric", autoComplete: "off" } }}
+            slotProps={{
+              htmlInput: { inputMode: "numeric", autoComplete: "off" },
+            }}
             sx={{
               "& .MuiInputBase-root": {
                 minHeight: designTokens.size.touchTargetMin,
@@ -56,7 +58,14 @@ export function AccessCodeLoginForm({ action }: AccessCodeLoginFormProps) {
             type="submit"
             variant="contained"
           >
-            {isPending && <CircularProgress aria-label="提交中" color="inherit" size={24} sx={{ mr: 1 }} />}
+            {isPending && (
+              <CircularProgress
+                aria-label="提交中"
+                color="inherit"
+                size={24}
+                sx={{ mr: 1 }}
+              />
+            )}
             {authMessages.submit}
           </Button>
         </Stack>

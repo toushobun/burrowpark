@@ -6,7 +6,10 @@ const meta = {
   component: AccessCodeLoginForm,
   title: "Organisms/Auth/AccessCodeLoginForm",
   args: {
-    action: async () => ({ error: "访问码不对，请再试一次。", errorKey: crypto.randomUUID() }),
+    action: async () => ({
+      error: "访问码不对，请再试一次。",
+      errorKey: crypto.randomUUID(),
+    }),
   },
 } satisfies Meta<typeof AccessCodeLoginForm>;
 

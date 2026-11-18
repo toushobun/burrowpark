@@ -16,25 +16,35 @@ describe("FailureFeedbackDialog", () => {
         state={{ error: "访问码不对，请再试一次。", errorKey: "error-1" }}
       />,
     );
-    expect(await screen.findByRole("dialog")).toHaveTextContent("访问码不对，请再试一次。");
+    expect(await screen.findByRole("dialog")).toHaveTextContent(
+      "访问码不对，请再试一次。",
+    );
   });
 
   it("相同错误文案的新 errorKey 再次弹出", async () => {
     const state = { error: "访问码不对，请再试一次。", errorKey: "error-1" };
     const { rerender } = render(<FailureFeedbackDialog state={state} />);
     fireEvent.click(await screen.findByRole("button", { name: "知道了" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    rerender(<FailureFeedbackDialog state={{ ...state, errorKey: "error-2" }} />);
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    rerender(
+      <FailureFeedbackDialog state={{ ...state, errorKey: "error-2" }} />,
+    );
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
   });
 
   it("关闭后不会因重新渲染相同 errorKey 再弹出", async () => {
     const onClose = vi.fn();
     const state = { error: "访问码不对，请再试一次。", errorKey: "error-1" };
-    const { rerender } = render(<FailureFeedbackDialog state={state} onClose={onClose} />);
+    const { rerender } = render(
+      <FailureFeedbackDialog state={state} onClose={onClose} />,
+    );
     fireEvent.click(await screen.findByRole("button", { name: "知道了" }));
     expect(onClose).toHaveBeenCalledOnce();
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
     rerender(<FailureFeedbackDialog state={{ ...state }} onClose={onClose} />);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });

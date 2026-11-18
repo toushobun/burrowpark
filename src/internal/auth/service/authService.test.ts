@@ -6,7 +6,9 @@ import { accessCodesMatch, createAuthService } from "./authService";
 
 function stubRepository(): AuthRepository {
   return {
-    consumeLoginAttempt: vi.fn().mockResolvedValue({ allowed: true, retryAfterSeconds: 0 }),
+    consumeLoginAttempt: vi
+      .fn()
+      .mockResolvedValue({ allowed: true, retryAfterSeconds: 0 }),
     resetLoginAttempts: vi.fn().mockResolvedValue(undefined),
     signInFamily: vi.fn().mockResolvedValue(undefined),
   };
@@ -21,8 +23,13 @@ const config = () => ({
 describe("createAuthService", () => {
   it("对的访问码先计数再登录，并只清除当前 IP", async () => {
     const repository = stubRepository();
-    await createAuthService(repository, config).loginWithCode("123456", "ip:abc");
-    expect(vi.mocked(repository.consumeLoginAttempt).mock.invocationCallOrder[0]).toBeLessThan(
+    await createAuthService(repository, config).loginWithCode(
+      "123456",
+      "ip:abc",
+    );
+    expect(
+      vi.mocked(repository.consumeLoginAttempt).mock.invocationCallOrder[0],
+    ).toBeLessThan(
       vi.mocked(repository.signInFamily).mock.invocationCallOrder[0],
     );
     expect(repository.resetLoginAttempts).toHaveBeenCalledWith("ip:abc");
@@ -30,7 +37,9 @@ describe("createAuthService", () => {
 
   it("不正确的访问码先计数、但不请求登录", async () => {
     const repository = stubRepository();
-    await expect(createAuthService(repository, config).loginWithCode("999999", "ip:abc")).rejects.toMatchObject({
+    await expect(
+      createAuthService(repository, config).loginWithCode("999999", "ip:abc"),
+    ).rejects.toMatchObject({
       code: "incorrect_access_code",
       message: "访问码不对，请再试一次。",
     });
@@ -41,9 +50,12 @@ describe("createAuthService", () => {
   it("锁定时返回向上取整的分钟数和原始秒数", async () => {
     const repository = stubRepository();
     vi.mocked(repository.consumeLoginAttempt).mockResolvedValue({
-      allowed: false, retryAfterSeconds: 61,
+      allowed: false,
+      retryAfterSeconds: 61,
     });
-    await expect(createAuthService(repository, config).loginWithCode("123456", "ip:abc")).rejects.toMatchObject({
+    await expect(
+      createAuthService(repository, config).loginWithCode("123456", "ip:abc"),
+    ).rejects.toMatchObject({
       code: "access_code_rate_limited",
       message: "输错太多次了，请 2 分钟后再试。",
       details: { retryAfterSeconds: 61 },
@@ -54,7 +66,9 @@ describe("createAuthService", () => {
   it("认证失败时不清除尝试次数", async () => {
     const repository = stubRepository();
     vi.mocked(repository.signInFamily).mockRejectedValue(new Error("认证失败"));
-    await expect(createAuthService(repository, config).loginWithCode("123456", "ip:abc")).rejects.toThrow();
+    await expect(
+      createAuthService(repository, config).loginWithCode("123456", "ip:abc"),
+    ).rejects.toThrow();
     expect(repository.resetLoginAttempts).not.toHaveBeenCalled();
   });
 });
