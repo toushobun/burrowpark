@@ -1,6 +1,10 @@
 // @vitest-environment node
 
-import { AuthApiError, AuthSessionMissingError } from "@supabase/supabase-js";
+import {
+  AuthApiError,
+  AuthRetryableFetchError,
+  AuthSessionMissingError,
+} from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -67,7 +71,7 @@ describe("getAuthContext", () => {
     );
   });
 
-  it.each([401, 403])("AuthApiError %i 时视为未登录", async (status) => {
+  it.each([400, 401, 403, 404])("AuthApiError %i 时视为未登录", async (status) => {
     const supabase = createSupabaseStub(
       null,
       new AuthApiError("session rejected", status, "invalid_session"),
@@ -80,6 +84,20 @@ describe("getAuthContext", () => {
         userId: null,
       },
     );
+  });
+
+  it.each([
+    new AuthRetryableFetchError("x", 0),
+    new AuthApiError("x", 500, "unexpected_failure"),
+  ])("Supabase 服务异常 %s 抛出 RepositoryError", async (error) => {
+    const logger = createLoggerStub();
+    const supabase = createSupabaseStub(null, error);
+
+    await expect(getAuthContext(supabase, logger)).rejects.toMatchObject({
+      code: "auth_unavailable",
+      message: sharedErrorMessages.authUnavailable,
+    });
+    expect(logger.error).toHaveBeenCalledOnce();
   });
 
   it("网络错误抛出安全的 RepositoryError 并记录安全字段", async () => {

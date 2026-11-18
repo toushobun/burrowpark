@@ -28,8 +28,8 @@ describe("SlotStatusBadge", () => {
     );
 
     expect(screen.getByText("私人位借用中")).toHaveStyle({
-      fontSize: theme.typography.body2.fontSize,
-      fontWeight: theme.typography.button.fontWeight,
+      fontSize: String(theme.typography.body2.fontSize),
+      fontWeight: String(theme.typography.button.fontWeight),
     });
   });
 

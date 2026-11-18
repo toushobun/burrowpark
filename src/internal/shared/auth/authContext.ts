@@ -43,7 +43,7 @@ export async function getAuthContext(
   } catch (error) {
     if (
       isAuthSessionMissingError(error) ||
-      (isAuthApiError(error) && (error.status === 401 || error.status === 403))
+      (isAuthApiError(error) && error.status >= 400 && error.status < 500)
     ) {
       return { email: null, isAuthenticated: false, userId: null };
     }
