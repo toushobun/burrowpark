@@ -31,7 +31,7 @@ create unique index leases_active_slot_idx on public.leases (slot_code)
   where ended_on is null;
 
 create table public.parking_sessions (
-  id uuid primary key,
+  id uuid primary key default gen_random_uuid(),
   slot_code text not null references public.slots (code) on delete restrict,
   plate text not null check (char_length(plate) between 2 and 10),
   billing_type public.billing_type not null,
@@ -52,7 +52,7 @@ create unique index parking_sessions_active_plate_idx on public.parking_sessions
   where left_at is null;
 
 create table public.payments (
-  id uuid primary key,
+  id uuid primary key default gen_random_uuid(),
   session_id uuid references public.parking_sessions (id) on delete cascade,
   lease_id uuid references public.leases (id) on delete cascade,
   purpose public.payment_purpose not null,
@@ -68,7 +68,7 @@ create index payments_lease_id_idx on public.payments (lease_id);
 create index payments_paid_at_idx on public.payments (paid_at);
 
 create table public.reservations (
-  id uuid primary key,
+  id uuid primary key default gen_random_uuid(),
   slot_code text not null references public.slots (code) on delete restrict,
   guest_name text,
   note text,
@@ -84,11 +84,11 @@ create unique index reservations_open_slot_idx on public.reservations (slot_code
 
 create table public.pricing_settings (
   id boolean primary key default true check (id),
-  hotel_daily_price_cents int not null,
+  hotel_daily_price_cents int not null check (hotel_daily_price_cents > 0),
   hotel_checkout_hour int not null check (hotel_checkout_hour between 0 and 23),
   hotel_previous_day_before_hour int not null
     check (hotel_previous_day_before_hour between 0 and 23),
-  hourly_price_cents int not null,
+  hourly_price_cents int not null check (hourly_price_cents > 0),
   updated_at timestamptz not null default now()
 );
 
