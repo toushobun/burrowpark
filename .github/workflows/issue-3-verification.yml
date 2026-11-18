@@ -41,6 +41,8 @@ jobs:
             git commit -m "chore: 生成依赖锁文件、数据库类型并统一格式"
             git push origin HEAD:feature/3_access_code_login
           fi
+      - name: Database tests
+        run: npx supabase test db
       - name: Check
         run: npm run check
       - name: Build
@@ -50,8 +52,6 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
       - name: Build Storybook
         run: npm run build-storybook
-      - name: Database tests
-        run: npx supabase test db
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup
