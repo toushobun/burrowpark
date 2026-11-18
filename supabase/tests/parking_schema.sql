@@ -181,7 +181,7 @@ select lives_ok(
 select is((select count(*) from storage.objects where bucket_id = 'plate-photos' and name = 'test/renamed.jpg'), 1::bigint, '照片对象修改生效');
 -- Storage 自带保护触发器拒绝直接 SQL 删除，删除必须经过 Storage API。
 select throws_ok(
-  $delete from storage.objects where bucket_id = 'plate-photos' and name = 'test/renamed.jpg'$,
+  $$delete from storage.objects where bucket_id = 'plate-photos' and name = 'test/renamed.jpg'$$,
   '42501', null, 'Storage 禁止直接 SQL 删除照片对象'
 );
 select ok(
