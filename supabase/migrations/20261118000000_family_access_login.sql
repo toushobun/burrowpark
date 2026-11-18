@@ -86,7 +86,7 @@ begin
       where key = v_key;
 
     if v_locked_until > v_now then
-      v_retry := pg_catalog.greatest(
+      v_retry := greatest(
         v_retry,
         pg_catalog.ceil(
           extract(epoch from (v_locked_until - v_now))
