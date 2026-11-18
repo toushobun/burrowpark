@@ -18,10 +18,39 @@
 - 私人产权车位的临时借用与超时提醒
 - 按月统计收入与车位使用率
 
-## 技术栈（规划）
+## 技术栈
 
-Next.js · React · MUI · Supabase · Hono · Zod · Vitest · Storybook
+- **前端**：Next.js 16（App Router）· React 19 · MUI 9 · PWA
+- **后端**：Hono（`@hono/zod-openapi`）挂载于 `/api`，Zod 作为请求 / 响应的单一契约来源
+- **数据**：Supabase（Postgres + Storage + RLS）
+- **质量**：TypeScript strict · ESLint · Prettier · Vitest · Storybook · GitHub Actions
+
+## 本地开发
+
+```bash
+cp .env.example .env.local   # 填入 Supabase 连接信息
+npm install
+npm run dev                  # http://localhost:3000
+npm run storybook            # http://localhost:6006
+npm run check                # 类型检查 + Lint + 格式检查 + 单元测试
+```
+
+## 目录结构
+
+```text
+app/                      Next.js 路由（页面、API 入口、manifest）
+src/
+├── components/           Atomic Design：atoms / molecules / organisms / templates
+├── internal/             后端：按业务模块分层（router / controller / service / repository）
+│   └── shared/           统一错误、日志、中间件、Supabase client 等通用能力
+├── theme/                MUI theme 与设计 token（面向长辈的大字号、车位状态配色）
+├── config/               面向用户的文案常量
+└── test/                 测试共通设置
+docs/                     开发规则（AI_RULES.md、backend-rules.md）
+```
+
+开发规则见 [docs/AI_RULES.md](docs/AI_RULES.md)。
 
 ## 开发状态
 
-项目刚刚启动，正在搭建工程框架。
+工程框架已搭建，业务功能按 Issue 逐步实现中。

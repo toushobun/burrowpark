@@ -1,0 +1,66 @@
+import { render, screen } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
+import { describe, expect, it } from "vitest";
+
+import { designTokens } from "theme/designTokens";
+import { theme } from "theme/theme";
+
+import { PageShell } from "./PageShell";
+
+describe("PageShell", () => {
+  it("以一级标题显示页面标题并渲染内容", () => {
+    render(
+      <PageShell title="途泊属">
+        <p>车位地图</p>
+      </PageShell>,
+    );
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "途泊属" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("main")).toHaveTextContent("车位地图");
+  });
+
+  it("传入 subtitle 与 footer 时显示", () => {
+    render(
+      <PageShell
+        footer={<button>车进来</button>}
+        subtitle="11月18日"
+        title="途泊属"
+      >
+        内容
+      </PageShell>,
+    );
+
+    expect(screen.getByText("11月18日")).toBeInTheDocument();
+    expect(screen.getByRole("contentinfo")).toContainElement(
+      screen.getByRole("button", { name: "车进来" }),
+    );
+  });
+
+  it("页面宽度和安全区间距使用设计 token 与 Theme", () => {
+    render(
+      <ThemeProvider theme={theme}>
+        <PageShell footer={<button>车进来</button>} title="途泊属">
+          内容
+        </PageShell>
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByRole("banner")).toHaveStyle({
+      paddingTop: `calc(${theme.spacing(2)} + env(safe-area-inset-top, 0px))`,
+    });
+    expect(screen.getByRole("contentinfo")).toHaveStyle({
+      paddingBottom: `calc(${theme.spacing(2)} + env(safe-area-inset-bottom, 0px))`,
+    });
+    expect(screen.getByRole("main").parentElement).toHaveStyle({
+      maxWidth: `${designTokens.size.contentMaxWidth}px`,
+    });
+  });
+
+  it("未传 footer 时不渲染底部区域", () => {
+    render(<PageShell title="途泊属">内容</PageShell>);
+
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+});

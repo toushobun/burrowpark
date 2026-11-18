@@ -1,0 +1,230 @@
+name: CI
+
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+env:
+  RUN_CODE_CI: &run_code_ci >-
+    github.event_name != 'pull_request' ||
+    startsWith(github.head_ref, 'docs/') == false
+
+jobs:
+  # Stage 1: 并行静态检查
+  type-check:
+    name: Type check
+    if: *run_code_ci
+    runs-on: ubuntu-latest
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+  format-check:
+    name: Format check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+  lint:
+    name: Lint
+    if: *run_code_ci
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+  # Stage 2: 依赖 Stage 1 运行单元测试
+  test:
+    name: Test
+    if: >-
+      always() &&
+      (github.event_name != 'pull_request' ||
+      startsWith(github.head_ref, 'docs/') == false)
+    needs: [format-check, type-check, lint]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify prerequisite checks
+        env:
+          FORMAT_CHECK_RESULT: ${{ needs['format-check'].result }}
+          TYPE_CHECK_RESULT: ${{ needs['type-check'].result }}
+          LINT_RESULT: ${{ needs.lint.result }}
+        run: |
+          if [ "$FORMAT_CHECK_RESULT" != "success" ] || \
+             [ "$TYPE_CHECK_RESULT" != "success" ] || \
+             [ "$LINT_RESULT" != "success" ]; then
+            echo "Format check: $FORMAT_CHECK_RESULT"
+            echo "Type check: $TYPE_CHECK_RESULT"
+            echo "Lint: $LINT_RESULT"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test
+
+  # Stage 3: build 和 storybook-build 并行，只等待测试完成
+  build:
+    name: Build
+    if: *run_code_ci
+    needs: [test]
+    runs-on: ubuntu-latest
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Run build
+        run: npm run build
+
+  storybook-build:
+    name: Storybook build
+    if: *run_code_ci
+    needs: [test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Build Storybook
+        run: npm run build-storybook
+
+      - name: Upload Storybook artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: storybook-static
+          path: storybook-static
