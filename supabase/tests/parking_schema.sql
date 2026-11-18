@@ -179,11 +179,19 @@ select lives_ok(
   '家庭账号可修改照片对象'
 );
 select is((select count(*) from storage.objects where bucket_id = 'plate-photos' and name = 'test/renamed.jpg'), 1::bigint, '照片对象修改生效');
-select lives_ok(
-  $$delete from storage.objects where bucket_id = 'plate-photos' and name = 'test/renamed.jpg'$$,
-  '家庭账号可删除照片对象'
+-- Storage 自带保护触发器拒绝直接 SQL 删除，删除必须经过 Storage API。
+select throws_ok(
+  $delete from storage.objects where bucket_id = 'plate-photos' and name = 'test/renamed.jpg'$,
+  '42501', null, 'Storage 禁止直接 SQL 删除照片对象'
 );
-select is((select count(*) from storage.objects where bucket_id = 'plate-photos' and name = 'test/renamed.jpg'), 0::bigint, '照片对象删除生效');
+select ok(
+  exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects'
+      and policyname = 'plate_photos_family_delete' and cmd = 'DELETE'
+  ),
+  '照片删除的家庭账号 RLS 策略已创建，供 Storage API 使用'
+);
 
 reset role;
 
