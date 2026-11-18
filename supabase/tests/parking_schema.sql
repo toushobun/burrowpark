@@ -1,5 +1,5 @@
 begin;
-select * from no_plan();
+select plan(123);
 
 -- 测试车位只在事务内创建，不进入 migration 或 seed。
 insert into public.slots (code, name, yard, kind, sort_order) values
@@ -83,6 +83,11 @@ select lives_ok(
   '家庭账号可以修改收费设置'
 );
 select is((select hourly_price_cents from public.pricing_settings), 600, '收费设置修改后可查询');
+select throws_ok(
+  $$update public.pricing_settings set hourly_price_cents = 0$$,
+  '23514', null, '家庭账号不能将每小时收费设置为零'
+);
+
 select ok((select updated_at >= now() from public.pricing_settings), '收费设置 updated_at 有值');
 
 select lives_ok(
@@ -128,6 +133,13 @@ select lives_ok(
   '家庭账号可删除停车记录'
 );
 select is((select count(*) from public.parking_sessions where id = '00000000-0000-4000-8000-000000000052'), 0::bigint, '停车记录删除生效');
+select lives_ok(
+  $$insert into public.parking_sessions (slot_code, plate, billing_type)
+    values ('test-in-2', 'GEN01', 'hourly')$$,
+  '家庭账号可省略停车记录 id，由数据库生成 UUID'
+);
+delete from public.parking_sessions where plate = 'GEN01';
+
 
 select lives_ok(
   $$insert into public.payments (id, session_id, purpose, amount_cents, method, paid_until)
@@ -146,6 +158,14 @@ select lives_ok(
   '家庭账号可删除收款'
 );
 select is((select count(*) from public.payments where id = '00000000-0000-4000-8000-000000000061'), 0::bigint, '收款删除生效');
+select lives_ok(
+  $$insert into public.payments (session_id, purpose, amount_cents, method)
+    values ('00000000-0000-4000-8000-000000000051', 'prepay', 100, 'cash')$$,
+  '家庭账号可省略收款 id，由数据库生成 UUID'
+);
+delete from public.payments where session_id = '00000000-0000-4000-8000-000000000051'
+  and amount_cents = 100;
+
 
 select lives_ok(
   $$insert into public.reservations (id, slot_code, guest_name)
@@ -168,6 +188,13 @@ select lives_ok(
   '家庭账号可删除预留'
 );
 select is((select count(*) from public.reservations where id = '00000000-0000-4000-8000-000000000072'), 0::bigint, '预留删除生效');
+select lives_ok(
+  $$insert into public.reservations (slot_code, guest_name)
+    values ('test-out-1', '默认主键测试')$$,
+  '家庭账号可省略预留 id，由数据库生成 UUID'
+);
+delete from public.reservations where guest_name = '默认主键测试';
+
 
 select lives_ok(
   $$insert into storage.objects (bucket_id, name) values ('plate-photos', 'test/family.jpg')$$,
