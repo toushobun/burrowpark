@@ -22,8 +22,11 @@ export function AccessCodeLoginForm({ action }: AccessCodeLoginFormProps) {
 
   function dismissError() {
     setCode("");
-    // 关闭 Dialog 的焦点陷阱后，将输入焦点交还给访问码输入框。
-    setTimeout(() => inputRef.current?.focus(), 0);
+
+  }
+
+  function restoreFocus() {
+    inputRef.current?.focus();
   }
 
   return (
@@ -70,7 +73,7 @@ export function AccessCodeLoginForm({ action }: AccessCodeLoginFormProps) {
           </Button>
         </Stack>
       </form>
-      <FailureFeedbackDialog onClose={dismissError} state={state} />
+      <FailureFeedbackDialog onClose={dismissError} onExited={restoreFocus} state={state} />
     </>
   );
 }

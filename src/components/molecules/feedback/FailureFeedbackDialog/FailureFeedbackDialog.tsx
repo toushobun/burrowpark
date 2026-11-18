@@ -13,12 +13,14 @@ import type { ActionState } from "types/actions";
 type FailureFeedbackDialogProps = {
   state: ActionState;
   onClose?: () => void;
+  onExited?: () => void;
 };
 
 /** 仅响应新的 errorKey；关闭后不会由同一个失败状态重新打开。 */
 export function FailureFeedbackDialog({
   state,
   onClose,
+  onExited,
 }: FailureFeedbackDialogProps) {
   const [dismissedKey, setDismissedKey] = useState<string | undefined>();
 
@@ -36,6 +38,7 @@ export function FailureFeedbackDialog({
       aria-describedby="failure-feedback-message"
       onClose={close}
       open={open}
+      slotProps={{ transition: { onExited } }}
       fullWidth
       maxWidth="xs"
     >

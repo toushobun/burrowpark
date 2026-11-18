@@ -152,7 +152,6 @@ jobs:
       - name: Run tests
         run: npm run test
 
-
   database:
     name: Database tests and generated types
     if: *run_code_ci
@@ -187,6 +186,7 @@ jobs:
       - name: Verify generated database types
         run: |
           npm run db:types
+          npx prettier src/internal/shared/supabase/database.types.ts --write
           git diff --exit-code -- src/internal/shared/supabase/database.types.ts
 
       - name: Stop local Supabase
