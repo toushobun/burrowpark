@@ -9,11 +9,6 @@ import { getAuthEnvironment } from "internal/auth/repository/authEnvironment";
 
 import { authMessages } from "../errors";
 
-export const loginAttemptLimits = {
-  ip: { maxAttempts: 5, windowMinutes: 15, lockMinutes: 15 },
-  global: { maxAttempts: 30, windowMinutes: 60, lockMinutes: 60 },
-} as const;
-
 export interface AuthService {
   loginWithCode(code: string, ipKey: string): Promise<void>;
 }
