@@ -5,7 +5,10 @@ import { cookies } from "next/headers";
 
 import type { Database } from "./database.types";
 
-/** 创建携带当前用户 Session、受 RLS 保护的认证 Supabase Client。 */
+/**
+ * 创建携带当前用户 Session、受 RLS 保护的认证 Supabase Client。
+ * 默认应使用此工厂；只有确有必要的后台操作才使用 service-role Client。
+ */
 export async function createAuthenticatedSupabaseClient() {
   const cookieStore = await cookies();
 
@@ -23,7 +26,8 @@ export async function createAuthenticatedSupabaseClient() {
               cookieStore.set(name, value, options);
             });
           } catch {
-            // Server Component 不能写 Cookie，由 proxy.ts 刷新并写入响应。
+            // Server Components 无法始终写入 cookie。
+            // Session 刷新由 proxy.ts 负责。
           }
         },
       },
