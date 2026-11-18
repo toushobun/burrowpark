@@ -14,23 +14,9 @@ afterEach(() => {
 });
 
 describe("createServiceRoleSupabaseClient", () => {
-  it("优先使用 service role key", () => {
+  it("只使用 SUPABASE_SECRET_KEY", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://127.0.0.1:54321");
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key");
-    vi.stubEnv("SUPABASE_SECRET_KEY", "secret-key");
-
-    createServiceRoleSupabaseClient();
-
-    expect(createSupabaseClientMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:54321",
-      "service-role-key",
-      expect.any(Object),
-    );
-  });
-
-  it("service role key 缺失时使用 secret key", () => {
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://127.0.0.1:54321");
-    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
     vi.stubEnv("SUPABASE_SECRET_KEY", "secret-key");
 
     createServiceRoleSupabaseClient();
@@ -42,7 +28,18 @@ describe("createServiceRoleSupabaseClient", () => {
     );
   });
 
-  it("两个服务端 key 均缺失时抛出错误", () => {
+  it("缺少 secret key 时不回退到旧 service role key", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://127.0.0.1:54321");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "legacy-key");
+    vi.stubEnv("SUPABASE_SECRET_KEY", "");
+
+    expect(() => createServiceRoleSupabaseClient()).toThrow(
+      "Supabase service role environment variables are missing.",
+    );
+    expect(createSupabaseClientMock).not.toHaveBeenCalled();
+  });
+
+  it("secret key 缺失时抛出错误", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://127.0.0.1:54321");
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
     vi.stubEnv("SUPABASE_SECRET_KEY", "");

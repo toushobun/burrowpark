@@ -7,6 +7,8 @@ import {
   openApiValidationErrorHook,
 } from "internal/shared/http/errorResponse";
 import { requestContextMiddleware } from "internal/shared/middleware/requestContextMiddleware";
+import { sameOriginMiddleware } from "internal/shared/middleware/sameOriginMiddleware";
+import { jsonBodySyntaxMiddleware } from "internal/shared/middleware/jsonBodySyntaxMiddleware";
 
 /**
  * Master Router：挂载全局 middleware、统一异常处理、统一 404，
@@ -17,6 +19,8 @@ export const apiRouter = new OpenAPIHono<AppEnv>({
 }).basePath("/api");
 
 apiRouter.use("*", requestContextMiddleware);
+apiRouter.use("*", sameOriginMiddleware);
+apiRouter.use("*", jsonBodySyntaxMiddleware);
 apiRouter.onError(errorHandlingMiddleware);
 
 apiRouter.notFound((c) =>

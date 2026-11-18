@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
@@ -23,7 +25,7 @@ export async function createAuthenticatedSupabaseClient() {
             });
           } catch {
             // Server Components 无法始终写入 cookie。
-            // Proxy 会刷新 Session 并写入更新后的 cookie。
+            // Session 刷新由 proxy.ts 负责，将在访问码登录 Issue 中实现。
           }
         },
       },
