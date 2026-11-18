@@ -2,6 +2,8 @@ import "server-only";
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
+import type { Database } from "./database.types";
+
 /**
  * 显式创建 service-role Client，绕过 RLS。
  *
@@ -16,7 +18,7 @@ export function createServiceRoleSupabaseClient() {
     throw new Error("Supabase service role environment variables are missing.");
   }
 
-  return createSupabaseClient(supabaseUrl, serviceRoleKey, {
+  return createSupabaseClient<Database>(supabaseUrl, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

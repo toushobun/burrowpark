@@ -3,6 +3,8 @@ import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+import type { Database } from "./database.types";
+
 /**
  * 创建携带当前用户 Session、受 RLS 保护的认证 Supabase Client。
  * 默认应使用此工厂；只有确有必要的后台操作才使用 service-role Client。
@@ -10,7 +12,7 @@ import { cookies } from "next/headers";
 export async function createAuthenticatedSupabaseClient() {
   const cookieStore = await cookies();
 
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
@@ -25,7 +27,7 @@ export async function createAuthenticatedSupabaseClient() {
             });
           } catch {
             // Server Components 无法始终写入 cookie。
-            // Session 刷新由 proxy.ts 负责，将在访问码登录 Issue 中实现。
+            // Session 刷新由 proxy.ts 负责。
           }
         },
       },

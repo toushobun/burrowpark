@@ -152,6 +152,47 @@ jobs:
       - name: Run tests
         run: npm run test
 
+  database:
+    name: Database tests and generated types
+    if: *run_code_ci
+    needs: [test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.122.1
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Run pgTAP tests
+        run: supabase test db
+
+      - name: Verify generated database types
+        run: |
+          npm run db:types
+          npx prettier src/internal/shared/supabase/database.types.ts --write
+          git diff --exit-code -- src/internal/shared/supabase/database.types.ts
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
+
   # Stage 3: build 和 storybook-build 并行，只等待测试完成
   build:
     name: Build

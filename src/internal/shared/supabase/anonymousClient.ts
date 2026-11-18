@@ -2,6 +2,8 @@ import "server-only";
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
+import type { Database } from "./database.types";
+
 /**
  * 创建不携带用户 Session 的匿名 Supabase Client（仅使用 anon /
  * publishable key，仍受 RLS 保护）。用于确有必要在未登录场景下
@@ -20,7 +22,7 @@ export function createAnonymousSupabaseClient() {
     );
   }
 
-  return createSupabaseClient(supabaseUrl, publishableKey, {
+  return createSupabaseClient<Database>(supabaseUrl, publishableKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

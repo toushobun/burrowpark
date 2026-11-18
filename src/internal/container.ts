@@ -1,3 +1,6 @@
+import { createAuthRepository } from "internal/auth/repository/authRepository";
+import { createAuthService } from "internal/auth/service/authService";
+import type { AuthService } from "internal/auth";
 import type { RequestDependencies } from "internal/shared/context/requestDependencies";
 
 /**
@@ -11,13 +14,18 @@ import type { RequestDependencies } from "internal/shared/context/requestDepende
  * 新增业务模块时，按「模块字段 + getter 惰性构造」的方式登记：
  * 未被访问的模块不会创建对应的 Repository / Service。
  */
-// 业务模块尚未登记，暂用空对象类型；登记第一个模块后改为显式字段。
-export type RequestContainer = Readonly<Record<never, never>>;
+export type RequestContainer = Readonly<{ auth: AuthService }>;
 
 export function createRequestContainer(
   dependencies: RequestDependencies,
 ): RequestContainer {
-  // 登记业务模块后由各模块工厂使用 dependencies。
-  void dependencies;
-  return {};
+  let auth: AuthService | undefined;
+  return {
+    get auth() {
+      auth ??= createAuthService(
+        createAuthRepository(dependencies.supabase, dependencies.logger),
+      );
+      return auth;
+    },
+  };
 }
