@@ -1,5 +1,5 @@
 begin;
-select plan(19);
+select plan(20);
 
 -- 匿名角色既不可读取两张表，也不能执行三个 RPC。
 set local role anon;
@@ -34,8 +34,14 @@ end $$;
 select is((select allowed from public.consume_login_attempt('ip:' || repeat('a', 64))), false, '同 IP 第六次尝试被锁定');
 select ok((select retry_after_seconds from public.consume_login_attempt('ip:' || repeat('a', 64)) > 0), '锁定返回大于零的秒数');
 
+-- 即使计数窗口过期，仍必须遵守尚未到期的锁定。
+update public.login_attempts
+  set window_started_at = now() - interval '2 hours'
+  where key = 'ip:' || repeat('a', 64);
+select is((select allowed from public.consume_login_attempt('ip:' || repeat('a', 64))), false, '窗口到期不能提前解除未过期锁定');
+
 truncate public.login_attempts;
-do $$
+do $
 begin
   for i in 1..30 loop
     perform * from public.consume_login_attempt('ip:' || lpad(to_hex(i), 64, '0'));

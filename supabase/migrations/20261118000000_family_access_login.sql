@@ -65,7 +65,8 @@ begin
       where key = v_key
       for update;
 
-    if v_started + v_window <= v_now then
+    if v_started + v_window <= v_now
+       and (v_locked_until is null or v_locked_until <= v_now) then
       v_count := 0;
       v_started := v_now;
       v_locked_until := null;

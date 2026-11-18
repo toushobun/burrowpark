@@ -3,11 +3,11 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { authMessages } from "internal/auth";
 import { createRequestContainer } from "internal/container";
 import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createRequestDependencies } from "internal/shared/context/requestDependencies";
 import { AppError } from "internal/shared/errors/appError";
-import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import type { ActionState } from "types/actions";
 
 import { parseAccessCode } from "../../schema";
@@ -31,7 +31,7 @@ export async function loginWithAccessCode(
     console.error("[auth] login action failed", {
       errorName: error instanceof Error ? error.name : "unknown",
     });
-    return createErrorState(sharedErrorMessages.authUnavailable);
+    return createErrorState(authMessages.unavailable);
   }
 
   redirect("/");
