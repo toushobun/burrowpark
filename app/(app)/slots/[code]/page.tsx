@@ -15,7 +15,17 @@ export default async function SlotDetailPage({
 }) {
   const { code } = await params;
   const now = new Date();
-  const detail = await loadSlotDetail(code, now);
+  const loadedDetail = await loadSlotDetail(code, now);
+  // 停用车位不需要向客户端传递车辆或租户的个人信息。
+  const detail =
+    loadedDetail && !loadedDetail.isActive
+      ? {
+          ...loadedDetail,
+          presentVehicle: null,
+          reservation: null,
+          lease: null,
+        }
+      : loadedDetail;
   const vehicle = detail?.presentVehicle;
 
   const display = detail
