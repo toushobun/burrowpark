@@ -60,16 +60,36 @@ export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
         </Button>
         {zoomed && (
           <>
-            <Button disabled={origin.x === 0} onClick={() => pan(-PAN_STEP, 0)} size="large" variant="outlined">
+            <Button
+              disabled={origin.x === 0}
+              onClick={() => pan(-PAN_STEP, 0)}
+              size="large"
+              variant="outlined"
+            >
               {slotMapText.panLeft}
             </Button>
-            <Button disabled={origin.x >= slotLayout.width - ZOOM_WIDTH} onClick={() => pan(PAN_STEP, 0)} size="large" variant="outlined">
+            <Button
+              disabled={origin.x >= slotLayout.width - ZOOM_WIDTH}
+              onClick={() => pan(PAN_STEP, 0)}
+              size="large"
+              variant="outlined"
+            >
               {slotMapText.panRight}
             </Button>
-            <Button disabled={origin.y === 0} onClick={() => pan(0, -PAN_STEP)} size="large" variant="outlined">
+            <Button
+              disabled={origin.y === 0}
+              onClick={() => pan(0, -PAN_STEP)}
+              size="large"
+              variant="outlined"
+            >
               {slotMapText.panUp}
             </Button>
-            <Button disabled={origin.y >= slotLayout.height - ZOOM_HEIGHT} onClick={() => pan(0, PAN_STEP)} size="large" variant="outlined">
+            <Button
+              disabled={origin.y >= slotLayout.height - ZOOM_HEIGHT}
+              onClick={() => pan(0, PAN_STEP)}
+              size="large"
+              variant="outlined"
+            >
               {slotMapText.panDown}
             </Button>
           </>
