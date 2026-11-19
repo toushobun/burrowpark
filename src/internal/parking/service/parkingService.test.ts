@@ -80,6 +80,57 @@ describe("createParkingService", () => {
     expect(repository.readSlotFacts).toHaveBeenCalledOnce();
   });
 
+  it("首页即使有照片也不生成签名地址", async () => {
+    const { service, repository } = makeService(
+      makeRows({ sessions: [makeSession()] }),
+    );
+
+    await service.getSlotMap(now);
+
+    expect(repository.getPhotoSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it("详情只签当前车位照片，忽略其他在场车位", async () => {
+    const { service, repository } = makeService(
+      makeRows({
+        sessions: [
+          makeSession({ photo_path: "slot-1.png" }),
+          makeSession({
+            id: "session-2",
+            slot_code: "2",
+            photo_path: "slot-2.png",
+          }),
+        ],
+      }),
+    );
+
+    await service.getSlotDetail("1", now);
+
+    expect(repository.getPhotoSignedUrl).toHaveBeenCalledOnce();
+    expect(repository.getPhotoSignedUrl).toHaveBeenCalledWith("slot-1.png");
+  });
+
+  it("详情没有照片或停用时不生成签名地址", async () => {
+    const { service, repository } = makeService(
+      makeRows({
+        sessions: [
+          makeSession({ photo_path: null }),
+          makeSession({
+            id: "session-2",
+            slot_code: "2",
+            photo_path: "inactive.png",
+          }),
+        ],
+      }),
+    );
+
+    expect((await service.getSlotDetail("1", now))?.presentVehicle?.photoUrl).toBeNull();
+    await service.getSlotDetail("2", now);
+    await service.getSlotDetail("not-exist", now);
+
+    expect(repository.getPhotoSignedUrl).not.toHaveBeenCalled();
+  });
+
   it("首页普通在场停车按最大收款期限判断", async () => {
     const { service } = makeService(
       makeRows({
