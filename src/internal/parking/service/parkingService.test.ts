@@ -140,7 +140,10 @@ describe("createParkingService", () => {
     );
 
     const result = await service.getSlotMap(now);
-    expect(result.map((slot) => slot.status)).toEqual(["reserved", "leaseAway"]);
+    expect(result.map((slot) => slot.status)).toEqual([
+      "reserved",
+      "leaseAway",
+    ]);
   });
 
   it("详情页车位不存在时返回 null", async () => {
@@ -265,9 +268,7 @@ describe("createParkingService", () => {
 
     const detail = await service.getSlotDetail("1", now);
     const map = await service.getSlotMap(now);
-    expect(detail?.presentVehicle?.paidUntil).toBe(
-      "2026-11-20T04:00:00.000Z",
-    );
+    expect(detail?.presentVehicle?.paidUntil).toBe("2026-11-20T04:00:00.000Z");
     expect(detail?.status).toBe(map[0].status);
     expect(map[0]).toEqual({
       code: "1",
