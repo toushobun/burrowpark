@@ -90,9 +90,9 @@ describe("车位状态推导", () => {
   });
 
   it("无车、无预留、无长租的私人位为空闲私人位", () => {
-    expect(
-      deriveSlotStatus(createSlotFacts({ kind: "private" }), now),
-    ).toBe("privateIdle");
+    expect(deriveSlotStatus(createSlotFacts({ kind: "private" }), now)).toBe(
+      "privateIdle",
+    );
   });
 
   it("无车但有未关闭预留时优先显示预留", () => {
