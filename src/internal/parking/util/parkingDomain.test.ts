@@ -243,14 +243,17 @@ describe("在场长租车辆状态", () => {
     [now, "overdue"],
     ["2026-11-19T04:00:00.000Z", "expiringSoon"],
     ["2026-11-20T04:00:00.000Z", "occupied"],
-  ] as const)("交到时间为 %s 时推导长租车辆状态", (paidUntil, expectedStatus) => {
-    expect(
-      deriveSlotStatus(
-        createSlotFacts({
-          present_vehicle: { billing_type: "lease", paid_until: paidUntil },
-        }),
-        now,
-      ),
-    ).toBe(expectedStatus);
-  });
+  ] as const)(
+    "交到时间为 %s 时推导长租车辆状态",
+    (paidUntil, expectedStatus) => {
+      expect(
+        deriveSlotStatus(
+          createSlotFacts({
+            present_vehicle: { billing_type: "lease", paid_until: paidUntil },
+          }),
+          now,
+        ),
+      ).toBe(expectedStatus);
+    },
+  );
 });
