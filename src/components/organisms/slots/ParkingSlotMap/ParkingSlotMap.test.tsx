@@ -34,13 +34,17 @@ describe("ParkingSlotMap", () => {
     expect((90 * (390 - 32)) / (1300 / 3)).toBeGreaterThanOrEqual(56);
     expect(screen.getByRole("button", { name: "向左" })).toBeDisabled();
     // 未完全显示的 2 号车位不可聚焦；移动到视野内后重新可点击。
-    expect(screen.queryByRole("link", { name: "2号，空" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "2号，空" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "9号，空" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "向右" }));
     expect(map.getAttribute("viewBox")?.split(" ")[0]).toBe("260");
     expect(screen.getByRole("link", { name: "2号，空" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "9号，空" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "9号，空" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "返回全图" }));
     expect(map).toHaveAttribute("viewBox", "0 0 1300 1420");
