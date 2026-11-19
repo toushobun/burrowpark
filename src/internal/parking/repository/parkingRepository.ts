@@ -54,7 +54,9 @@ export function createParkingRepository(
     );
   }
 
-  async function signPhotoUrl(photoPath: string | null): Promise<string | null> {
+  async function signPhotoUrl(
+    photoPath: string | null,
+  ): Promise<string | null> {
     if (!photoPath) return null;
 
     try {
