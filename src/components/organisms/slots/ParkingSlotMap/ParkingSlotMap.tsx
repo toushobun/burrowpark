@@ -47,7 +47,15 @@ export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
       <Typography component="h2" variant="h2">
         {slotMapText.mapTitle}
       </Typography>
-      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }} useFlexGap>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          "& .MuiButton-root": { minHeight: designTokens.size.touchTargetMin },
+          flexWrap: "wrap",
+        }}
+        useFlexGap
+      >
         <Button
           onClick={() => {
             setZoomed((current) => !current);
@@ -217,6 +225,13 @@ export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
           {slotLayout.slots.map((shape) => {
             const slot = slotsByCode.get(shape.code);
             const active = Boolean(slot?.isActive);
+            // 放大时只允许聚焦完全可见的车位，避免键盘落在屏幕外或被裁切的点击区域。
+            const fullyVisible =
+              !zoomed ||
+              (shape.x >= origin.x &&
+                shape.y >= origin.y &&
+                shape.x + shape.w <= origin.x + ZOOM_WIDTH &&
+                shape.y + shape.h <= origin.y + ZOOM_HEIGHT);
             const colors =
               active && slot ? slotStatusColors[slot.status] : null;
             const statusText =
@@ -272,7 +287,7 @@ export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
               </g>
             );
 
-            return active && slot ? (
+            return active && slot && fullyVisible ? (
               <a
                 key={shape.code}
                 aria-label={slot.name + "，" + slotStatusLabels[slot.status]}
@@ -281,7 +296,11 @@ export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
                 {drawing}
               </a>
             ) : (
-              <g key={shape.code} data-testid={"inactive-slot-" + shape.code}>
+              <g
+                key={shape.code}
+                aria-hidden={active && !fullyVisible ? true : undefined}
+                data-testid={active ? undefined : "inactive-slot-" + shape.code}
+              >
                 {drawing}
               </g>
             );
