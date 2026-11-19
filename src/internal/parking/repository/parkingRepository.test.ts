@@ -103,7 +103,10 @@ describe("createParkingRepository", () => {
       "family/secret.png",
     );
 
-    const result = await createParkingRepository(client, logger).readSlotFacts();
+    const result = await createParkingRepository(
+      client,
+      logger,
+    ).readSlotFacts();
 
     expect(from).toHaveBeenCalledTimes(4);
     expect(createSignedUrl).toHaveBeenCalledWith("family/secret.png", 600);
@@ -123,7 +126,10 @@ describe("createParkingRepository", () => {
     });
     vi.mocked(logger.warn).mockClear();
 
-    const result = await createParkingRepository(client, logger).readSlotFacts();
+    const result = await createParkingRepository(
+      client,
+      logger,
+    ).readSlotFacts();
 
     expect(result.sessions[0].photoUrl).toBeNull();
     expect(logger.warn).toHaveBeenCalledOnce();
@@ -140,7 +146,10 @@ describe("createParkingRepository", () => {
     );
     createSignedUrl.mockRejectedValueOnce(new Error("secret exception"));
 
-    const result = await createParkingRepository(client, logger).readSlotFacts();
+    const result = await createParkingRepository(
+      client,
+      logger,
+    ).readSlotFacts();
 
     expect(result.sessions[0].photoUrl).toBeNull();
   });
