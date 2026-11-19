@@ -24,6 +24,10 @@ export const CustomLabel: Story = {
   args: { label: "剩 6 分钟", status: "privateBorrowed" },
 };
 
+export const Inactive: Story = {
+  args: { inactive: true, label: "停用", status: "empty" },
+};
+
 export const DistinctWarningAndBorrowed: Story = {
   render: () => (
     <Stack direction="row" spacing={1.5}>
