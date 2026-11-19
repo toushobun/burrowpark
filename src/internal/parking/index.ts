@@ -6,12 +6,19 @@ export type {
   SlotStatusFacts,
 } from "./entity/parkingDomain";
 
-export type { ParkingService, SlotMapSlot } from "./service/parkingService";
+export type {
+  ParkingService,
+  SlotDetail,
+  SlotMapSlot,
+} from "./service/parkingService";
 
 export {
   calculateHourlySuggestedAmountCents,
   calculateHotelCheckoutAt,
   deriveSlotStatus,
+  formatBusinessDate,
+  formatBusinessDateTime,
+  formatElapsed,
   formatPlateForDisplay,
   getBusinessDate,
   getBusinessDateTime,

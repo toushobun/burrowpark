@@ -4,8 +4,14 @@ import {
 } from "internal/shared/auth/authContext";
 import type { SlotStatus } from "theme/slotStatusTokens";
 
-import type { SlotStatusFacts } from "../entity/parkingDomain";
-import type { ParkingRepository } from "../repository/parkingRepository";
+import type {
+  ParkingBillingType,
+  SlotStatusFacts,
+} from "../entity/parkingDomain";
+import type {
+  ParkingRepository,
+  SlotFactsRows,
+} from "../repository/parkingRepository";
 import { deriveSlotStatus } from "../util/parkingDomain";
 
 export type SlotMapSlot = {
@@ -15,8 +21,29 @@ export type SlotMapSlot = {
   status: SlotStatus;
 };
 
+export type SlotDetail = SlotMapSlot & {
+  presentVehicle: {
+    plate: string;
+    billingType: ParkingBillingType;
+    enteredAt: string;
+    paidUntil: string | null;
+    borrowUntil: string | null;
+    photoUrl: string | null;
+  } | null;
+  reservation: {
+    guestName: string | null;
+    note: string | null;
+  } | null;
+  lease: {
+    tenantName: string;
+    phone: string | null;
+    paidUntil: string | null;
+  } | null;
+};
+
 export interface ParkingService {
   getSlotMap(now: Date): Promise<SlotMapSlot[]>;
+  getSlotDetail(code: string, now: Date): Promise<SlotDetail | null>;
 }
 
 function latestPaidUntil(
@@ -36,6 +63,59 @@ function latestPaidUntil(
   return latest;
 }
 
+/** 首页和详情共用同一组车位事实及状态推导输入。 */
+function assembleSlotFacts(facts: SlotFactsRows) {
+  const sessionsBySlot = new Map(
+    facts.sessions.map((session) => [session.slot_code, session]),
+  );
+  const reservationsBySlot = new Map(
+    facts.reservations.map((reservation) => [reservation.slot_code, reservation]),
+  );
+  const leasesBySlot = new Map(
+    facts.leases.map((lease) => [lease.slot_code, lease]),
+  );
+  const leasesById = new Map(facts.leases.map((lease) => [lease.id, lease]));
+
+  return facts.slots.map((slot) => {
+    const session = sessionsBySlot.get(slot.code);
+    const reservation = reservationsBySlot.get(slot.code);
+    const lease = leasesBySlot.get(slot.code);
+    const sessionLease = session?.lease_id
+      ? leasesById.get(session.lease_id)
+      : undefined;
+    const sessionPaidUntil = session
+      ? session.billing_type === "lease"
+        ? latestPaidUntil(sessionLease?.lease_payments ?? [])
+        : latestPaidUntil(session.session_payments)
+      : null;
+    const leasePaidUntil = lease
+      ? latestPaidUntil(lease.lease_payments)
+      : null;
+    const statusFacts: SlotStatusFacts = {
+      kind: slot.kind,
+      present_vehicle: session
+        ? {
+            billing_type: session.billing_type,
+            borrow_until: session.borrow_until,
+            paid_until: sessionPaidUntil,
+          }
+        : null,
+      has_open_reservation: Boolean(reservation),
+      active_lease: lease ? { paid_until: leasePaidUntil } : null,
+    };
+
+    return {
+      slot,
+      session,
+      reservation,
+      lease,
+      sessionPaidUntil,
+      leasePaidUntil,
+      statusFacts,
+    };
+  });
+}
+
 export function createParkingService(
   repository: ParkingRepository,
   getAuth: () => Promise<AuthContext>,
@@ -43,52 +123,59 @@ export function createParkingService(
   return {
     async getSlotMap(now) {
       await requireAuthenticatedUserId(getAuth);
-      const facts = await repository.readSlotMapFacts();
+      const facts = await repository.readSlotFacts();
 
-      const sessionsBySlot = new Map(
-        facts.sessions.map((session) => [session.slot_code, session]),
-      );
-      const reservationsBySlot = new Set(
-        facts.reservations.map((reservation) => reservation.slot_code),
-      );
-      const leasesBySlot = new Map(
-        facts.leases.map((lease) => [lease.slot_code, lease]),
-      );
-      const leasesById = new Map(
-        facts.leases.map((lease) => [lease.id, lease]),
-      );
+      return assembleSlotFacts(facts).map(({ slot, statusFacts }) => ({
+        code: slot.code,
+        name: slot.name,
+        isActive: slot.is_active,
+        status: deriveSlotStatus(statusFacts, now),
+      }));
+    },
 
-      return facts.slots.map((slot) => {
-        const session = sessionsBySlot.get(slot.code);
-        const lease = leasesBySlot.get(slot.code);
-        const sessionLease = session?.lease_id
-          ? leasesById.get(session.lease_id)
-          : undefined;
-        const statusFacts: SlotStatusFacts = {
-          kind: slot.kind,
-          present_vehicle: session
-            ? {
-                billing_type: session.billing_type,
-                borrow_until: session.borrow_until,
-                paid_until:
-                  session.billing_type === "lease"
-                    ? latestPaidUntil(sessionLease?.lease_payments ?? [])
-                    : latestPaidUntil(session.session_payments),
-              }
-            : null,
-          has_open_reservation: reservationsBySlot.has(slot.code),
-          active_lease: lease
-            ? { paid_until: latestPaidUntil(lease.lease_payments) }
-            : null,
-        };
+    async getSlotDetail(code, now) {
+      await requireAuthenticatedUserId(getAuth);
+      const facts = await repository.readSlotFacts();
+      const match = assembleSlotFacts(facts).find(
+        ({ slot }) => slot.code === code,
+      );
+      if (!match) return null;
 
-        return {
-          code: slot.code,
-          name: slot.name,
-          isActive: slot.is_active,
-          status: deriveSlotStatus(statusFacts, now),
-        };
-      });
+      const {
+        slot,
+        session,
+        reservation,
+        lease,
+        sessionPaidUntil,
+        leasePaidUntil,
+        statusFacts,
+      } = match;
+      return {
+        code: slot.code,
+        name: slot.name,
+        isActive: slot.is_active,
+        status: deriveSlotStatus(statusFacts, now),
+        presentVehicle: session
+          ? {
+              plate: session.plate,
+              billingType: session.billing_type,
+              enteredAt: session.entered_at,
+              paidUntil: sessionPaidUntil,
+              borrowUntil: session.borrow_until,
+              photoUrl: session.photoUrl,
+            }
+          : null,
+        reservation: reservation
+          ? { guestName: reservation.guest_name, note: reservation.note }
+          : null,
+        lease: lease
+          ? {
+              tenantName: lease.tenant_name,
+              phone: lease.phone,
+              paidUntil: leasePaidUntil,
+            }
+          : null,
+      };
     },
   };
 }
