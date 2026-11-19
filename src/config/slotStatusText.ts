@@ -11,3 +11,15 @@ export const slotStatusLabels: Record<SlotStatus, string> = {
   privateIdle: "私人位",
   reserved: "预留",
 };
+
+/** 地图内的短状态文案，与完整状态名共用同一处定义。 */
+export const slotStatusShortLabels: Record<SlotStatus, string> = {
+  empty: "空",
+  occupied: "有车",
+  expiringSoon: "快到期",
+  overdue: "已过期",
+  reserved: "预留",
+  leaseAway: "长租不在",
+  privateIdle: "私人位",
+  privateBorrowed: "借用中",
+};
