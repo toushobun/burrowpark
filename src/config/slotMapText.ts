@@ -8,5 +8,4 @@ export const slotMapText = {
   entrance: "入口",
   inactive: "停用",
   unavailable: "未配置",
-  backHome: "返回首页",
 } as const;
