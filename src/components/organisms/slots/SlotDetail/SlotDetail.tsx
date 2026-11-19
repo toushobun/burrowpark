@@ -67,9 +67,9 @@ export function SlotDetail({ detail, display }: SlotDetailProps) {
   const vehicle = detail.presentVehicle;
   const hasDetails = Boolean(
     vehicle ||
-      (detail.reservation &&
-        (detail.reservation.guestName || detail.reservation.note)) ||
-      detail.lease,
+    (detail.reservation &&
+      (detail.reservation.guestName || detail.reservation.note)) ||
+    detail.lease,
   );
   const actions = !detail.isActive
     ? []
