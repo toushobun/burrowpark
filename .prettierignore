@@ -1,2 +1,4 @@
 supabase/migrations/*.sql
 **/*.png
+# 定稿布局按提供的 JSON 原样保存
+src/config/slotLayout.json

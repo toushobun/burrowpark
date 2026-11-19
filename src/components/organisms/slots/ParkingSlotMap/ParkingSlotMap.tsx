@@ -30,7 +30,7 @@ export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
           bgcolor: "background.paper",
           border: 1,
           borderColor: "divider",
-          borderRadius: theme.shape.borderRadius / 1,
+          borderRadius: theme.shape.borderRadius,
           minWidth: 0,
           overflow: "hidden",
           width: "100%",

@@ -1,0 +1,34 @@
+name: Temporary format preview
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  format-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci
+      - name: Print formatted files for review
+        shell: bash
+        run: |
+          set -- \
+            "src/components/organisms/slots/ParkingSlotMap/ParkingSlotMap.test.tsx" \
+            "src/components/organisms/slots/ParkingSlotMap/ParkingSlotMap.tsx" \
+            "src/config/slotLayout.test.ts" \
+            "src/config/slotLayout.ts" \
+            "src/internal/parking/repository/parkingRepository.test.ts" \
+            "src/internal/parking/repository/parkingRepository.ts" \
+            "src/internal/parking/service/parkingService.ts"
+          npx prettier "$@" --write
+          for path in "$@"; do
+            echo "<<<START:$path>>>"
+            base64 -w0 "$path"
+            echo
+            echo "<<<END:$path>>>"
+          done
