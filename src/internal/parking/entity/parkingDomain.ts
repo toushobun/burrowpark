@@ -1,15 +1,18 @@
+import type { Enums, Tables } from "../../shared/supabase/database.types";
+
 export type ParkingTimestamp = Date | string;
 
-export type ParkingSlotKind = "regular" | "aisle" | "private";
+export type ParkingSlotKind = Enums<"slot_kind">;
 
-export type ParkingBillingType = "hotel_daily" | "hourly" | "lease" | "free";
+export type ParkingBillingType = Enums<"billing_type">;
 
-export interface ParkingPricingSettings {
-  hotel_daily_price_cents: number;
-  hotel_checkout_hour: number;
-  hotel_previous_day_before_hour: number;
-  hourly_price_cents: number;
-}
+export type ParkingPricingSettings = Pick<
+  Tables<"pricing_settings">,
+  | "hotel_daily_price_cents"
+  | "hotel_checkout_hour"
+  | "hotel_previous_day_before_hour"
+  | "hourly_price_cents"
+>;
 
 export interface SlotStatusFacts {
   kind: ParkingSlotKind;

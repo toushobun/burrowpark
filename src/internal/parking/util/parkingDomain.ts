@@ -12,6 +12,13 @@ export const LEASE_EXPIRING_SOON_DAYS = 3;
 export const PRIVATE_BORROW_REMINDER_MINUTES = 5;
 
 const parseTimestamp = (value: ParkingTimestamp): Date => {
+  if (
+    typeof value === "string" &&
+    !/(?:Z|[+-][0-9]{2}:[0-9]{2})$/i.test(value)
+  ) {
+    throw new RangeError("时间字符串必须明确指定时区。");
+  }
+
   const date =
     value instanceof Date ? new Date(value.getTime()) : new Date(value);
 
