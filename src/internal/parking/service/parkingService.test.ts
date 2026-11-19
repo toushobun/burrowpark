@@ -124,7 +124,9 @@ describe("createParkingService", () => {
       }),
     );
 
-    expect((await service.getSlotDetail("1", now))?.presentVehicle?.photoUrl).toBeNull();
+    expect(
+      (await service.getSlotDetail("1", now))?.presentVehicle?.photoUrl,
+    ).toBeNull();
     await service.getSlotDetail("2", now);
     await service.getSlotDetail("not-exist", now);
 
