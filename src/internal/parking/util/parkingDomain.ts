@@ -1,4 +1,4 @@
-import type { SlotStatus } from "../../../theme/slotStatusTokens";
+import type { SlotStatus } from "theme/slotStatusTokens";
 import type {
   ParkingPricingSettings,
   ParkingTimestamp,
@@ -97,8 +97,8 @@ export const calculateHotelCheckoutAt = (
     "hotel_checkout_hour" | "hotel_previous_day_before_hour"
   >,
 ): string => {
-  if (!Number.isInteger(days) || days < 0) {
-    throw new RangeError("住宿天数必须是非负整数。");
+  if (!Number.isInteger(days) || days < 1) {
+    throw new RangeError("住宿天数必须是正整数。");
   }
 
   assertHour(settings.hotel_checkout_hour, "hotel_checkout_hour");
@@ -172,7 +172,7 @@ export const deriveSlotStatus = (
     if (facts.kind === "private") {
       const borrowUntil = facts.present_vehicle.borrow_until;
 
-      return borrowUntil && nowTime > parseTimestamp(borrowUntil).getTime()
+      return borrowUntil && nowTime >= parseTimestamp(borrowUntil).getTime()
         ? "overdue"
         : "privateBorrowed";
     }
@@ -190,7 +190,15 @@ export const deriveSlotStatus = (
           return "overdue";
         }
 
-        if (getBusinessDate(paidUntilDate) === getBusinessDate(nowDate)) {
+        const paidUntilBusinessDate = getBusinessDate(paidUntilDate);
+        const currentBusinessDate = getBusinessDate(nowDate);
+        const expiringSoon =
+          facts.present_vehicle.billing_type === "lease"
+            ? paidUntilBusinessDate <=
+              addBusinessDays(currentBusinessDate, LEASE_EXPIRING_SOON_DAYS)
+            : paidUntilBusinessDate === currentBusinessDate;
+
+        if (expiringSoon) {
           return "expiringSoon";
         }
       }

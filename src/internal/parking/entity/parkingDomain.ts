@@ -1,4 +1,4 @@
-import type { Enums, Tables } from "../../shared/supabase/database.types";
+import type { Enums, Tables } from "internal/shared/supabase/database.types";
 
 export type ParkingTimestamp = Date | string;
 

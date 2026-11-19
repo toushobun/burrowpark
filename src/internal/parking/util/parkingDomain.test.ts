@@ -69,6 +69,15 @@ describe("业务时间", () => {
       }),
     ).toBe("2026-11-20T04:00:00.000Z");
   });
+
+  it("酒店客住宿 0 天时拒绝计算交到时间", () => {
+    expect(() =>
+      calculateHotelCheckoutAt("2026-11-18T22:00:00.000Z", 0, {
+        hotel_checkout_hour: 12,
+        hotel_previous_day_before_hour: 6,
+      }),
+    ).toThrow("住宿天数必须是正整数。");
+  });
 });
 
 describe("临停建议金额", () => {
@@ -129,6 +138,17 @@ describe("车位状态推导", () => {
       deriveSlotStatus(
         createSlotFacts({
           active_lease: { paid_until: "2026-11-20T04:00:00.000Z" },
+        }),
+        now,
+      ),
+    ).toBe("leaseAway");
+  });
+
+  it("无车但有三天内到期的在租长租时仍显示长租车不在", () => {
+    expect(
+      deriveSlotStatus(
+        createSlotFacts({
+          active_lease: { paid_until: "2026-11-22T04:00:00.000Z" },
         }),
         now,
       ),
@@ -219,12 +239,24 @@ describe("车位状态推导", () => {
           kind: "private",
           present_vehicle: {
             billing_type: "hourly",
-            borrow_until: now,
+            borrow_until: "2026-11-19T03:00:00.001Z",
           },
         }),
         now,
       ),
     ).toBe("privateBorrowed");
+  });
+
+  it("私人位借用期限恰好等于当前时间时显示已过期", () => {
+    expect(
+      deriveSlotStatus(
+        createSlotFacts({
+          kind: "private",
+          present_vehicle: { billing_type: "hourly", borrow_until: now },
+        }),
+        now,
+      ),
+    ).toBe("overdue");
   });
 
   it("私人位借用期限超过当前时间后显示已过期", () => {
@@ -259,7 +291,9 @@ describe("在场长租车辆状态", () => {
   it.each([
     [now, "overdue"],
     ["2026-11-19T04:00:00.000Z", "expiringSoon"],
-    ["2026-11-20T04:00:00.000Z", "occupied"],
+    ["2026-11-20T04:00:00.000Z", "expiringSoon"],
+    ["2026-11-22T04:00:00.000Z", "expiringSoon"],
+    ["2026-11-23T04:00:00.000Z", "occupied"],
   ] as const)(
     "交到时间为 %s 时推导长租车辆状态",
     (paidUntil, expectedStatus) => {
