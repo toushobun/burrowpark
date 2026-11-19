@@ -65,6 +65,12 @@ export function SlotDetail({ detail, display }: SlotDetailProps) {
   }
 
   const vehicle = detail.presentVehicle;
+  const hasDetails = Boolean(
+    vehicle ||
+      (detail.reservation &&
+        (detail.reservation.guestName || detail.reservation.note)) ||
+      detail.lease,
+  );
   const actions = !detail.isActive
     ? []
     : vehicle
@@ -93,7 +99,7 @@ export function SlotDetail({ detail, display }: SlotDetailProps) {
         />
       </Stack>
 
-      {detail.isActive && (
+      {detail.isActive && hasDetails && (
         <Paper
           variant="outlined"
           sx={{

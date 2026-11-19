@@ -70,10 +70,8 @@ describe("createParkingRepository", () => {
   it("只发起四组固定查询，补齐详情列而不增加逐车位查询", async () => {
     const { client, from, queries } = makeClient();
 
-    const result = await createParkingRepository(
-      client,
-      logger,
-    ).readSlotFacts();
+    const repository = createParkingRepository(client, logger);
+    const result = await repository.readSlotFacts();
 
     expect(from).toHaveBeenCalledTimes(4);
     expect(queries).toHaveLength(4);
@@ -97,7 +95,7 @@ describe("createParkingRepository", () => {
     expect(result.slots).toHaveLength(1);
   });
 
-  it("存在进场照片时生成十分钟有效的签名地址", async () => {
+  it("详情请求照片时生成十分钟有效的签名地址，读取事实不签名", async () => {
     const { client, from, createSignedUrl } = makeClient(
       undefined,
       "family/secret.png",
@@ -106,16 +104,18 @@ describe("createParkingRepository", () => {
     const result = await createParkingRepository(
       client,
       logger,
-    ).readSlotFacts();
+    ).getPhotoSignedUrl("family/secret.png");
 
     expect(from).toHaveBeenCalledTimes(4);
-    expect(createSignedUrl).toHaveBeenCalledWith("family/secret.png", 600);
-    expect(result.sessions[0].photoUrl).toBe(
+    expect(createSignedUrl).not.toHaveBeenCalled();
+    expect(result.sessions[0].photo_path).toBe("family/secret.png");
+    expect(await repository.getPhotoSignedUrl("family/secret.png")).toBe(
       "https://example.com/signed-photo",
     );
+    expect(createSignedUrl).toHaveBeenCalledWith("family/secret.png", 600);
   });
 
-  it("签名失败只记录不带车牌和路径的警告，仍返回车位事实", async () => {
+  it("签名失败只记录不带车牌和路径的警告，不抛异常", async () => {
     const { client, createSignedUrl } = makeClient(
       undefined,
       "family/secret.png",
@@ -129,9 +129,9 @@ describe("createParkingRepository", () => {
     const result = await createParkingRepository(
       client,
       logger,
-    ).readSlotFacts();
+    ).getPhotoSignedUrl("family/secret.png");
 
-    expect(result.sessions[0].photoUrl).toBeNull();
+    expect(result).toBeNull();
     expect(logger.warn).toHaveBeenCalledOnce();
     const warning = JSON.stringify(vi.mocked(logger.warn).mock.calls);
     expect(warning).not.toContain("粤B12345");
@@ -139,7 +139,7 @@ describe("createParkingRepository", () => {
     expect(warning).not.toContain("secret storage failure");
   });
 
-  it("签名过程抛出异常时仍返回车位事实", async () => {
+  it("签名过程抛出异常时返回 null", async () => {
     const { client, createSignedUrl } = makeClient(
       undefined,
       "family/secret.png",
@@ -151,7 +151,7 @@ describe("createParkingRepository", () => {
       logger,
     ).readSlotFacts();
 
-    expect(result.sessions[0].photoUrl).toBeNull();
+    expect(result).toBeNull();
   });
 
   it("数据库失败转换为安全的 RepositoryError，不泄漏原始信息", async () => {

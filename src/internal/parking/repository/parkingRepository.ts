@@ -21,7 +21,6 @@ export type SlotFactsRows = {
     | "photo_path"
   > & {
     session_payments: Pick<Tables<"payments">, "paid_until">[];
-    photoUrl: string | null;
   })[];
   reservations: Pick<
     Tables<"reservations">,
@@ -37,6 +36,7 @@ export type SlotFactsRows = {
 
 export interface ParkingRepository {
   readSlotFacts(): Promise<SlotFactsRows>;
+  getPhotoSignedUrl(photoPath: string): Promise<string | null>;
 }
 
 export function createParkingRepository(
@@ -54,10 +54,7 @@ export function createParkingRepository(
     );
   }
 
-  async function signPhotoUrl(
-    photoPath: string | null,
-  ): Promise<string | null> {
-    if (!photoPath) return null;
+  async function signPhotoUrl(photoPath: string): Promise<string | null> {
 
     try {
       const { data, error } = await supabase.storage
@@ -81,6 +78,7 @@ export function createParkingRepository(
   }
 
   return {
+    getPhotoSignedUrl: signPhotoUrl,
     async readSlotFacts() {
       try {
         // 关联收款在同一次数据库请求中读取，避免按车位 N+1 查询。
@@ -120,16 +118,9 @@ export function createParkingRepository(
           return fail("readActiveLeases", leases.error);
         }
 
-        const presentSessions = await Promise.all(
-          sessions.data.map(async (session) => ({
-            ...session,
-            photoUrl: await signPhotoUrl(session.photo_path),
-          })),
-        );
-
         return {
           slots: slots.data,
-          sessions: presentSessions,
+          sessions: sessions.data,
           reservations: reservations.data,
           leases: leases.data,
         };

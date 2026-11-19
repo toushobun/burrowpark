@@ -41,8 +41,9 @@ describe("SlotDetail", () => {
     expect(screen.queryByRole("button", { name: "登记进场" })).toBeNull();
   });
 
-  it("空车位仅出现登记进场按钮", () => {
-    renderDetail(emptyDetail);
+  it("空车位仅出现登记进场按钮且不显示空信息卡片", () => {
+    const { container } = renderDetail(emptyDetail);
+    expect(container.querySelector(".MuiPaper-root")).toBeNull();
     expect(screen.getByText("7号")).toBeInTheDocument();
     expect(screen.getByText("空")).toBeInTheDocument();
     expectActions(["登记进场"]);

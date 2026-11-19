@@ -33,7 +33,6 @@ function makeSession(
     plate: "粤B12345",
     entered_at: "2026-11-19T01:00:00.000Z",
     photo_path: "photo.png",
-    photoUrl: "https://example.com/photo",
     borrow_until: null,
     lease_id: null,
     session_payments: [],
@@ -57,6 +56,7 @@ function makeLease(
 function makeService(rows: SlotFactsRows) {
   const repository: ParkingRepository = {
     readSlotFacts: vi.fn().mockResolvedValue(rows),
+    getPhotoSignedUrl: vi.fn().mockResolvedValue("https://example.com/photo"),
   };
   const getAuth = vi.fn().mockResolvedValue({
     isAuthenticated: true,
@@ -150,6 +150,7 @@ describe("createParkingService", () => {
     const { service, repository } = makeService(makeRows());
     expect(await service.getSlotDetail("not-exist", now)).toBeNull();
     expect(repository.readSlotFacts).toHaveBeenCalledOnce();
+    expect(repository.getPhotoSignedUrl).not.toHaveBeenCalled();
   });
 
   it("详情页空车位只包含基础信息", async () => {
@@ -166,7 +167,7 @@ describe("createParkingService", () => {
   });
 
   it("详情页酒店客当天交到中午时推导快到期并保留照片", async () => {
-    const { service } = makeService(
+    const { service, repository } = makeService(
       makeRows({
         sessions: [
           makeSession({
@@ -186,6 +187,8 @@ describe("createParkingService", () => {
         photoUrl: "https://example.com/photo",
       },
     });
+    expect(repository.getPhotoSignedUrl).toHaveBeenCalledOnce();
+    expect(repository.getPhotoSignedUrl).toHaveBeenCalledWith("photo.png");
   });
 
   it("详情页临停不计算缴费期限", async () => {
@@ -295,5 +298,6 @@ describe("createParkingService", () => {
       code: "auth_required",
     });
     expect(repository.readSlotFacts).not.toHaveBeenCalled();
+    expect(repository.getPhotoSignedUrl).not.toHaveBeenCalled();
   });
 });

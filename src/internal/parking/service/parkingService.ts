@@ -151,6 +151,11 @@ export function createParkingService(
         leasePaidUntil,
         statusFacts,
       } = match;
+      // 首页不会请求照片签名；详情只签当前车位的在场车辆。
+      const photoUrl =
+        slot.is_active && session?.photo_path
+          ? await repository.getPhotoSignedUrl(session.photo_path)
+          : null;
       return {
         code: slot.code,
         name: slot.name,
@@ -163,7 +168,7 @@ export function createParkingService(
               enteredAt: session.entered_at,
               paidUntil: sessionPaidUntil,
               borrowUntil: session.borrow_until,
-              photoUrl: session.photoUrl,
+              photoUrl,
             }
           : null,
         reservation: reservation
