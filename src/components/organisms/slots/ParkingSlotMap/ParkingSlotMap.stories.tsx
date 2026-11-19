@@ -55,4 +55,6 @@ export const Zoomed: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole¶»§q«^
+    await userEvent.click(canvas.getByRole("button", { name: "æ”¾å¤§æŸ¥çœ‹" }));
+  },
+};
