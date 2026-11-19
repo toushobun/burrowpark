@@ -48,7 +48,10 @@ describe("createParkingRepository", () => {
   it("只发起四组固定查询，收款通过外键关联读取而不是逐车位查询", async () => {
     const { client, from, queries } = makeClient();
 
-    const result = await createParkingRepository(client, logger).readSlotMapFacts();
+    const result = await createParkingRepository(
+      client,
+      logger,
+    ).readSlotMapFacts();
 
     expect(from).toHaveBeenCalledTimes(4);
     expect(queries).toHaveLength(4);

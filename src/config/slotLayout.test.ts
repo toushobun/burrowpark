@@ -8,7 +8,10 @@ import { slotLayout } from "./slotLayout";
 describe("slotLayout", () => {
   it("布局中的车位编号与数据库种子恰好一致，均为 1～29 号", () => {
     const seed = readFileSync(
-      new URL("../../supabase/migrations/20261119000000_slots_seed.sql", import.meta.url),
+      new URL(
+        "../../supabase/migrations/20261119000000_slots_seed.sql",
+        import.meta.url,
+      ),
       "utf8",
     );
     const seedCodes = Array.from(

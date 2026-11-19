@@ -30,11 +30,13 @@ export const slotLayoutSchema = z
     sealedOpening: z.tuple([pointSchema, pointSchema]),
     entrance: rectSchema.strict(),
     areas: z.array(
-      z.object({
-        label: z.string(),
-        x: z.number().finite(),
-        y: z.number().finite(),
-      }).strict(),
+      z
+        .object({
+          label: z.string(),
+          x: z.number().finite(),
+          y: z.number().finite(),
+        })
+        .strict(),
     ),
   })
   .strict();

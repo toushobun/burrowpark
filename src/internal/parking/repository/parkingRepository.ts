@@ -32,7 +32,10 @@ export function createParkingRepository(
       operation,
       errorName: error instanceof Error ? error.name : "unknown",
     });
-    throw new RepositoryError("parking_unavailable", parkingMessages.unavailable);
+    throw new RepositoryError(
+      "parking_unavailable",
+      parkingMessages.unavailable,
+    );
   }
 
   return {

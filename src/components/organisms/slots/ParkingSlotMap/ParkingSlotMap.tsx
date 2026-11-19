@@ -41,7 +41,12 @@ export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
           component="svg"
           preserveAspectRatio="xMidYMid meet"
           role="group"
-          sx={{ display: "block", height: "auto", maxWidth: "100%", width: "100%" }}
+          sx={{
+            display: "block",
+            height: "auto",
+            maxWidth: "100%",
+            width: "100%",
+          }}
           viewBox={"0 0 " + slotLayout.width + " " + slotLayout.height}
         >
           <rect
@@ -83,7 +88,10 @@ export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
                   dominantBaseline="central"
                   fill={grey[800]}
                   fontFamily={designTokens.typography.fontFamily}
-                  fontSize={Math.min(45, (obstacle.w - 8) / obstacle.label.length)}
+                  fontSize={Math.min(
+                    45,
+                    (obstacle.w - 8) / obstacle.label.length,
+                  )}
                   fontWeight={700}
                   textAnchor="middle"
                   x={obstacle.x + obstacle.w / 2}
@@ -106,7 +114,9 @@ export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
             ))}
             <polyline
               fill="none"
-              points={slotLayout.sealedOpening.map((point) => point.join(",")).join(" ")}
+              points={slotLayout.sealedOpening
+                .map((point) => point.join(","))
+                .join(" ")}
               stroke={grey[600]}
               strokeDasharray="18 12"
               strokeWidth={9}
@@ -137,12 +147,14 @@ export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
           {slotLayout.slots.map((shape) => {
             const slot = slotsByCode.get(shape.code);
             const active = Boolean(slot?.isActive);
-            const colors = active && slot ? slotStatusColors[slot.status] : null;
-            const statusText = active && slot
-              ? slotMapStatusLabels[slot.status]
-              : slot
-                ? slotMapText.inactive
-                : slotMapText.unavailable;
+            const colors =
+              active && slot ? slotStatusColors[slot.status] : null;
+            const statusText =
+              active && slot
+                ? slotMapStatusLabels[slot.status]
+                : slot
+                  ? slotMapText.inactive
+                  : slotMapText.unavailable;
             const fill = colors?.background ?? grey[300];
             const border = colors?.border ?? grey[600];
             const ink = colors?.text ?? grey[800];
@@ -153,7 +165,9 @@ export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
                   height={shape.h}
                   rx={designTokens.radius.sm}
                   stroke={border}
-                  strokeDasharray={colors?.borderStyle === "dashed" ? "12 8" : undefined}
+                  strokeDasharray={
+                    colors?.borderStyle === "dashed" ? "12 8" : undefined
+                  }
                   strokeWidth={5}
                   width={shape.w}
                   x={shape.x}

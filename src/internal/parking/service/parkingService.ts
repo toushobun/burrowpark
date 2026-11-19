@@ -19,7 +19,9 @@ export interface ParkingService {
   getSlotMap(now: Date): Promise<SlotMapSlot[]>;
 }
 
-function latestPaidUntil(payments: { paid_until: string | null }[]): string | null {
+function latestPaidUntil(
+  payments: { paid_until: string | null }[],
+): string | null {
   let latest: string | null = null;
 
   for (const payment of payments) {
@@ -52,13 +54,16 @@ export function createParkingService(
       const leasesBySlot = new Map(
         facts.leases.map((lease) => [lease.slot_code, lease]),
       );
-      const leasesById = new Map(facts.leases.map((lease) => [lease.id, lease]));
+      const leasesById = new Map(
+        facts.leases.map((lease) => [lease.id, lease]),
+      );
 
       return facts.slots.map((slot) => {
         const session = sessionsBySlot.get(slot.code);
         const lease = leasesBySlot.get(slot.code);
-        const sessionLease =
-          session?.lease_id ? leasesById.get(session.lease_id) : undefined;
+        const sessionLease = session?.lease_id
+          ? leasesById.get(session.lease_id)
+          : undefined;
         const statusFacts: SlotStatusFacts = {
           kind: slot.kind,
           present_vehicle: session
