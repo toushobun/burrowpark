@@ -55,7 +55,6 @@ export function createParkingRepository(
   }
 
   async function signPhotoUrl(photoPath: string): Promise<string | null> {
-
     try {
       const { data, error } = await supabase.storage
         .from("plate-photos")
