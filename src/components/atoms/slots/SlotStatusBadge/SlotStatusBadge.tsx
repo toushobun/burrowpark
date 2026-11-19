@@ -8,10 +8,16 @@ type SlotStatusBadgeProps = {
   status: SlotStatus;
   /** 不传时显示状态的默认文案。 */
   label?: string;
+  /** 停用车位使用中性色，不显示可用状态的颜色。 */
+  inactive?: boolean;
 };
 
 /** 车位状态徽标：颜色 + 文字双重表达，不只依赖颜色区分状态。 */
-export function SlotStatusBadge({ status, label }: SlotStatusBadgeProps) {
+export function SlotStatusBadge({
+  status,
+  label,
+  inactive = false,
+}: SlotStatusBadgeProps) {
   const colors = slotStatusColors[status];
 
   return (
@@ -19,10 +25,12 @@ export function SlotStatusBadge({ status, label }: SlotStatusBadgeProps) {
       component="span"
       sx={{
         alignItems: "center",
-        bgcolor: colors.background,
-        border: `2px ${colors.borderStyle} ${colors.border}`,
+        bgcolor: inactive ? "action.disabledBackground" : colors.background,
+        border: inactive
+          ? `2px solid ${designTokens.color.border.strong}`
+          : `2px ${colors.borderStyle} ${colors.border}`,
         borderRadius: `${designTokens.radius.full}px`,
-        color: colors.text,
+        color: inactive ? "text.primary" : colors.text,
         display: "inline-flex",
         typography: "body2",
         fontWeight: "fontWeightBold",
