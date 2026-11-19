@@ -30,7 +30,12 @@ type SlotDetailProps = {
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <Stack spacing={0.5}>
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{ alignItems: "baseline", flexWrap: "wrap" }}
+      useFlexGap
+    >
       <Typography color="textSecondary" variant="body2">
         {label}
       </Typography>
@@ -65,6 +70,7 @@ export function SlotDetail({ detail, display }: SlotDetailProps) {
   }
 
   const vehicle = detail.presentVehicle;
+  const phone = detail.lease?.phone?.trim();
   const hasDetails = Boolean(
     vehicle ||
     (detail.reservation &&
@@ -94,6 +100,7 @@ export function SlotDetail({ detail, display }: SlotDetailProps) {
           {detail.name}
         </Typography>
         <SlotStatusBadge
+          inactive={!detail.isActive}
           label={detail.isActive ? undefined : slotDetailText.inactive}
           status={detail.status}
         />
@@ -185,11 +192,11 @@ export function SlotDetail({ detail, display }: SlotDetailProps) {
                     value={display.leasePaidUntil}
                   />
                 )}
-                {detail.lease.phone && (
+                {phone && (
                   <Button
                     component="a"
                     fullWidth
-                    href={"tel:" + detail.lease.phone}
+                    href={"tel:" + phone}
                     size="large"
                     sx={{ minHeight: designTokens.size.touchTargetMin }}
                     variant="outlined"
