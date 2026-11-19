@@ -69,7 +69,10 @@ function assembleSlotFacts(facts: SlotFactsRows) {
     facts.sessions.map((session) => [session.slot_code, session]),
   );
   const reservationsBySlot = new Map(
-    facts.reservations.map((reservation) => [reservation.slot_code, reservation]),
+    facts.reservations.map((reservation) => [
+      reservation.slot_code,
+      reservation,
+    ]),
   );
   const leasesBySlot = new Map(
     facts.leases.map((lease) => [lease.slot_code, lease]),
@@ -88,9 +91,7 @@ function assembleSlotFacts(facts: SlotFactsRows) {
         ? latestPaidUntil(sessionLease?.lease_payments ?? [])
         : latestPaidUntil(session.session_payments)
       : null;
-    const leasePaidUntil = lease
-      ? latestPaidUntil(lease.lease_payments)
-      : null;
+    const leasePaidUntil = lease ? latestPaidUntil(lease.lease_payments) : null;
     const statusFacts: SlotStatusFacts = {
       kind: slot.kind,
       present_vehicle: session
