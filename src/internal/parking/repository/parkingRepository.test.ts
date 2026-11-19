@@ -101,10 +101,8 @@ describe("createParkingRepository", () => {
       "family/secret.png",
     );
 
-    const result = await createParkingRepository(
-      client,
-      logger,
-    ).getPhotoSignedUrl("family/secret.png");
+    const repository = createParkingRepository(client, logger);
+    const result = await repository.readSlotFacts();
 
     expect(from).toHaveBeenCalledTimes(4);
     expect(createSignedUrl).not.toHaveBeenCalled();
@@ -149,7 +147,7 @@ describe("createParkingRepository", () => {
     const result = await createParkingRepository(
       client,
       logger,
-    ).readSlotFacts();
+    ).getPhotoSignedUrl("family/secret.png");
 
     expect(result).toBeNull();
   });
