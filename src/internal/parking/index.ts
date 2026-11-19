@@ -6,6 +6,8 @@ export type {
   SlotStatusFacts,
 } from "./entity/parkingDomain";
 
+export type { ParkingService, SlotMapSlot } from "./service/parkingService";
+
 export {
   calculateHourlySuggestedAmountCents,
   calculateHotelCheckoutAt,
