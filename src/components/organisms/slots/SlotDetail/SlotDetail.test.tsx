@@ -113,6 +113,29 @@ describe("SlotDetail", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("空白电话号码不生成无效的拨号链接", () => {
+    renderDetail({
+      ...leaseAwayDetail,
+      lease: { ...leaseAwayDetail.lease!, phone: "   " },
+    });
+    expect(
+      screen.queryByRole("link", { name: "打电话" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("缴费和借用时间与标签在同一行，便于手机阅读", () => {
+    const { unmount } = renderDetail(hotelExpiringDetail);
+    expect(screen.getByText("交到").parentElement).toHaveTextContent(
+      "交到11月19日 12:00",
+    );
+    unmount();
+
+    renderDetail(privateBorrowedDetail);
+    expect(screen.getByText("借到").parentElement).toHaveTextContent(
+      "借到12:30",
+    );
+  });
+
   it("预留车位展示有值字段并允许登记进场", () => {
     renderDetail({
       ...emptyDetail,
@@ -145,6 +168,9 @@ describe("SlotDetail", () => {
   it("停用车位显示停用且没有操作按钮", () => {
     renderDetail({ ...emptyDetail, isActive: false });
     expect(screen.getByText("停用")).toBeInTheDocument();
+    expect(screen.getByText("停用")).not.toHaveStyle({
+      backgroundColor: "#E6F4E4",
+    });
     expectActions([]);
   });
 
