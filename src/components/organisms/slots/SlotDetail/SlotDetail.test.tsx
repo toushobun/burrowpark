@@ -52,6 +52,11 @@ describe("SlotDetail", () => {
     );
   });
 
+  it("私人位空闲时也只显示登记进场按钮", () => {
+    renderDetail({ ...emptyDetail, status: "privateIdle" });
+    expectActions(["登记进场"]);
+  });
+
   it("酒店客快到期展示车牌、交到时间和续费离场", () => {
     renderDetail({
       ...hotelExpiringDetail,
