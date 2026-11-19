@@ -1,18 +1,12 @@
 import Box from "@mui/material/Box";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { slotLayout } from "config/slotLayout";
-import type { SlotMapSlot } from "internal/parking";
 import { slotStatuses } from "theme/slotStatusTokens";
 
 import { ParkingSlotMap } from "./ParkingSlotMap";
+import { emptySlotMapSlots } from "./ParkingSlotMap.fixtures";
 
-const emptySlots: SlotMapSlot[] = slotLayout.slots.map((slot) => ({
-  code: slot.code,
-  name: slot.code + "号",
-  isActive: true,
-  status: "empty",
-}));
+const emptySlots = emptySlotMapSlots;
 
 const meta = {
   args: { slots: emptySlots },

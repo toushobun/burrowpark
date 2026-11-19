@@ -1,6 +1,10 @@
+"use client";
+
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { useState } from "react";
 
 import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
 import { slotLayout } from "config/slotLayout";
@@ -11,6 +15,11 @@ import { designTokens } from "theme/designTokens";
 import { slotStatusColors, slotStatuses } from "theme/slotStatusTokens";
 import { theme } from "theme/theme";
 
+const ZOOM_FACTOR = 3;
+const ZOOM_WIDTH = slotLayout.width / ZOOM_FACTOR;
+const ZOOM_HEIGHT = slotLayout.height / ZOOM_FACTOR;
+const PAN_STEP = 260;
+
 type ParkingSlotMapProps = {
   slots: SlotMapSlot[];
 };
@@ -19,12 +28,53 @@ type ParkingSlotMapProps = {
 export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
   const slotsByCode = new Map(slots.map((slot) => [slot.code, slot]));
   const grey = theme.palette.grey;
+  const [zoomed, setZoomed] = useState(false);
+  const [origin, setOrigin] = useState({ x: 0, y: 0 });
+
+  const pan = (dx: number, dy: number) => {
+    setOrigin((current) => ({
+      x: Math.min(slotLayout.width - ZOOM_WIDTH, Math.max(0, current.x + dx)),
+      y: Math.min(slotLayout.height - ZOOM_HEIGHT, Math.max(0, current.y + dy)),
+    }));
+  };
+
+  const viewBox = zoomed
+    ? `${origin.x} ${origin.y} ${ZOOM_WIDTH} ${ZOOM_HEIGHT}`
+    : `0 0 ${slotLayout.width} ${slotLayout.height}`;
 
   return (
     <Stack component="section" spacing={2} sx={{ minWidth: 0 }}>
       <Typography component="h2" variant="h2">
         {slotMapText.mapTitle}
       </Typography>
+      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }} useFlexGap>
+        <Button
+          onClick={() => {
+            setZoomed((current) => !current);
+            setOrigin({ x: 0, y: 0 });
+          }}
+          size="large"
+          variant="outlined"
+        >
+          {zoomed ? slotMapText.overview : slotMapText.zoom}
+        </Button>
+        {zoomed && (
+          <>
+            <Button disabled={origin.x === 0} onClick={() => pan(-PAN_STEP, 0)} size="large" variant="outlined">
+              {slotMapText.panLeft}
+            </Button>
+            <Button disabled={origin.x >= slotLayout.width - ZOOM_WIDTH} onClick={() => pan(PAN_STEP, 0)} size="large" variant="outlined">
+              {slotMapText.panRight}
+            </Button>
+            <Button disabled={origin.y === 0} onClick={() => pan(0, -PAN_STEP)} size="large" variant="outlined">
+              {slotMapText.panUp}
+            </Button>
+            <Button disabled={origin.y >= slotLayout.height - ZOOM_HEIGHT} onClick={() => pan(0, PAN_STEP)} size="large" variant="outlined">
+              {slotMapText.panDown}
+            </Button>
+          </>
+        )}
+      </Stack>
       <Box
         sx={{
           bgcolor: "background.paper",
@@ -47,7 +97,7 @@ export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
             maxWidth: "100%",
             width: "100%",
           }}
-          viewBox={"0 0 " + slotLayout.width + " " + slotLayout.height}
+          viewBox={viewBox}
         >
           <rect
             fill={grey[50]}

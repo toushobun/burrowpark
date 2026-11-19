@@ -74,6 +74,7 @@ describe("createParkingRepository", () => {
 
   it("数据库失败转换为安全的 RepositoryError，不泄漏原始信息", async () => {
     const { client } = makeClient("leases");
+    vi.mocked(logger.error).mockClear();
 
     await expect(
       createParkingRepository(client, logger).readSlotMapFacts(),
@@ -81,5 +82,6 @@ describe("createParkingRepository", () => {
       code: "parking_unavailable",
       message: "车位状态暂时无法读取，请稍后重试。",
     });
+    expect(logger.error).toHaveBeenCalledOnce();
   });
 });

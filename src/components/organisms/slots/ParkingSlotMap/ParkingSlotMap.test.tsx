@@ -1,17 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { slotLayout } from "config/slotLayout";
-import type { SlotMapSlot } from "internal/parking";
-
+import { emptySlotMapSlots } from "./ParkingSlotMap.fixtures";
 import { ParkingSlotMap } from "./ParkingSlotMap";
 
-const slots: SlotMapSlot[] = slotLayout.slots.map((slot) => ({
-  code: slot.code,
-  name: slot.code + "号",
-  isActive: true,
-  status: "empty",
-}));
+const slots = emptySlotMapSlots;
 
 describe("ParkingSlotMap", () => {
   it("按布局原始 viewBox 绘制，并将车位链接到对应详情页", () => {
@@ -25,6 +18,26 @@ describe("ParkingSlotMap", () => {
     expect(link).toHaveAttribute("href", "/slots/7");
     expect(link.querySelector("rect")).toHaveAttribute("x", "840");
     expect(screen.getAllByRole("link")).toHaveLength(29);
+  });
+
+  it("手机地图可放大至普通车位至少 56px，并通过方向按钮移动与返回总览", () => {
+    render(<ParkingSlotMap slots={slots} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "放大查看" }));
+    const map = screen.getByRole("group", { name: "车位地图" });
+    const dimensions = map.getAttribute("viewBox")?.split(" ").map(Number);
+    expect(dimensions?.slice(0, 2)).toEqual([0, 0]);
+    expect(dimensions?.[2]).toBeCloseTo(1300 / 3);
+    expect(dimensions?.[3]).toBeCloseTo(1420 / 3);
+
+    // 390px 手机减去页面左右边距后，90 单位普通车位仍有约 74px 可点。
+    expect((90 * (390 - 32)) / (1300 / 3)).toBeGreaterThanOrEqual(56);
+    expect(screen.getByRole("button", { name: "向左" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "向右" }));
+    expect(map.getAttribute("viewBox")?.split(" ")[0]).toBe("260");
+
+    fireEvent.click(screen.getByRole("button", { name: "返回全图" }));
+    expect(map).toHaveAttribute("viewBox", "0 0 1300 1420");
   });
 
   it("状态同时显示颜色、文字与可访问名称", () => {

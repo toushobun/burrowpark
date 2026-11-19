@@ -85,6 +85,7 @@ export function createParkingRepository(
           leases: leases.data,
         };
       } catch (error) {
+        if (error instanceof RepositoryError) throw error;
         return fail("readSlotMapFacts", error);
       }
     },
