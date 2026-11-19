@@ -55,9 +55,9 @@ describe("ParkingSlotMap", () => {
     );
 
     expect(screen.getAllByRole("link")).toHaveLength(27);
-    expect(screen.queryByRole("link", { name: /8号/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^8号，/ })).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("link", { name: /10号/ }),
+      screen.queryByRole("link", { name: /^10号，/ }),
     ).not.toBeInTheDocument();
     expect(screen.getByTestId("inactive-slot-8")).toHaveTextContent("停用");
     expect(screen.getByTestId("inactive-slot-10")).toHaveTextContent("未配置");
