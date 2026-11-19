@@ -70,7 +70,8 @@ export function SlotDetail({ detail, display }: SlotDetailProps) {
     : vehicle
       ? detail.status === "privateBorrowed"
         ? [slotDetailText.extendBorrow, slotDetailText.leave]
-        : vehicle.billingType === "hotel_daily" || vehicle.billingType === "lease"
+        : vehicle.billingType === "hotel_daily" ||
+            vehicle.billingType === "lease"
           ? [slotDetailText.renew, slotDetailText.leave]
           : [slotDetailText.leave]
       : [slotDetailText.enter];
@@ -78,10 +79,9 @@ export function SlotDetail({ detail, display }: SlotDetailProps) {
   return (
     <Stack spacing={3}>
       <Stack
-        alignItems="center"
         direction="row"
         spacing={2}
-        sx={{ flexWrap: "wrap" }}
+        sx={{ alignItems: "center", flexWrap: "wrap" }}
         useFlexGap
       >
         <Typography component="h2" variant="h2">
