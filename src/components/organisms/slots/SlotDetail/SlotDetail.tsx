@@ -108,7 +108,7 @@ export function SlotDetail({
       setLiveNow(new Date().toISOString());
     }, 60_000);
     return () => window.clearInterval(timer);
-  }, [detail?.kind, detail?.presentVehicle?.sessionId, now]);
+  }, [detail?.kind, detail?.presentVehicle, now]);
   const [reserveState, submitReserve, reservePending] = useActionState(
     operations?.reserve ?? unavailableAction,
     initialState?.reserve ?? ({} as SlotActionState),
@@ -350,11 +350,12 @@ export function SlotDetail({
                   {privateBorrowed && vehicle.borrowUntil && now && (
                     <Typography
                       variant="h3"
-                      color={
-                        borrowOverdue ? "error" : "textPrimary"
-                      }
+                      color={borrowOverdue ? "error" : "textPrimary"}
                     >
-                      {describeBorrowRemaining(vehicle.borrowUntil, countdownNow)}
+                      {describeBorrowRemaining(
+                        vehicle.borrowUntil,
+                        countdownNow,
+                      )}
                     </Typography>
                   )}
                   {vehicle.photoUrl && (
