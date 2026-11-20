@@ -7,6 +7,8 @@ export type {
 } from "./entity/parkingDomain";
 
 export type {
+  CheckInFormData,
+  CheckInResult,
   ParkingService,
   SlotDetail,
   SlotMapSlot,

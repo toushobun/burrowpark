@@ -212,18 +212,32 @@ export function SlotDetail({ detail, display }: SlotDetailProps) {
 
       {actions.length > 0 && (
         <Stack spacing={2}>
-          {actions.map((action, index) => (
-            <Button
-              key={action}
-              fullWidth
-              onClick={() => setNoticeOpen(true)}
-              size="large"
-              sx={{ minHeight: designTokens.size.touchTargetMin }}
-              variant={index === 0 ? "contained" : "outlined"}
-            >
-              {action}
-            </Button>
-          ))}
+          {actions.map((action, index) =>
+            action === slotDetailText.enter ? (
+              <Button
+                key={action}
+                component={Link}
+                fullWidth
+                href={`/slots/${detail.code}/check-in`}
+                size="large"
+                sx={{ minHeight: designTokens.size.touchTargetMin }}
+                variant="contained"
+              >
+                {action}
+              </Button>
+            ) : (
+              <Button
+                key={action}
+                fullWidth
+                onClick={() => setNoticeOpen(true)}
+                size="large"
+                sx={{ minHeight: designTokens.size.touchTargetMin }}
+                variant={index === 0 ? "contained" : "outlined"}
+              >
+                {action}
+              </Button>
+            ),
+          )}
         </Stack>
       )}
 

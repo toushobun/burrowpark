@@ -57,6 +57,14 @@ function makeService(rows: SlotFactsRows) {
   const repository: ParkingRepository = {
     readSlotFacts: vi.fn().mockResolvedValue(rows),
     getPhotoSignedUrl: vi.fn().mockResolvedValue("https://example.com/photo"),
+    getPricingSettings: vi.fn().mockResolvedValue({
+      hotel_daily_price_cents: 3000,
+      hotel_checkout_hour: 12,
+      hotel_previous_day_before_hour: 6,
+      hourly_price_cents: 500,
+    }),
+    checkInVehicle: vi.fn().mockResolvedValue("00000000-0000-4000-8000-000000000001"),
+    undoCheckIn: vi.fn().mockResolvedValue(undefined),
   };
   const getAuth = vi.fn().mockResolvedValue({
     isAuthenticated: true,
@@ -401,4 +409,119 @@ describe("createParkingService", () => {
     expect(repository.readSlotFacts).not.toHaveBeenCalled();
     expect(repository.getPhotoSignedUrl).not.toHaveBeenCalled();
   });
+  it("登记表单复用车位事实读取并返回在租与预留信息", async () => {
+    const { service, repository } = makeService(makeRows({
+      reservations: [{ slot_code: "1", guest_name: "旅客", note: null }],
+      leases: [makeLease()],
+    }));
+    const result = await service.getCheckInForm("1", now);
+    expect(result).toMatchObject({
+      code: "1",
+      name: "1号",
+      kind: "regular",
+      hasLease: true,
+      hasReservation: true,
+      occupied: false,
+    });
+    expect(repository.readSlotFacts).toHaveBeenCalledOnce();
+    expect(repository.getPricingSettings).toHaveBeenCalledOnce();
+    expect(repository.getPhotoSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it("酒店客计算交到时间并把元精确转成分", async () => {
+    const { service, repository } = makeService(makeRows());
+    const result = await service.checkIn({
+      slotCode: "1", plate: "粤b·12345", billingType: "hotel_daily",
+      days: 2, amountYuan: "59.05", paymentMethod: "wechat",
+    }, now);
+    expect(result.plate).toBe("粤B12345");
+    expect(repository.checkInVehicle).toHaveBeenCalledWith({
+      slotCode: "1", plate: "粤B12345", billingType: "hotel_daily",
+      paidUntil: "2026-11-21T04:00:00.000Z",
+      borrowUntil: null, amountCents: 5905, paymentMethod: "wechat",
+    });
+  });
+
+  it("临停免费不读取收费设置且不产生预交金额", async () => {
+    const { service, repository } = makeService(makeRows());
+    for (const billingType of ["hourly", "free"] as const) {
+      await service.checkIn({ slotCode: "1", plate: "粤B12345", billingType }, now);
+    }
+    expect(repository.getPricingSettings).not.toHaveBeenCalled();
+    expect(repository.checkInVehicle).toHaveBeenCalledWith(expect.objectContaining({
+      billingType: "hourly", paidUntil: null, amountCents: null,
+      paymentMethod: null, borrowUntil: null,
+    }));
+  });
+
+  it("私人位借用使用同一个 now 加十分钟计算期限", async () => {
+    const { service, repository } = makeService(makeRows());
+    await service.checkIn({
+      slotCode: "2", plate: "粤b88888", billingType: "hourly", borrowMinutes: 10,
+    }, now);
+    expect(repository.checkInVehicle).toHaveBeenCalledWith(expect.objectContaining({
+      borrowUntil: "2026-11-19T03:10:00.000Z",
+      paidUntil: null,
+    }));
+  });
+
+  it("无在租长租也可提交计费类型，但必须由 RPC 最终拒绝", async () => {
+    const { service, repository } = makeService(makeRows());
+    await service.checkIn({ slotCode: "1", plate: "粤B12345", billingType: "lease" }, now);
+    expect(repository.checkInVehicle).toHaveBeenCalledWith(expect.objectContaining({
+      billingType: "lease", paymentMethod: null,
+    }));
+  });
+
+  it("拒绝缺失收款方式、非法天数和负金额", async () => {
+    const { service, repository } = makeService(makeRows());
+    await expect(service.checkIn({
+      slotCode: "1", plate: "粤B12345", billingType: "hotel_daily", days: 1,
+      amountYuan: "30.00",
+    }, now)).rejects.toMatchObject({ code: "check_in_invalid" });
+    await expect(service.checkIn({
+      slotCode: "1", plate: "粤B12345", billingType: "hotel_daily", days: 31,
+      amountYuan: "30.00", paymentMethod: "cash",
+    }, now)).rejects.toMatchObject({ code: "check_in_invalid" });
+    await expect(service.checkIn({
+      slotCode: "1", plate: "粤B12345", billingType: "hotel_daily", days: 1,
+      amountYuan: "-1", paymentMethod: "cash",
+    }, now)).rejects.toMatchObject({ code: "check_in_invalid" });
+    expect(repository.checkInVehicle).not.toHaveBeenCalled();
+  });
+
+  it("拒绝不合法的借用时长及普通方式携带收款参数", async () => {
+    const { service, repository } = makeService(makeRows());
+    await expect(service.checkIn({
+      slotCode: "1", plate: "粤B12345", billingType: "hourly", borrowMinutes: 45,
+    }, now)).rejects.toMatchObject({ code: "check_in_invalid" });
+    await expect(service.checkIn({
+      slotCode: "1", plate: "粤B12345", billingType: "free", paymentMethod: "cash",
+    }, now)).rejects.toMatchObject({ code: "check_in_invalid" });
+    expect(repository.checkInVehicle).not.toHaveBeenCalled();
+  });
+
+  it("撤销先验证 UUID 再调用 RPC", async () => {
+    const { service, repository } = makeService(makeRows());
+    await expect(service.undoCheckIn("not-uuid")).rejects.toMatchObject({
+      code: "undo_invalid",
+    });
+    await service.undoCheckIn("00000000-0000-4000-8000-000000000001");
+    expect(repository.undoCheckIn).toHaveBeenCalledOnce();
+    expect(repository.undoCheckIn).toHaveBeenCalledWith("00000000-0000-4000-8000-000000000001");
+  });
+
+  it("未登录时登记、撤销与表单读取均不碰 Repository", async () => {
+    const { repository } = makeService(makeRows());
+    const service = createParkingService(repository, async () => ({
+      isAuthenticated: false, userId: null, email: null,
+    }));
+    await expect(service.checkIn({}, now)).rejects.toMatchObject({ code: "auth_required" });
+    await expect(service.undoCheckIn("not-uuid")).rejects.toMatchObject({ code: "auth_required" });
+    await expect(service.getCheckInForm("1", now)).rejects.toMatchObject({ code: "auth_required" });
+    expect(repository.checkInVehicle).not.toHaveBeenCalled();
+    expect(repository.undoCheckIn).not.toHaveBeenCalled();
+    expect(repository.readSlotFacts).not.toHaveBeenCalled();
+  });
+
 });

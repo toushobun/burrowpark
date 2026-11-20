@@ -3,9 +3,14 @@ import {
   type AuthContext,
 } from "internal/shared/auth/authContext";
 import type { SlotStatus } from "theme/slotStatusTokens";
+import { ValidationError } from "internal/shared/errors/appError";
+
+import { parkingMessages } from "../errors";
+import { parseAmountCents, parseCheckInInput, parseUndoSessionId } from "../schema";
 
 import type {
   ParkingBillingType,
+  ParkingPricingSettings,
   ParkingSlotKind,
   SlotStatusFacts,
 } from "../entity/parkingDomain";
@@ -13,7 +18,7 @@ import type {
   ParkingRepository,
   SlotFactsRows,
 } from "../repository/parkingRepository";
-import { deriveSlotStatus } from "../util/parkingDomain";
+import { calculateHotelCheckoutAt, deriveSlotStatus } from "../util/parkingDomain";
 
 export type SlotMapSlot = {
   code: string;
@@ -43,9 +48,29 @@ export type SlotDetail = SlotMapSlot & {
   } | null;
 };
 
+export type CheckInFormData = {
+  code: string;
+  name: string;
+  kind: ParkingSlotKind;
+  isActive: boolean;
+  occupied: boolean;
+  hasLease: boolean;
+  hasReservation: boolean;
+  pricing: ParkingPricingSettings;
+  now: string;
+};
+
+export type CheckInResult = {
+  sessionId: string;
+  plate: string;
+};
+
 export interface ParkingService {
   getSlotMap(now: Date): Promise<SlotMapSlot[]>;
   getSlotDetail(code: string, now: Date): Promise<SlotDetail | null>;
+  getCheckInForm(code: string, now: Date): Promise<CheckInFormData | null>;
+  checkIn(input: unknown, now: Date): Promise<CheckInResult>;
+  undoCheckIn(sessionId: unknown): Promise<void>;
 }
 
 function latestPaidUntil(
@@ -124,6 +149,58 @@ export function createParkingService(
   getAuth: () => Promise<AuthContext>,
 ): ParkingService {
   return {
+    async getCheckInForm(code, now) {
+      await requireAuthenticatedUserId(getAuth);
+      if (!/^\d+$/.test(code)) {
+        throw new ValidationError("slot_invalid", parkingMessages.invalidInput);
+      }
+      const [facts, pricing] = await Promise.all([
+        repository.readSlotFacts(),
+        repository.getPricingSettings(),
+      ]);
+      const match = assembleSlotFacts(facts).find(({ slot }) => slot.code === code);
+      if (!match) return null;
+      return {
+        code: match.slot.code,
+        name: match.slot.name,
+        kind: match.slot.kind,
+        isActive: match.slot.is_active,
+        occupied: Boolean(match.session),
+        hasLease: Boolean(match.lease),
+        hasReservation: Boolean(match.reservation),
+        pricing,
+        now: now.toISOString(),
+      };
+    },
+
+    async checkIn(input, now) {
+      await requireAuthenticatedUserId(getAuth);
+      const value = parseCheckInInput(input);
+      const hotel = value.billingType === "hotel_daily";
+      const pricing = hotel ? await repository.getPricingSettings() : null;
+      const paidUntil = hotel && pricing
+        ? calculateHotelCheckoutAt(now, value.days!, pricing)
+        : null;
+      const borrowUntil = value.borrowMinutes === undefined
+        ? null
+        : new Date(now.getTime() + value.borrowMinutes * 60_000).toISOString();
+      const sessionId = await repository.checkInVehicle({
+        slotCode: value.slotCode,
+        plate: value.plate,
+        billingType: value.billingType,
+        paidUntil,
+        borrowUntil,
+        amountCents: hotel ? parseAmountCents(value.amountYuan!) : null,
+        paymentMethod: hotel ? value.paymentMethod! : null,
+      });
+      return { sessionId, plate: value.plate };
+    },
+
+    async undoCheckIn(sessionId) {
+      await requireAuthenticatedUserId(getAuth);
+      await repository.undoCheckIn(parseUndoSessionId(sessionId));
+    },
+
     async getSlotMap(now) {
       await requireAuthenticatedUserId(getAuth);
       const facts = await repository.readSlotFacts();

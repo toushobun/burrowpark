@@ -26,6 +26,11 @@ export function mapRpcBusinessError<TErrorCode extends string>(
   return findRpcBusinessError(error, errorMap) ?? fallback;
 }
 
+/** 唯一索引并发碰撞：业务 RPC 应优先返回稳定的 details，23505 作为兜底。 */
+export function isRpcUniqueViolation(error: RpcErrorLike | null | undefined): boolean {
+  return error?.code === "23505";
+}
+
 /** PostgreSQL 死锁（40P01）与序列化失败（40001），重试即可成功。 */
 const retryableConcurrencySqlStates: ReadonlySet<string> = new Set([
   "40P01",
