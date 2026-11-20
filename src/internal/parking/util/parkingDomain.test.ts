@@ -396,35 +396,53 @@ describe("续费与超时纯函数", () => {
 });
 describe("首页提醒说明文案", () => {
   it("酒店客当天到期明确显示今天和上海时间", () => {
-    expect(describeSlotReminder(
-      "hotel_daily", "2026-11-20T04:00:00.000Z",
-      "2026-11-20T03:00:00.000Z",
-    )).toBe("今天 12:00 到期");
+    expect(
+      describeSlotReminder(
+        "hotel_daily",
+        "2026-11-20T04:00:00.000Z",
+        "2026-11-20T03:00:00.000Z",
+      ),
+    ).toBe("今天 12:00 到期");
   });
   it("长租快到期显示上海业务日期", () => {
-    expect(describeSlotReminder(
-      "lease", "2026-11-22T15:59:59.000Z",
-      "2026-11-20T03:00:00.000Z",
-    )).toBe("11月22日到期");
+    expect(
+      describeSlotReminder(
+        "lease",
+        "2026-11-22T15:59:59.000Z",
+        "2026-11-20T03:00:00.000Z",
+      ),
+    ).toBe("11月22日到期");
   });
   it("过期不足一天按小时显示，超过二十四小时按天向上取整", () => {
-    expect(describeSlotReminder(
-      "hotel_daily", "2026-11-20T04:00:00.000Z",
-      "2026-11-20T06:00:00.000Z",
-    )).toBe("超时 2 小时");
-    expect(describeSlotReminder(
-      "hotel_daily", "2026-11-20T04:00:00.000Z",
-      "2026-11-22T04:01:00.000Z",
-    )).toBe("超时 3 天");
+    expect(
+      describeSlotReminder(
+        "hotel_daily",
+        "2026-11-20T04:00:00.000Z",
+        "2026-11-20T06:00:00.000Z",
+      ),
+    ).toBe("超时 2 小时");
+    expect(
+      describeSlotReminder(
+        "hotel_daily",
+        "2026-11-20T04:00:00.000Z",
+        "2026-11-22T04:01:00.000Z",
+      ),
+    ).toBe("超时 3 天");
   });
   it("私人位按分钟显示剩余与已超时", () => {
-    expect(describeSlotReminder(
-      "private", "2026-11-20T03:03:00.000Z",
-      "2026-11-20T03:00:00.000Z",
-    )).toBe("借用还剩 3 分钟");
-    expect(describeSlotReminder(
-      "private", "2026-11-20T02:58:00.000Z",
-      "2026-11-20T03:00:00.000Z",
-    )).toBe("超时 2 分钟");
+    expect(
+      describeSlotReminder(
+        "private",
+        "2026-11-20T03:03:00.000Z",
+        "2026-11-20T03:00:00.000Z",
+      ),
+    ).toBe("借用还剩 3 分钟");
+    expect(
+      describeSlotReminder(
+        "private",
+        "2026-11-20T02:58:00.000Z",
+        "2026-11-20T03:00:00.000Z",
+      ),
+    ).toBe("超时 2 分钟");
   });
 });

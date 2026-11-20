@@ -5,18 +5,27 @@ import { SlotReminders } from "./SlotReminders";
 
 const mixed: SlotReminder[] = [
   {
-    code: "2", name: "2号", displayName: "粤B·00002",
-    status: "overdue", deadline: "2026-11-20T02:00:00.000Z",
+    code: "2",
+    name: "2号",
+    displayName: "粤B·00002",
+    status: "overdue",
+    deadline: "2026-11-20T02:00:00.000Z",
     description: "超时 2 小时",
   },
   {
-    code: "3", name: "3号", displayName: "张女士",
-    status: "expiringSoon", deadline: "2026-11-22T15:59:59.000Z",
+    code: "3",
+    name: "3号",
+    displayName: "张女士",
+    status: "expiringSoon",
+    deadline: "2026-11-22T15:59:59.000Z",
     description: "11月22日到期",
   },
   {
-    code: "7", name: "7号", displayName: "粤B·00007",
-    status: "privateBorrowed", deadline: "2026-11-20T04:03:00.000Z",
+    code: "7",
+    name: "7号",
+    displayName: "粤B·00007",
+    status: "privateBorrowed",
+    deadline: "2026-11-20T04:03:00.000Z",
     description: "借用还剩 3 分钟",
   },
 ];
@@ -24,7 +33,9 @@ const mixed: SlotReminder[] = [
 describe("SlotReminders", () => {
   it("没有提醒时显示明确提示", () => {
     render(<SlotReminders reminders={[]} />);
-    expect(screen.getByRole("heading", { name: "要处理的事" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "要处理的事" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("现在没有要处理的事")).toBeInTheDocument();
   });
 
@@ -42,8 +53,12 @@ describe("SlotReminders", () => {
     render(<SlotReminders reminders={mixed} />);
     const links = screen.getAllByRole("link");
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
-      "/slots/2", "/slots/3", "/slots/7",
+      "/slots/2",
+      "/slots/3",
+      "/slots/7",
     ]);
-    expect(links.every((link) => link.classList.contains("MuiButtonBase-root"))).toBe(true);
+    expect(
+      links.every((link) => link.classList.contains("MuiButtonBase-root")),
+    ).toBe(true);
   });
 });

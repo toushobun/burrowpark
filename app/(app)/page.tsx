@@ -9,7 +9,10 @@ import { PageShell } from "templates/layout/PageShell/PageShell";
 
 export default async function HomePage() {
   const now = new Date();
-  const [slots, reminders] = await Promise.all([loadSlotMap(now), loadReminders(now)]);
+  const [slots, reminders] = await Promise.all([
+    loadSlotMap(now),
+    loadReminders(now),
+  ]);
 
   return (
     <PageShell subtitle={slotMapText.subtitle} title={slotMapText.title}>

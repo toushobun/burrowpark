@@ -16,29 +16,55 @@ export function SlotReminders({ reminders }: { reminders: SlotReminder[] }) {
         {slotRemindersText.title}
       </Typography>
       {reminders.length === 0 ? (
-        <Paper variant="outlined" sx={{ borderRadius: `${designTokens.radius.lg}px`, p: 2 }}>
+        <Paper
+          variant="outlined"
+          sx={{ borderRadius: `${designTokens.radius.lg}px`, p: 2 }}
+        >
           <Typography variant="body1">{slotRemindersText.empty}</Typography>
         </Paper>
-      ) : reminders.map((reminder) => (
-        <Paper key={reminder.code} variant="outlined"
-          sx={{ borderRadius: `${designTokens.radius.lg}px`, overflow: "hidden" }}>
-          <ButtonBase component={Link} href={`/slots/${reminder.code}`}
-            sx={{ display: "flex", minHeight: designTokens.size.touchTargetMin,
-              textAlign: "left", width: "100%", p: 2 }}>
-            <Stack spacing={1} sx={{ alignItems: "flex-start", width: "100%" }}>
-              <Stack direction="row" spacing={1.5}
-                sx={{ alignItems: "center", flexWrap: "wrap" }} useFlexGap>
-                <Typography variant="h3">{reminder.name}</Typography>
-                <SlotStatusBadge status={reminder.status} />
+      ) : (
+        reminders.map((reminder) => (
+          <Paper
+            key={reminder.code}
+            variant="outlined"
+            sx={{
+              borderRadius: `${designTokens.radius.lg}px`,
+              overflow: "hidden",
+            }}
+          >
+            <ButtonBase
+              component={Link}
+              href={`/slots/${reminder.code}`}
+              sx={{
+                display: "flex",
+                minHeight: designTokens.size.touchTargetMin,
+                textAlign: "left",
+                width: "100%",
+                p: 2,
+              }}
+            >
+              <Stack
+                spacing={1}
+                sx={{ alignItems: "flex-start", width: "100%" }}
+              >
+                <Stack
+                  direction="row"
+                  spacing={1.5}
+                  sx={{ alignItems: "center", flexWrap: "wrap" }}
+                  useFlexGap
+                >
+                  <Typography variant="h3">{reminder.name}</Typography>
+                  <SlotStatusBadge status={reminder.status} />
+                </Stack>
+                <Typography variant="body1">{reminder.displayName}</Typography>
+                <Typography variant="body1" color="textSecondary">
+                  {reminder.description}
+                </Typography>
               </Stack>
-              <Typography variant="body1">{reminder.displayName}</Typography>
-              <Typography variant="body1" color="textSecondary">
-                {reminder.description}
-              </Typography>
-            </Stack>
-          </ButtonBase>
-        </Paper>
-      ))}
+            </ButtonBase>
+          </Paper>
+        ))
+      )}
     </Stack>
   );
 }
