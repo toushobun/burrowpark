@@ -1,5 +1,6 @@
 export const renewText = {
   title: "续费",
+  leaseTitle: "续租",
   missing: "这个车位当前不能续费",
   days: "续住天数",
   custom: "自定义",
@@ -9,10 +10,13 @@ export const renewText = {
   method: "收款方式",
   amount: "实收金额（元）",
   submit: "确认收款并续费",
+  submitLease: "确认收款并续租",
   submitting: "续费中",
   undone: "已撤销续费",
+  undoneLease: "已撤销续租",
   success: "续费成功",
-  invalidDate: "请选择晚于当前交到日期的日期",
+  successLease: "续租成功",
+  invalidDate: "续到日期必须晚于当前交到时间",
 } as const;
 
 export const checkOutText = {
@@ -38,4 +42,4 @@ export const parkingOperationText = {
   undo: "撤销",
   undoing: "撤销中",
   suggestedSuffix: " 元",
-} as const;
+} as cons

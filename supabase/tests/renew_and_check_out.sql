@@ -1,5 +1,5 @@
 begin;
-select plan(28);
+select plan(30);
 
 insert into public.slots (code,name,yard,kind,sort_order,is_active) values
   ('test-co-1','1号','outer','regular',201,true),
@@ -25,9 +25,16 @@ insert into public.parking_sessions (slot_code,plate,billing_type) values
   ('test-co-3','粤B00333','hourly'),
   ('test-co-4','粤B00444','hourly');
 
-select lives_ok($$select public.check_out_vehicle(
+select throws_ok($select public.check_out_vehicle(
+  '00000000-0000-4000-8000-000000000999'::uuid)$,
+  'P0001','停车记录不存在','不存在的停车记录不能离场');
+select throws_ok($select public.undo_check_out(
+  '00000000-0000-4000-8000-000000000999'::uuid)$,
+  'P0001','已经不能撤销了','不存在的停车记录不能撤销离场');
+
+select lives_ok($select public.check_out_vehicle(
   (select id from public.parking_sessions where slot_code = 'test-co-1'),
-  1200, 'wechat')$$,'正常离场并结算');
+  1200, 'wechat')$,'正常离场并结算');
 select ok((select left_at is not null from public.parking_sessions
   where slot_code = 'test-co-1'),'离场记录了数据库时间');
 select results_eq(

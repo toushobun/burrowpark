@@ -15,7 +15,9 @@ export default async function RenewPage({
   const { code } = await params;
   const form = await loadRenewForm(code);
   return (
-    <PageShell title={renewText.title}>
+    <PageShell
+      title={form?.mode === "lease" ? renewText.leaseTitle : renewText.title}
+    >
       <RenewForm
         form={form}
         action={renewAction}

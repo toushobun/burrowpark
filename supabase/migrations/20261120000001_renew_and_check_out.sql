@@ -68,6 +68,9 @@ begin
   );
   select * into v_session from public.parking_sessions
     where id = p_session_id for update;
+  if not found then
+    raise exception '停车记录不存在' using errcode = 'P0001', detail = 'SESSION_UNAVAILABLE';
+  end if;
   if v_session.left_at is not null then
     raise exception '这辆车已经离场了' using errcode = 'P0001', detail = 'ALREADY_LEFT';
   end if;
@@ -104,7 +107,7 @@ begin
   );
   select * into v_session from public.parking_sessions
     where id = p_session_id for update;
-  if v_session.left_at is null
+  if not found or v_session.left_at is null
      or v_session.left_at < pg_catalog.now() - interval '10 minutes' then
     raise exception '已经不能撤销了' using errcode = 'P0001', detail = 'UNDO_UNAVAILABLE';
   end if;
