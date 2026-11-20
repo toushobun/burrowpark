@@ -9,6 +9,10 @@ export type {
 export type {
   CheckInFormData,
   CheckInResult,
+  RenewFormData,
+  RenewalResult,
+  CheckOutFormData,
+  CheckOutResult,
   ParkingService,
   SlotDetail,
   SlotMapSlot,
@@ -16,6 +20,10 @@ export type {
 
 export {
   calculateHourlySuggestedAmountCents,
+  calculateHotelOverstay,
+  extendHotelPaidUntil,
+  leaseDateToPaidUntil,
+  nextLeaseRenewDate,
   calculateHotelCheckoutAt,
   deriveSlotStatus,
   formatBusinessDate,

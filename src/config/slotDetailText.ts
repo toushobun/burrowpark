@@ -23,6 +23,7 @@ export const slotDetailText = {
   photo: "进场照片",
   enter: "登记进场",
   renew: "续费",
+  renewLease: "续租",
   leave: "离场",
   extendBorrow: "再借一会儿",
   phone: "打电话",

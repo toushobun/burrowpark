@@ -20,9 +20,9 @@ function renderDetail(detail: SlotDetailData | null) {
 }
 
 function expectActions(expected: string[]) {
-  const actionNames = ["登记进场", "续费", "离场", "再借一会儿"];
+  const actionNames = ["登记进场", "续费", "续租", "离场", "再借一会儿"];
   for (const name of actionNames) {
-    const role = name === "登记进场" ? "link" : "button";
+    const role = name === "再借一会儿" ? "button" : "link";
     if (expected.includes(name)) {
       expect(screen.getByRole(role, { name })).toBeInTheDocument();
     } else {
@@ -75,6 +75,10 @@ describe("SlotDetail", () => {
       "https://example.com/photo",
     );
     expectActions(["续费", "离场"]);
+    expect(screen.getByRole("link", { name: "离场" })).toHaveAttribute(
+      "href",
+      "/slots/7/check-out",
+    );
   });
 
   it("临停和免费有车时只显示离场与已停时间", () => {
@@ -100,7 +104,11 @@ describe("SlotDetail", () => {
     expect(
       screen.getByRole("link", { name: "打电话 13800000000" }),
     ).toHaveAttribute("href", "tel:13800000000");
-    expectActions(["登记进场"]);
+    expectActions(["登记进场", "续租"]);
+    expect(screen.getByRole("link", { name: "续租" })).toHaveAttribute(
+      "href",
+      "/slots/7/renew",
+    );
   });
 
   it("没有电话时不出现打电话按钮", () => {
@@ -171,10 +179,10 @@ describe("SlotDetail", () => {
       reservation: { guestName: null, note: null },
     });
     expect(container.querySelector(".MuiPaper-root")).toBeNull();
-    expectActions(["登记进场"]);
+    expectActions(["登记进场", "续租"]);
   });
 
-  it("长租车在场与已过期状态仍只显示续费和离场", () => {
+  it("长租车在场与已过期状态显示续租和离场", () => {
     renderDetail({
       ...hotelExpiringDetail,
       status: "overdue",
@@ -183,7 +191,7 @@ describe("SlotDetail", () => {
         billingType: "lease",
       },
     });
-    expectActions(["续费", "离场"]);
+    expectActions(["续租", "离场"]);
   });
 
   it("停用车位显示停用且没有操作按钮", () => {
@@ -204,9 +212,9 @@ describe("SlotDetail", () => {
     expect(screen.queryByText("功能开发中")).toBeNull();
   });
 
-  it("其他占位按钮仍使用现有 Snackbar", () => {
-    renderDetail(hotelExpiringDetail);
-    fireEvent.click(screen.getByRole("button", { name: "续费" }));
+  it("私人位再借一会儿仍使用现有 Snackbar", () => {
+    renderDetail(privateBorrowedDetail);
+    fireEvent.click(screen.getByRole("button", { name: "再借一会儿" }));
     expect(screen.getByText("功能开发中")).toBeInTheDocument();
   });
 });

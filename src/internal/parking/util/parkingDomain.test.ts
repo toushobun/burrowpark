@@ -4,6 +4,10 @@ import { describe, expect, it } from "vitest";
 import type { SlotStatusFacts } from "../entity/parkingDomain";
 import {
   calculateHourlySuggestedAmountCents,
+  calculateHotelOverstay,
+  extendHotelPaidUntil,
+  nextLeaseRenewDate,
+  leaseDateToPaidUntil,
   calculateHotelCheckoutAt,
   deriveSlotStatus,
   formatBusinessDate,
@@ -356,4 +360,36 @@ describe("在场长租车辆状态", () => {
       ).toBe(expectedStatus);
     },
   );
+});
+
+describe("续费与超时纯函数", () => {
+  it("酒店续费跨月保持原时间的时分且从旧截止时间计算", () => {
+    expect(extendHotelPaidUntil("2026-01-31T04:30:00.000Z", 2)).toBe(
+      "2026-02-02T04:30:00.000Z",
+    );
+    expect(extendHotelPaidUntil("2026-10-30T04:00:00.000Z", 3)).toBe(
+      "2026-11-02T04:00:00.000Z",
+    );
+  });
+  it("长租从月底跨到较短月份时落在有效的最后一天", () => {
+    expect(nextLeaseRenewDate("2026-01-31T15:59:59.000Z")).toBe("2026-02-28");
+    expect(leaseDateToPaidUntil("2026-02-28")).toBe("2026-02-28T15:59:59.000Z");
+    expect(() => leaseDateToPaidUntil("2026-02-30")).toThrow("业务日期无效");
+    expect(() => leaseDateToPaidUntil("2026-11-31")).toThrow("业务日期无效");
+  });
+  it("酒店客超时不足一小时按一小时显示且不足一天按一天收费", () => {
+    const result = calculateHotelOverstay(
+      "2026-11-19T04:00:00.000Z",
+      "2026-11-19T04:01:00.000Z",
+      3000,
+    );
+    expect(result).toEqual({ days: 1, hours: 1, suggestedCents: 3000 });
+    expect(
+      calculateHotelOverstay(
+        "2026-11-19T04:00:00.000Z",
+        "2026-11-21T04:01:00.000Z",
+        3000,
+      ).days,
+    ).toBe(3);
+  });
 });

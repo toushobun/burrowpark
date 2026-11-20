@@ -9,6 +9,8 @@ import { parkingMessages } from "../errors";
 import {
   parseAmountCents,
   parseCheckInInput,
+  parseCheckOutInput,
+  parseRenewInput,
   parseUndoSessionId,
 } from "../schema";
 
@@ -24,7 +26,12 @@ import type {
 } from "../repository/parkingRepository";
 import {
   calculateHotelCheckoutAt,
+  calculateHourlySuggestedAmountCents,
+  calculateHotelOverstay,
   deriveSlotStatus,
+  extendHotelPaidUntil,
+  leaseDateToPaidUntil,
+  nextLeaseRenewDate,
 } from "../util/parkingDomain";
 
 export type SlotMapSlot = {
@@ -72,12 +79,45 @@ export type CheckInResult = {
   plate: string;
 };
 
+export type RenewFormData = {
+  code: string;
+  name: string;
+  mode: "hotel_daily" | "lease";
+  sessionId: string | null;
+  leaseId: string | null;
+  paidUntil: string;
+  defaultEndDate: string | null;
+  hotelDailyPriceCents: number;
+  plate: string | null;
+};
+export type CheckOutFormData = {
+  code: string;
+  name: string;
+  sessionId: string;
+  plate: string;
+  billingType: ParkingBillingType;
+  enteredAt: string;
+  now: string;
+  paidUntil: string | null;
+  totalPaidCents: number | null;
+  suggestedAmountCents: number;
+  overstayHours: number;
+};
+export type RenewalResult = { paymentId: string; paidUntil: string };
+export type CheckOutResult = { sessionId: string; plate: string };
+
 export interface ParkingService {
   getSlotMap(now: Date): Promise<SlotMapSlot[]>;
   getSlotDetail(code: string, now: Date): Promise<SlotDetail | null>;
   getCheckInForm(code: string, now: Date): Promise<CheckInFormData | null>;
   checkIn(input: unknown, now: Date): Promise<CheckInResult>;
   undoCheckIn(sessionId: unknown): Promise<void>;
+  getRenewForm(code: string, now: Date): Promise<RenewFormData | null>;
+  renew(input: unknown): Promise<RenewalResult>;
+  undoRenewal(paymentId: unknown): Promise<void>;
+  getCheckOutForm(code: string, now: Date): Promise<CheckOutFormData | null>;
+  checkOut(input: unknown): Promise<CheckOutResult>;
+  undoCheckOut(sessionId: unknown): Promise<void>;
 }
 
 function latestPaidUntil(
@@ -206,6 +246,174 @@ export function createParkingService(
     async undoCheckIn(sessionId) {
       await requireAuthenticatedUserId(getAuth);
       await repository.undoCheckIn(parseUndoSessionId(sessionId));
+    },
+
+    async getRenewForm(code) {
+      await requireAuthenticatedUserId(getAuth);
+      if (!/^\d+$/.test(code))
+        throw new ValidationError("slot_invalid", parkingMessages.invalidInput);
+      const [facts, pricing] = await Promise.all([
+        repository.readSlotFacts(),
+        repository.getPricingSettings(),
+      ]);
+      const match = assembleSlotFacts(facts).find(
+        ({ slot }) => slot.code === code,
+      );
+      if (!match || !match.slot.is_active || match.slot.kind === "private")
+        return null;
+      const hotel = match.session?.billing_type === "hotel_daily";
+      const lease =
+        match.lease &&
+        (!match.session || match.session.billing_type === "lease");
+      const paidUntil = hotel
+        ? match.sessionPaidUntil
+        : lease
+          ? match.leasePaidUntil
+          : null;
+      if (!paidUntil) return null;
+      return {
+        code,
+        name: match.slot.name,
+        mode: hotel ? "hotel_daily" : "lease",
+        sessionId: hotel ? (match.session?.id ?? null) : null,
+        leaseId: lease ? (match.lease?.id ?? null) : null,
+        paidUntil,
+        defaultEndDate: lease ? nextLeaseRenewDate(paidUntil) : null,
+        hotelDailyPriceCents: pricing.hotel_daily_price_cents,
+        plate: match.session?.plate ?? null,
+      };
+    },
+
+    async renew(input) {
+      await requireAuthenticatedUserId(getAuth);
+      const value = parseRenewInput(input);
+      const facts = await repository.readSlotFacts();
+      const match = assembleSlotFacts(facts).find(
+        ({ slot }) => slot.code === value.slotCode,
+      );
+      if (!match || !match.slot.is_active || match.slot.kind === "private")
+        throw new ValidationError(
+          "renew_unavailable",
+          parkingMessages.renewUnavailable,
+        );
+      const hotel =
+        value.mode === "hotel_daily" &&
+        match.session?.billing_type === "hotel_daily";
+      const lease =
+        value.mode === "lease" &&
+        match.lease &&
+        (!match.session || match.session.billing_type === "lease");
+      const currentPaidUntil = hotel
+        ? match.sessionPaidUntil
+        : lease
+          ? match.leasePaidUntil
+          : null;
+      if (!currentPaidUntil)
+        throw new ValidationError(
+          "renew_unavailable",
+          parkingMessages.renewUnavailable,
+        );
+      let paidUntil: string;
+      if (hotel) {
+        paidUntil = extendHotelPaidUntil(currentPaidUntil, value.days!);
+      } else {
+        try {
+          paidUntil = leaseDateToPaidUntil(value.endDate!);
+        } catch {
+          throw new ValidationError(
+            "renew_date_invalid",
+            parkingMessages.renewDateInvalid,
+          );
+        }
+        if (Date.parse(paidUntil) <= Date.parse(currentPaidUntil))
+          throw new ValidationError(
+            "renew_date_invalid",
+            parkingMessages.renewDateInvalid,
+          );
+      }
+      const paymentId = await repository.addRenewal({
+        sessionId: hotel ? (match.session?.id ?? null) : null,
+        leaseId: lease ? (match.lease?.id ?? null) : null,
+        amountCents: parseAmountCents(value.amountYuan),
+        method: value.paymentMethod,
+        paidUntil,
+      });
+      return { paymentId, paidUntil };
+    },
+
+    async undoRenewal(paymentId) {
+      await requireAuthenticatedUserId(getAuth);
+      await repository.undoRenewal(parseUndoSessionId(paymentId));
+    },
+
+    async getCheckOutForm(code, now) {
+      await requireAuthenticatedUserId(getAuth);
+      if (!/^\d+$/.test(code))
+        throw new ValidationError("slot_invalid", parkingMessages.invalidInput);
+      const [facts, pricing] = await Promise.all([
+        repository.readSlotFacts(),
+        repository.getPricingSettings(),
+      ]);
+      const match = assembleSlotFacts(facts).find(
+        ({ slot }) => slot.code === code,
+      );
+      if (!match?.slot.is_active || !match.session) return null;
+      const vehicle = match.session;
+      const minutes = Math.max(
+        0,
+        (now.getTime() - Date.parse(vehicle.entered_at)) / 60000,
+      );
+      const overstay =
+        vehicle.billing_type === "hotel_daily" && match.sessionPaidUntil
+          ? calculateHotelOverstay(
+              match.sessionPaidUntil,
+              now,
+              pricing.hotel_daily_price_cents,
+            )
+          : null;
+      return {
+        code,
+        name: match.slot.name,
+        sessionId: vehicle.id,
+        plate: vehicle.plate,
+        billingType: vehicle.billing_type,
+        enteredAt: vehicle.entered_at,
+        now: now.toISOString(),
+        paidUntil: match.sessionPaidUntil,
+        totalPaidCents:
+          vehicle.billing_type === "lease"
+            ? null
+            : vehicle.session_payments
+                .filter(
+                  (p) => p.purpose === "prepay" || p.purpose === "renewal",
+                )
+                .reduce((sum, p) => sum + (p.amount_cents ?? 0), 0),
+        suggestedAmountCents:
+          match.slot.kind === "private"
+            ? 0
+            : vehicle.billing_type === "hourly"
+              ? calculateHourlySuggestedAmountCents(minutes, pricing)
+              : (overstay?.suggestedCents ?? 0),
+        overstayHours: overstay?.hours ?? 0,
+      };
+    },
+
+    async checkOut(input) {
+      await requireAuthenticatedUserId(getAuth);
+      const value = parseCheckOutInput(input);
+      await repository.checkOutVehicle({
+        sessionId: value.sessionId,
+        amountCents: value.amountYuan
+          ? parseAmountCents(value.amountYuan)
+          : null,
+        paymentMethod: value.paymentMethod ?? null,
+      });
+      return { sessionId: value.sessionId, plate: "" };
+    },
+
+    async undoCheckOut(sessionId) {
+      await requireAuthenticatedUserId(getAuth);
+      await repository.undoCheckOut(parseUndoSessionId(sessionId));
     },
 
     async getSlotMap(now) {

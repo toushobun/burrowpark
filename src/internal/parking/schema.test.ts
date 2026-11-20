@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   parseAmountCents,
   parseCheckInInput,
+  parseCheckOutInput,
+  parseRenewInput,
   parseUndoSessionId,
   readCheckInFormData,
 } from "./schema";
@@ -118,5 +120,45 @@ describe("checkInSchema", () => {
       "00000000-0000-4000-8000-000000000001",
     );
     expect(() => parseUndoSessionId("bad-id")).toThrow();
+  });
+});
+
+describe("续费与离场校验", () => {
+  it("续费方式、天数及金额必须符合规则", () => {
+    expect(
+      parseRenewInput({
+        slotCode: "1",
+        mode: "hotel_daily",
+        days: 2,
+        amountYuan: "30.05",
+        paymentMethod: "wechat",
+      }).days,
+    ).toBe(2);
+    expect(() =>
+      parseRenewInput({
+        slotCode: "1",
+        mode: "hotel_daily",
+        days: 31,
+        amountYuan: "30.05",
+        paymentMethod: "wechat",
+      }),
+    ).toThrow();
+    expect(() =>
+      parseRenewInput({
+        slotCode: "1",
+        mode: "lease",
+        endDate: "2026/11/30",
+        amountYuan: "10",
+        paymentMethod: "cash",
+      }),
+    ).toThrow();
+  });
+  it("离场不能只提供金额或只提供收款方式", () => {
+    const sessionId = "00000000-0000-4000-8000-000000000001";
+    expect(parseCheckOutInput({ sessionId }).amountYuan).toBeUndefined();
+    expect(() => parseCheckOutInput({ sessionId, amountYuan: "20" })).toThrow();
+    expect(() =>
+      parseCheckOutInput({ sessionId, paymentMethod: "cash" }),
+    ).toThrow();
   });
 });
