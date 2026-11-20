@@ -11,7 +11,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
 import { paymentMethodLabels } from "config/checkInText";
@@ -101,6 +101,14 @@ export function SlotDetail({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
   const [endDate, setEndDate] = useState(today);
+  const [liveNow, setLiveNow] = useState<string | null>(null);
+  useEffect(() => {
+    if (detail?.kind !== "private" || !detail.presentVehicle || !now) return;
+    const timer = window.setInterval(() => {
+      setLiveNow(new Date().toISOString());
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, [detail?.kind, detail?.presentVehicle?.sessionId, now]);
   const [reserveState, submitReserve, reservePending] = useActionState(
     operations?.reserve ?? unavailableAction,
     initialState?.reserve ?? ({} as SlotActionState),
@@ -205,6 +213,12 @@ export function SlotDetail({
   const vehicle = detail.presentVehicle;
   const phone = detail.lease?.phone?.trim();
   const privateBorrowed = detail.kind === "private" && Boolean(vehicle);
+  const countdownNow = liveNow ?? now;
+  const borrowOverdue =
+    privateBorrowed &&
+    !!vehicle?.borrowUntil &&
+    !!countdownNow &&
+    Date.parse(countdownNow) >= Date.parse(vehicle.borrowUntil);
   const reserved = !vehicle && Boolean(detail.reservation);
   const leaseAway = !vehicle && Boolean(detail.lease);
   const links: { label: string; href: string }[] = [];
@@ -281,7 +295,7 @@ export function SlotDetail({
         <SlotStatusBadge
           inactive={!detail.isActive}
           label={detail.isActive ? undefined : slotDetailText.inactive}
-          status={detail.status}
+          status={borrowOverdue ? "overdue" : detail.status}
         />
       </Stack>
 
@@ -337,10 +351,10 @@ export function SlotDetail({
                     <Typography
                       variant="h3"
                       color={
-                        detail.status === "overdue" ? "error" : "textPrimary"
+                        borrowOverdue ? "error" : "textPrimary"
                       }
                     >
-                      {describeBorrowRemaining(vehicle.borrowUntil, now)}
+                      {describeBorrowRemaining(vehicle.borrowUntil, countdownNow)}
                     </Typography>
                   )}
                   {vehicle.photoUrl && (
