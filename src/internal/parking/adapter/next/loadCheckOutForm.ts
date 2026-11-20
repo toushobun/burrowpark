@@ -5,5 +5,8 @@ import { createServerRequestDependencies } from "internal/shared/context/createS
 
 export async function loadCheckOutForm(code: string) {
   const dependencies = await createServerRequestDependencies();
-  return createRequestContainer(dependencies).parking.getCheckOutForm(code, new Date());
+  return createRequestContainer(dependencies).parking.getCheckOutForm(
+    code,
+    new Date(),
+  );
 }

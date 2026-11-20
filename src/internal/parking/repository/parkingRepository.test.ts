@@ -403,15 +403,18 @@ describe("续费与离场 Repository", () => {
     const repository = createParkingRepository(client, logger);
     await repository.checkOutVehicle({
       sessionId: "00000000-0000-4000-8000-000000000001",
-      amountCents: 2500, paymentMethod: "wechat",
+      amountCents: 2500,
+      paymentMethod: "wechat",
     });
     expect(rpc).toHaveBeenCalledWith("check_out_vehicle", {
       p_session_id: "00000000-0000-4000-8000-000000000001",
-      p_amount_cents: 2500, p_payment_method: "wechat",
+      p_amount_cents: 2500,
+      p_payment_method: "wechat",
     });
     await repository.checkOutVehicle({
       sessionId: "00000000-0000-4000-8000-000000000001",
-      amountCents: null, paymentMethod: null,
+      amountCents: null,
+      paymentMethod: null,
     });
     expect(rpc).toHaveBeenLastCalledWith("check_out_vehicle", {
       p_session_id: "00000000-0000-4000-8000-000000000001",
@@ -422,39 +425,63 @@ describe("续费与离场 Repository", () => {
       ["ALREADY_LEFT", "already_left"],
       ["INVALID_INPUT", "invalid_input"],
     ] as const) {
-      const { client } = makeRpcClient({ data: null, error: { code: "P0001", details } });
-      await expect(createParkingRepository(client, logger).checkOutVehicle({
-        sessionId: "00000000-0000-4000-8000-000000000001",
-        amountCents: null, paymentMethod: null,
-      })).rejects.toMatchObject({ code });
+      const { client } = makeRpcClient({
+        data: null,
+        error: { code: "P0001", details },
+      });
+      await expect(
+        createParkingRepository(client, logger).checkOutVehicle({
+          sessionId: "00000000-0000-4000-8000-000000000001",
+          amountCents: null,
+          paymentMethod: null,
+        }),
+      ).rejects.toMatchObject({ code });
     }
   });
   it("撤销离场碰到唯一索引映射为稳定的车位占用提示", async () => {
-    const { client } = makeRpcClient({ data: null, error: { code: "23505", message: "secret" } });
-    await expect(createParkingRepository(client, logger).undoCheckOut(
-      "00000000-0000-4000-8000-000000000001",
-    )).rejects.toMatchObject({
+    const { client } = makeRpcClient({
+      data: null,
+      error: { code: "23505", message: "secret" },
+    });
+    await expect(
+      createParkingRepository(client, logger).undoCheckOut(
+        "00000000-0000-4000-8000-000000000001",
+      ),
+    ).rejects.toMatchObject({
       name: "ConflictError",
       message: "这个车位已经停了别的车，不能撤销",
     });
   });
   it("撤销续费超时映射为不能撤销，非家庭权限不泄漏底层错误", async () => {
-    const unavailable = makeRpcClient({ data: null, error: {
-      code: "P0001", details: "UNDO_UNAVAILABLE",
-    } });
-    await expect(createParkingRepository(unavailable.client, logger).undoRenewal(
-      "00000000-0000-4000-8000-000000000001",
-    )).rejects.toMatchObject({ code: "undo_unavailable" });
-    const denied = makeRpcClient({ data: null, error: {
-      code: "42501", details: "FAMILY_REQUIRED",
-    } });
-    await expect(createParkingRepository(denied.client, logger).undoCheckOut(
-      "00000000-0000-4000-8000-000000000001",
-    )).rejects.toMatchObject({ name: "AuthorizationError" });
+    const unavailable = makeRpcClient({
+      data: null,
+      error: {
+        code: "P0001",
+        details: "UNDO_UNAVAILABLE",
+      },
+    });
+    await expect(
+      createParkingRepository(unavailable.client, logger).undoRenewal(
+        "00000000-0000-4000-8000-000000000001",
+      ),
+    ).rejects.toMatchObject({ code: "undo_unavailable" });
+    const denied = makeRpcClient({
+      data: null,
+      error: {
+        code: "42501",
+        details: "FAMILY_REQUIRED",
+      },
+    });
+    await expect(
+      createParkingRepository(denied.client, logger).undoCheckOut(
+        "00000000-0000-4000-8000-000000000001",
+      ),
+    ).rejects.toMatchObject({ name: "AuthorizationError" });
   });
   it("续费只对 payments 执行一次插入并返回收款 id", async () => {
     const single = vi.fn().mockResolvedValue({
-      data: { id: "00000000-0000-4000-8000-000000000002" }, error: null,
+      data: { id: "00000000-0000-4000-8000-000000000002" },
+      error: null,
     });
     const select = vi.fn().mockReturnValue({ single });
     const insert = vi.fn().mockReturnValue({ select });
@@ -462,15 +489,20 @@ describe("续费与离场 Repository", () => {
     const client = { from } as unknown as AuthenticatedSupabaseClient;
     const id = await createParkingRepository(client, logger).addRenewal({
       sessionId: "00000000-0000-4000-8000-000000000001",
-      leaseId: null, amountCents: 4000, method: "cash",
+      leaseId: null,
+      amountCents: 4000,
+      method: "cash",
       paidUntil: "2026-12-21T04:00:00.000Z",
     });
     expect(id).toBe("00000000-0000-4000-8000-000000000002");
     expect(from).toHaveBeenCalledWith("payments");
     expect(insert).toHaveBeenCalledWith({
       session_id: "00000000-0000-4000-8000-000000000001",
-      lease_id: null, purpose: "renewal", amount_cents: 4000,
-      method: "cash", paid_until: "2026-12-21T04:00:00.000Z",
+      lease_id: null,
+      purpose: "renewal",
+      amount_cents: 4000,
+      method: "cash",
+      paid_until: "2026-12-21T04:00:00.000Z",
     });
   });
 });

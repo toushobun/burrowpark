@@ -75,7 +75,10 @@ describe("SlotDetail", () => {
       "https://example.com/photo",
     );
     expectActions(["续费", "离场"]);
-    expect(screen.getByRole("link", { name: "离场" })).toHaveAttribute("href", "/slots/7/check-out");
+    expect(screen.getByRole("link", { name: "离场" })).toHaveAttribute(
+      "href",
+      "/slots/7/check-out",
+    );
   });
 
   it("临停和免费有车时只显示离场与已停时间", () => {
@@ -102,7 +105,10 @@ describe("SlotDetail", () => {
       screen.getByRole("link", { name: "打电话 13800000000" }),
     ).toHaveAttribute("href", "tel:13800000000");
     expectActions(["登记进场", "续费"]);
-    expect(screen.getByRole("link", { name: "续费" })).toHaveAttribute("href", "/slots/7/renew");
+    expect(screen.getByRole("link", { name: "续费" })).toHaveAttribute(
+      "href",
+      "/slots/7/renew",
+    );
   });
 
   it("没有电话时不出现打电话按钮", () => {

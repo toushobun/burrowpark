@@ -35,9 +35,10 @@ export type SlotFactsRows = {
     | "entered_at"
     | "photo_path"
   > & {
-    session_payments: (Pick<Tables<"payments">, "paid_until"> & Partial<
-      Pick<Tables<"payments">, "id" | "amount_cents" | "paid_at" | "purpose">
-    >)[];
+    session_payments: (Pick<Tables<"payments">, "paid_until"> &
+      Partial<
+        Pick<Tables<"payments">, "id" | "amount_cents" | "paid_at" | "purpose">
+      >)[];
   })[];
   reservations: Pick<
     Tables<"reservations">,
@@ -47,9 +48,10 @@ export type SlotFactsRows = {
     Tables<"leases">,
     "id" | "slot_code" | "tenant_name" | "phone"
   > & {
-    lease_payments: (Pick<Tables<"payments">, "paid_until"> & Partial<
-      Pick<Tables<"payments">, "id" | "amount_cents" | "paid_at" | "purpose">
-    >)[];
+    lease_payments: (Pick<Tables<"payments">, "paid_until"> &
+      Partial<
+        Pick<Tables<"payments">, "id" | "amount_cents" | "paid_at" | "purpose">
+      >)[];
   })[];
 };
 
@@ -293,14 +295,18 @@ export function createParkingRepository(
 
     async addRenewal(input) {
       try {
-        const { data, error } = await supabase.from("payments").insert({
-          session_id: input.sessionId,
-          lease_id: input.leaseId,
-          purpose: "renewal",
-          amount_cents: input.amountCents,
-          method: input.method,
-          paid_until: input.paidUntil,
-        }).select("id").single();
+        const { data, error } = await supabase
+          .from("payments")
+          .insert({
+            session_id: input.sessionId,
+            lease_id: input.leaseId,
+            purpose: "renewal",
+            amount_cents: input.amountCents,
+            method: input.method,
+            paid_until: input.paidUntil,
+          })
+          .select("id")
+          .single();
         if (error || !data) return fail("addRenewal", error);
         return data.id;
       } catch (error) {
@@ -310,22 +316,35 @@ export function createParkingRepository(
     },
     async undoRenewal(paymentId) {
       try {
-        const { error } = await supabase.rpc("undo_renewal", { p_payment_id: paymentId });
+        const { error } = await supabase.rpc("undo_renewal", {
+          p_payment_id: paymentId,
+        });
         if (!error) return;
         const code = findRpcBusinessError(error, {
           UNDO_UNAVAILABLE: "undo_unavailable",
           FAMILY_REQUIRED: "family_required",
         });
         if (code === "undo_unavailable" || isRpcUniqueViolation(error))
-          throw new ConflictError("undo_unavailable", parkingMessages.cannotUndo);
+          throw new ConflictError(
+            "undo_unavailable",
+            parkingMessages.cannotUndo,
+          );
         if (code === "family_required")
           throw new AuthorizationError(code, parkingMessages.invalidInput);
-        const conflict = toConcurrentModificationError(error, logger, "undo_renewal");
+        const conflict = toConcurrentModificationError(
+          error,
+          logger,
+          "undo_renewal",
+        );
         if (conflict) throw conflict;
         return fail("undoRenewal", error);
       } catch (error) {
-        if (error instanceof ConflictError || error instanceof AuthorizationError ||
-            error instanceof RepositoryError) throw error;
+        if (
+          error instanceof ConflictError ||
+          error instanceof AuthorizationError ||
+          error instanceof RepositoryError
+        )
+          throw error;
         return fail("undoRenewal", error);
       }
     },
@@ -333,8 +352,12 @@ export function createParkingRepository(
       try {
         const { error } = await supabase.rpc("check_out_vehicle", {
           p_session_id: input.sessionId,
-          ...(input.amountCents === null ? {} : { p_amount_cents: input.amountCents }),
-          ...(input.paymentMethod === null ? {} : { p_payment_method: input.paymentMethod }),
+          ...(input.amountCents === null
+            ? {}
+            : { p_amount_cents: input.amountCents }),
+          ...(input.paymentMethod === null
+            ? {}
+            : { p_payment_method: input.paymentMethod }),
         });
         if (!error) return;
         const code = findRpcBusinessError(error, {
@@ -343,25 +366,40 @@ export function createParkingRepository(
           INVALID_INPUT: "invalid_input",
           FAMILY_REQUIRED: "family_required",
         });
-        if (code === "already_left") throw new ConflictError(code, parkingMessages.checkoutUnavailable);
+        if (code === "already_left")
+          throw new ConflictError(code, parkingMessages.checkoutUnavailable);
         if (code === "session_unavailable" || code === "invalid_input")
           throw new ValidationError(code, parkingMessages.invalidInput);
         if (code === "family_required")
           throw new AuthorizationError(code, parkingMessages.invalidInput);
         if (isRpcUniqueViolation(error))
-          throw new ConflictError("already_left", parkingMessages.checkoutUnavailable);
-        const conflict = toConcurrentModificationError(error, logger, "check_out_vehicle");
+          throw new ConflictError(
+            "already_left",
+            parkingMessages.checkoutUnavailable,
+          );
+        const conflict = toConcurrentModificationError(
+          error,
+          logger,
+          "check_out_vehicle",
+        );
         if (conflict) throw conflict;
         return fail("checkOutVehicle", error);
       } catch (error) {
-        if (error instanceof ConflictError || error instanceof ValidationError ||
-            error instanceof AuthorizationError || error instanceof RepositoryError) throw error;
+        if (
+          error instanceof ConflictError ||
+          error instanceof ValidationError ||
+          error instanceof AuthorizationError ||
+          error instanceof RepositoryError
+        )
+          throw error;
         return fail("checkOutVehicle", error);
       }
     },
     async undoCheckOut(sessionId) {
       try {
-        const { error } = await supabase.rpc("undo_check_out", { p_session_id: sessionId });
+        const { error } = await supabase.rpc("undo_check_out", {
+          p_session_id: sessionId,
+        });
         if (!error) return;
         const code = findRpcBusinessError(error, {
           UNDO_UNAVAILABLE: "undo_unavailable",
@@ -369,17 +407,28 @@ export function createParkingRepository(
           FAMILY_REQUIRED: "family_required",
         });
         if (code === "undo_occupied" || isRpcUniqueViolation(error))
-          throw new ConflictError("undo_occupied", parkingMessages.checkoutUndoOccupied);
+          throw new ConflictError(
+            "undo_occupied",
+            parkingMessages.checkoutUndoOccupied,
+          );
         if (code === "undo_unavailable")
           throw new ConflictError(code, parkingMessages.cannotUndo);
         if (code === "family_required")
           throw new AuthorizationError(code, parkingMessages.invalidInput);
-        const conflict = toConcurrentModificationError(error, logger, "undo_check_out");
+        const conflict = toConcurrentModificationError(
+          error,
+          logger,
+          "undo_check_out",
+        );
         if (conflict) throw conflict;
         return fail("undoCheckOut", error);
       } catch (error) {
-        if (error instanceof ConflictError || error instanceof AuthorizationError ||
-            error instanceof RepositoryError) throw error;
+        if (
+          error instanceof ConflictError ||
+          error instanceof AuthorizationError ||
+          error instanceof RepositoryError
+        )
+          throw error;
         return fail("undoCheckOut", error);
       }
     },

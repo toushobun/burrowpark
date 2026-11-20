@@ -248,23 +248,35 @@ export function createParkingService(
       await repository.undoCheckIn(parseUndoSessionId(sessionId));
     },
 
-
     async getRenewForm(code) {
       await requireAuthenticatedUserId(getAuth);
-      if (!/^\\d+$/.test(code)) throw new ValidationError("slot_invalid", parkingMessages.invalidInput);
+      if (!/^\d+$/.test(code))
+        throw new ValidationError("slot_invalid", parkingMessages.invalidInput);
       const [facts, pricing] = await Promise.all([
-        repository.readSlotFacts(), repository.getPricingSettings(),
+        repository.readSlotFacts(),
+        repository.getPricingSettings(),
       ]);
-      const match = assembleSlotFacts(facts).find(({ slot }) => slot.code === code);
-      if (!match || !match.slot.is_active || match.slot.kind === "private") return null;
+      const match = assembleSlotFacts(facts).find(
+        ({ slot }) => slot.code === code,
+      );
+      if (!match || !match.slot.is_active || match.slot.kind === "private")
+        return null;
       const hotel = match.session?.billing_type === "hotel_daily";
-      const lease = match.lease && (!match.session || match.session.billing_type === "lease");
-      const paidUntil = hotel ? match.sessionPaidUntil : lease ? match.leasePaidUntil : null;
+      const lease =
+        match.lease &&
+        (!match.session || match.session.billing_type === "lease");
+      const paidUntil = hotel
+        ? match.sessionPaidUntil
+        : lease
+          ? match.leasePaidUntil
+          : null;
       if (!paidUntil) return null;
       return {
-        code, name: match.slot.name, mode: hotel ? "hotel_daily" : "lease",
-        sessionId: hotel ? match.session?.id ?? null : null,
-        leaseId: lease ? match.lease?.id ?? null : null,
+        code,
+        name: match.slot.name,
+        mode: hotel ? "hotel_daily" : "lease",
+        sessionId: hotel ? (match.session?.id ?? null) : null,
+        leaseId: lease ? (match.lease?.id ?? null) : null,
         paidUntil,
         defaultEndDate: lease ? nextLeaseRenewDate(paidUntil) : null,
         hotelDailyPriceCents: pricing.hotel_daily_price_cents,
@@ -276,16 +288,31 @@ export function createParkingService(
       await requireAuthenticatedUserId(getAuth);
       const value = parseRenewInput(input);
       const facts = await repository.readSlotFacts();
-      const match = assembleSlotFacts(facts).find(({ slot }) => slot.code === value.slotCode);
+      const match = assembleSlotFacts(facts).find(
+        ({ slot }) => slot.code === value.slotCode,
+      );
       if (!match || !match.slot.is_active || match.slot.kind === "private")
-        throw new ValidationError("renew_unavailable", parkingMessages.renewUnavailable);
-      const hotel = value.mode === "hotel_daily" &&
+        throw new ValidationError(
+          "renew_unavailable",
+          parkingMessages.renewUnavailable,
+        );
+      const hotel =
+        value.mode === "hotel_daily" &&
         match.session?.billing_type === "hotel_daily";
-      const lease = value.mode === "lease" && match.lease &&
+      const lease =
+        value.mode === "lease" &&
+        match.lease &&
         (!match.session || match.session.billing_type === "lease");
-      const currentPaidUntil = hotel ? match.sessionPaidUntil : lease ? match.leasePaidUntil : null;
+      const currentPaidUntil = hotel
+        ? match.sessionPaidUntil
+        : lease
+          ? match.leasePaidUntil
+          : null;
       if (!currentPaidUntil)
-        throw new ValidationError("renew_unavailable", parkingMessages.renewUnavailable);
+        throw new ValidationError(
+          "renew_unavailable",
+          parkingMessages.renewUnavailable,
+        );
       let paidUntil: string;
       if (hotel) {
         paidUntil = extendHotelPaidUntil(currentPaidUntil, value.days!);
@@ -293,14 +320,20 @@ export function createParkingService(
         try {
           paidUntil = leaseDateToPaidUntil(value.endDate!);
         } catch {
-          throw new ValidationError("renew_date_invalid", parkingMessages.renewDateInvalid);
+          throw new ValidationError(
+            "renew_date_invalid",
+            parkingMessages.renewDateInvalid,
+          );
         }
         if (Date.parse(paidUntil) <= Date.parse(currentPaidUntil))
-          throw new ValidationError("renew_date_invalid", parkingMessages.renewDateInvalid);
+          throw new ValidationError(
+            "renew_date_invalid",
+            parkingMessages.renewDateInvalid,
+          );
       }
       const paymentId = await repository.addRenewal({
-        sessionId: hotel ? match.session?.id ?? null : null,
-        leaseId: lease ? match.lease?.id ?? null : null,
+        sessionId: hotel ? (match.session?.id ?? null) : null,
+        leaseId: lease ? (match.lease?.id ?? null) : null,
         amountCents: parseAmountCents(value.amountYuan),
         method: value.paymentMethod,
         paidUntil,
@@ -315,28 +348,52 @@ export function createParkingService(
 
     async getCheckOutForm(code, now) {
       await requireAuthenticatedUserId(getAuth);
-      if (!/^\\d+$/.test(code)) throw new ValidationError("slot_invalid", parkingMessages.invalidInput);
+      if (!/^\d+$/.test(code))
+        throw new ValidationError("slot_invalid", parkingMessages.invalidInput);
       const [facts, pricing] = await Promise.all([
-        repository.readSlotFacts(), repository.getPricingSettings(),
+        repository.readSlotFacts(),
+        repository.getPricingSettings(),
       ]);
-      const match = assembleSlotFacts(facts).find(({ slot }) => slot.code === code);
+      const match = assembleSlotFacts(facts).find(
+        ({ slot }) => slot.code === code,
+      );
       if (!match?.slot.is_active || !match.session) return null;
       const vehicle = match.session;
-      const minutes = Math.max(0, (now.getTime() - Date.parse(vehicle.entered_at)) / 60000);
-      const overstay = vehicle.billing_type === "hotel_daily" && match.sessionPaidUntil
-        ? calculateHotelOverstay(match.sessionPaidUntil, now, pricing.hotel_daily_price_cents)
-        : null;
+      const minutes = Math.max(
+        0,
+        (now.getTime() - Date.parse(vehicle.entered_at)) / 60000,
+      );
+      const overstay =
+        vehicle.billing_type === "hotel_daily" && match.sessionPaidUntil
+          ? calculateHotelOverstay(
+              match.sessionPaidUntil,
+              now,
+              pricing.hotel_daily_price_cents,
+            )
+          : null;
       return {
-        code, name: match.slot.name, sessionId: vehicle.id, plate: vehicle.plate,
-        billingType: vehicle.billing_type, enteredAt: vehicle.entered_at,
-        now: now.toISOString(), paidUntil: match.sessionPaidUntil,
-        totalPaidCents: vehicle.billing_type === "lease" ? null :
-          vehicle.session_payments.filter((p) => p.purpose === "prepay" ||
-            p.purpose === "renewal").reduce((sum, p) => sum + (p.amount_cents ?? 0), 0),
-        suggestedAmountCents: match.slot.kind === "private" ? 0 :
-          vehicle.billing_type === "hourly"
-          ? calculateHourlySuggestedAmountCents(minutes, pricing)
-          : overstay?.suggestedCents ?? 0,
+        code,
+        name: match.slot.name,
+        sessionId: vehicle.id,
+        plate: vehicle.plate,
+        billingType: vehicle.billing_type,
+        enteredAt: vehicle.entered_at,
+        now: now.toISOString(),
+        paidUntil: match.sessionPaidUntil,
+        totalPaidCents:
+          vehicle.billing_type === "lease"
+            ? null
+            : vehicle.session_payments
+                .filter(
+                  (p) => p.purpose === "prepay" || p.purpose === "renewal",
+                )
+                .reduce((sum, p) => sum + (p.amount_cents ?? 0), 0),
+        suggestedAmountCents:
+          match.slot.kind === "private"
+            ? 0
+            : vehicle.billing_type === "hourly"
+              ? calculateHourlySuggestedAmountCents(minutes, pricing)
+              : (overstay?.suggestedCents ?? 0),
         overstayHours: overstay?.hours ?? 0,
       };
     },
@@ -346,7 +403,9 @@ export function createParkingService(
       const value = parseCheckOutInput(input);
       await repository.checkOutVehicle({
         sessionId: value.sessionId,
-        amountCents: value.amountYuan ? parseAmountCents(value.amountYuan) : null,
+        amountCents: value.amountYuan
+          ? parseAmountCents(value.amountYuan)
+          : null,
         paymentMethod: value.paymentMethod ?? null,
       });
       return { sessionId: value.sessionId, plate: "" };

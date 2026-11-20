@@ -5,5 +5,8 @@ import { createServerRequestDependencies } from "internal/shared/context/createS
 
 export async function loadRenewForm(code: string) {
   const dependencies = await createServerRequestDependencies();
-  return createRequestContainer(dependencies).parking.getRenewForm(code, new Date());
+  return createRequestContainer(dependencies).parking.getRenewForm(
+    code,
+    new Date(),
+  );
 }

@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createRequestContainer } from "internal/container";
 import { requireAuthenticatedUserId } from "internal/shared/auth/authContext";
-import { createErrorState, createSuccessState } from "internal/shared/adapter/next/actionState";
+import {
+  createErrorState,
+  createSuccessState,
+} from "internal/shared/adapter/next/actionState";
 import { createRequestDependencies } from "internal/shared/context/requestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
@@ -16,7 +19,8 @@ export type RenewActionState = ActionState & {
 };
 
 export async function renewAction(
-  _previousState: RenewActionState, formData: FormData,
+  _previousState: RenewActionState,
+  formData: FormData,
 ): Promise<RenewActionState> {
   let dependencies: Awaited<ReturnType<typeof createRequestDependencies>>;
   try {
@@ -29,7 +33,9 @@ export async function renewAction(
   }
   try {
     await requireAuthenticatedUserId(dependencies.getAuth);
-    const result = await createRequestContainer(dependencies).parking.renew(readRenewFormData(formData));
+    const result = await createRequestContainer(dependencies).parking.renew(
+      readRenewFormData(formData),
+    );
     revalidatePath("/");
     revalidatePath("/slots/[code]", "page");
     return { ...createSuccessState("续费成功"), result };
@@ -43,7 +49,8 @@ export async function renewAction(
 }
 
 export async function undoRenewalAction(
-  _previousState: ActionState, formData: FormData,
+  _previousState: ActionState,
+  formData: FormData,
 ): Promise<ActionState> {
   let dependencies: Awaited<ReturnType<typeof createRequestDependencies>>;
   try {
@@ -56,7 +63,9 @@ export async function undoRenewalAction(
   }
   try {
     await requireAuthenticatedUserId(dependencies.getAuth);
-    await createRequestContainer(dependencies).parking.undoRenewal(formData.get("paymentId"));
+    await createRequestContainer(dependencies).parking.undoRenewal(
+      formData.get("paymentId"),
+    );
     revalidatePath("/");
     revalidatePath("/slots/[code]", "page");
     return createSuccessState("已撤销续费");

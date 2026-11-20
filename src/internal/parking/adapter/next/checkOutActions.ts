@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createRequestContainer } from "internal/container";
 import { requireAuthenticatedUserId } from "internal/shared/auth/authContext";
-import { createErrorState, createSuccessState } from "internal/shared/adapter/next/actionState";
+import {
+  createErrorState,
+  createSuccessState,
+} from "internal/shared/adapter/next/actionState";
 import { createRequestDependencies } from "internal/shared/context/requestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
@@ -16,7 +19,8 @@ export type CheckOutActionState = ActionState & {
 };
 
 export async function checkOutAction(
-  _previousState: CheckOutActionState, formData: FormData,
+  _previousState: CheckOutActionState,
+  formData: FormData,
 ): Promise<CheckOutActionState> {
   let dependencies: Awaited<ReturnType<typeof createRequestDependencies>>;
   try {
@@ -29,7 +33,9 @@ export async function checkOutAction(
   }
   try {
     await requireAuthenticatedUserId(dependencies.getAuth);
-    const result = await createRequestContainer(dependencies).parking.checkOut(readCheckOutFormData(formData));
+    const result = await createRequestContainer(dependencies).parking.checkOut(
+      readCheckOutFormData(formData),
+    );
     revalidatePath("/");
     revalidatePath("/slots/[code]", "page");
     return { ...createSuccessState("离场成功"), result };
@@ -43,7 +49,8 @@ export async function checkOutAction(
 }
 
 export async function undoCheckOutAction(
-  _previousState: ActionState, formData: FormData,
+  _previousState: ActionState,
+  formData: FormData,
 ): Promise<ActionState> {
   let dependencies: Awaited<ReturnType<typeof createRequestDependencies>>;
   try {
@@ -56,7 +63,9 @@ export async function undoCheckOutAction(
   }
   try {
     await requireAuthenticatedUserId(dependencies.getAuth);
-    await createRequestContainer(dependencies).parking.undoCheckOut(formData.get("sessionId"));
+    await createRequestContainer(dependencies).parking.undoCheckOut(
+      formData.get("sessionId"),
+    );
     revalidatePath("/");
     revalidatePath("/slots/[code]", "page");
     return createSuccessState("已撤销离场");
