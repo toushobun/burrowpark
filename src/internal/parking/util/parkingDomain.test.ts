@@ -6,6 +6,10 @@ import {
   calculateHourlySuggestedAmountCents,
   calculateHotelCheckoutAt,
   deriveSlotStatus,
+  formatBusinessDate,
+  formatBusinessDateTime,
+  formatBusinessTime,
+  formatElapsed,
   formatPlateForDisplay,
   getBusinessDate,
   getBusinessDateTime,
@@ -77,6 +81,51 @@ describe("业务时间", () => {
         hotel_previous_day_before_hour: 6,
       }),
     ).toThrow("住宿天数必须是正整数。");
+  });
+});
+
+describe("详情页业务时间显示", () => {
+  it("按上海时间显示 UTC 与上海处于不同日期的时刻", () => {
+    expect(formatBusinessDateTime("2026-11-18T16:30:00.000Z")).toBe(
+      "11月19日 00:30",
+    );
+    expect(formatBusinessDate("2026-11-18T16:30:00.000Z")).toBe("11月19日");
+  });
+
+  it("UTC 跨日时按上海时间显示时分并补零", () => {
+    expect(formatBusinessTime("2026-11-18T16:05:00.000Z")).toBe("00:05");
+    expect(formatBusinessTime("2026-11-19T04:30:00.000Z")).toBe("12:30");
+  });
+
+  it("跨月与跨年时日期进位且时分补零", () => {
+    expect(formatBusinessDateTime("2026-11-30T16:05:00.000Z")).toBe(
+      "12月1日 00:05",
+    );
+    expect(formatBusinessDate("2026-12-31T16:00:00.000Z")).toBe("1月1日");
+  });
+
+  it("跨日停车按真实经过的分钟计算", () => {
+    expect(
+      formatElapsed("2026-11-18T15:45:00.000Z", "2026-11-18T18:00:59.000Z"),
+    ).toBe("已停 2 小时 15 分");
+  });
+
+  it("不足一小时只显示分钟且向下取整", () => {
+    expect(
+      formatElapsed("2026-11-19T00:00:00.000Z", "2026-11-19T00:15:59.000Z"),
+    ).toBe("已停 15 分");
+    expect(
+      formatElapsed("2026-11-19T00:00:00.000Z", "2026-11-19T00:00:59.000Z"),
+    ).toBe("已停 0 分");
+  });
+
+  it("无时区时间字符串被拒绝，负时长显示零分钟", () => {
+    expect(() => formatBusinessDateTime("2026-11-19T12:00:00")).toThrow(
+      "时间字符串必须明确指定时区。",
+    );
+    expect(
+      formatElapsed("2026-11-19T01:00:00.000Z", "2026-11-19T00:00:00.000Z"),
+    ).toBe("已停 0 分");
   });
 });
 

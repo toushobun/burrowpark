@@ -33,6 +33,22 @@ describe("SlotStatusBadge", () => {
     });
   });
 
+  it("停用车位忽略绿色空位配色并使用中性色", () => {
+    render(
+      <ThemeProvider theme={theme}>
+        <SlotStatusBadge inactive label="停用" status="empty" />
+      </ThemeProvider>,
+    );
+
+    const badge = screen.getByText("停用");
+    expect(badge).toHaveStyle({
+      backgroundColor: theme.palette.action.disabledBackground,
+      color: theme.palette.text.primary,
+      borderStyle: "solid",
+    });
+    expect(badge).not.toHaveStyle({ backgroundColor: "#E6F4E4" });
+  });
+
   it("预留状态使用虚线边框", () => {
     render(<SlotStatusBadge status="reserved" />);
 

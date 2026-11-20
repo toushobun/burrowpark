@@ -1,31 +1,45 @@
-import Button from "@mui/material/Button";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-
-import { slotLayout } from "config/slotLayout";
-import { slotMapText } from "config/slotMapText";
+import { slotDetailText } from "config/slotDetailText";
+import {
+  formatBusinessDate,
+  formatBusinessDateTime,
+  formatBusinessTime,
+  formatElapsed,
+} from "internal/parking";
+import { loadSlotDetail } from "internal/parking/adapter/next/loadSlotDetail";
+import { SlotDetail } from "organisms/slots/SlotDetail/SlotDetail";
 import { PageShell } from "templates/layout/PageShell/PageShell";
 
-export default async function SlotDetailPlaceholder({
+export default async function SlotDetailPage({
   params,
 }: {
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  if (!slotLayout.slots.some((slot) => slot.code === code)) {
-    notFound();
-  }
+  const now = new Date();
+  const detail = await loadSlotDetail(code, now);
+  const vehicle = detail?.presentVehicle;
+
+  const display = detail
+    ? {
+        enteredAt: vehicle ? formatBusinessDateTime(vehicle.enteredAt) : null,
+        paidUntil: vehicle?.paidUntil
+          ? vehicle.billingType === "lease"
+            ? formatBusinessDate(vehicle.paidUntil)
+            : formatBusinessDateTime(vehicle.paidUntil)
+          : null,
+        elapsed: vehicle ? formatElapsed(vehicle.enteredAt, now) : null,
+        borrowUntil: vehicle?.borrowUntil
+          ? formatBusinessTime(vehicle.borrowUntil)
+          : null,
+        leasePaidUntil: detail.lease?.paidUntil
+          ? formatBusinessDate(detail.lease.paidUntil)
+          : null,
+      }
+    : null;
 
   return (
-    <PageShell title={code + "号"}>
-      <Stack spacing={3}>
-        <Typography variant="body1">{slotMapText.detailPending}</Typography>
-        <Button component={Link} href="/" size="large" variant="contained">
-          {slotMapText.backHome}
-        </Button>
-      </Stack>
+    <PageShell title={slotDetailText.pageTitle}>
+      <SlotDetail detail={detail} display={display} />
     </PageShell>
   );
 }
