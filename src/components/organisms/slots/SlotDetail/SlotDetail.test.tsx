@@ -96,10 +96,9 @@ describe("SlotDetail", () => {
     renderDetail(leaseAwayDetail);
     expect(screen.getByText("王先生")).toBeInTheDocument();
     expect(screen.getByText("11月30日")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "打电话 13800000000" })).toHaveAttribute(
-      "href",
-      "tel:13800000000",
-    );
+    expect(
+      screen.getByRole("link", { name: "打电话 13800000000" }),
+    ).toHaveAttribute("href", "tel:13800000000");
     expectActions(["登记进场"]);
   });
 
