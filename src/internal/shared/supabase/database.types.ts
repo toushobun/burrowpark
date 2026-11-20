@@ -319,49 +319,6 @@ export type Database = {
         Args: { p_reservation_id: string };
         Returns: undefined;
       };
-      create_lease: {
-        Args: {
-          p_slot_code: string;
-          p_tenant_name: string;
-          p_phone: string | null;
-          p_plate: string | null;
-          p_starts_on: string;
-          p_note: string | null;
-          p_paid_until: string;
-          p_amount_cents: number;
-          p_payment_method: Database["public"]["Enums"]["payment_method"];
-        };
-        Returns: string;
-      };
-      end_lease: {
-        Args: { p_lease_id: string; p_ended_on: string };
-        Returns: undefined;
-      };
-      extend_borrow: {
-        Args: { p_session_id: string; p_minutes: number };
-        Returns: {
-          previous_borrow_until: string;
-          current_borrow_until: string;
-        }[];
-      };
-      undo_create_lease: { Args: { p_lease_id: string }; Returns: undefined };
-      undo_end_lease: { Args: { p_lease_id: string }; Returns: undefined };
-      undo_reservation: {
-        Args: { p_reservation_id: string };
-        Returns: undefined;
-      };
-      undo_cancel_reservation: {
-        Args: { p_reservation_id: string };
-        Returns: undefined;
-      };
-      undo_extend_borrow: {
-        Args: {
-          p_session_id: string;
-          p_previous: string;
-          p_expected_current: string;
-        };
-        Returns: undefined;
-      };
       check_in_vehicle: {
         Args: {
           p_amount_cents?: number;
@@ -389,11 +346,54 @@ export type Database = {
           retry_after_seconds: number;
         }[];
       };
+      create_lease: {
+        Args: {
+          p_amount_cents: number;
+          p_note: string;
+          p_paid_until: string;
+          p_payment_method: Database["public"]["Enums"]["payment_method"];
+          p_phone: string;
+          p_plate: string;
+          p_slot_code: string;
+          p_starts_on: string;
+          p_tenant_name: string;
+        };
+        Returns: string;
+      };
+      end_lease: {
+        Args: { p_ended_on: string; p_lease_id: string };
+        Returns: undefined;
+      };
+      extend_borrow: {
+        Args: { p_minutes: number; p_session_id: string };
+        Returns: {
+          current_borrow_until: string;
+          previous_borrow_until: string;
+        }[];
+      };
       is_family_account: { Args: Record<PropertyKey, never>; Returns: boolean };
       reset_login_attempts: { Args: { p_ip_key: string }; Returns: undefined };
+      undo_cancel_reservation: {
+        Args: { p_reservation_id: string };
+        Returns: undefined;
+      };
       undo_check_in: { Args: { p_session_id: string }; Returns: undefined };
       undo_check_out: { Args: { p_session_id: string }; Returns: undefined };
+      undo_create_lease: { Args: { p_lease_id: string }; Returns: undefined };
+      undo_end_lease: { Args: { p_lease_id: string }; Returns: undefined };
+      undo_extend_borrow: {
+        Args: {
+          p_expected_current: string;
+          p_previous: string;
+          p_session_id: string;
+        };
+        Returns: undefined;
+      };
       undo_renewal: { Args: { p_payment_id: string }; Returns: undefined };
+      undo_reservation: {
+        Args: { p_reservation_id: string };
+        Returns: undefined;
+      };
     };
     Enums: {
       billing_type: "hotel_daily" | "hourly" | "lease" | "free";

@@ -86,14 +86,14 @@ select is((select count(*) from public.payments where lease_id in
 select is((select count(*) from public.leases where slot_code='test-lrb-2'),0::bigint,
  '撤销建立后长租硬删除');
 
-select lives_ok($select public.create_lease(
+select lives_ok($$select public.create_lease(
  'test-lrb-6','旧租户',null,null,current_date,null,
  (((current_date+31)::timestamp at time zone 'Asia/Shanghai')-interval '1 second'),
- 3000,'cash')$,'准备建立超过撤销时限的长租');
+ 3000,'cash')$$,'准备建立超过撤销时限的长租');
 update public.leases set created_at=now()-interval '11 minutes'
  where slot_code='test-lrb-6';
-select throws_ok($select public.undo_create_lease(
- (select id from public.leases where slot_code='test-lrb-6'))$,
+select throws_ok($$select public.undo_create_lease(
+ (select id from public.leases where slot_code='test-lrb-6'))$$,
  'P0001','已经不能撤销了','超过十分钟不能撤销建立长租');
 
 
@@ -109,8 +109,8 @@ select lives_ok($$select public.cancel_reservation(
  (select id from public.reservations where slot_code='test-lrb-2'))$$,'取消预留');
 select is((select outcome::text from public.reservations where slot_code='test-lrb-2'),
  'cancelled','取消时标记 cancelled');
-select throws_ok($select public.cancel_reservation(
- (select id from public.reservations where slot_code='test-lrb-2'))$,
+select throws_ok($$select public.cancel_reservation(
+ (select id from public.reservations where slot_code='test-lrb-2'))$$,
  'P0001','预留已经关闭了','已经关闭的预留不能重复取消');
 
 select lives_ok($$select public.undo_cancel_reservation(

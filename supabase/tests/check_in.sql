@@ -1,5 +1,5 @@
 begin;
-select plan(40);
+select plan(41);
 
 -- 专用测试数据在事务内创建，不影响其他 pgTAP 文件。
 insert into public.slots (code, name, yard, kind, sort_order, is_active) values
@@ -155,17 +155,20 @@ select throws_ok(
     (select id from public.parking_sessions where slot_code = 'test-ci-4'))$$,
   'P0001', '已经不能撤销了', '车辆已经离场不能撤销');
 
--- 恢复旧预留时若已有新预留，唯一约束阻止撤销且登记仍然保留。
+-- 已进场车位不能新增预留；被拒绝的新预留不妨碍进场撤销。
 select lives_ok(
   $$select public.check_in_vehicle('test-ci-5', '粤B55556', 'hourly')$$,
   '预留重新到场后可再次登记');
-insert into public.reservations (slot_code, guest_name) values ('test-ci-5', '新的预留');
 select throws_ok(
+  $$insert into public.reservations (slot_code, guest_name)
+    values ('test-ci-5', '新的预留')$$,
+  'P0001', '车位不能预留', '有车在场时不能新增预留');
+select lives_ok(
   $$select public.undo_check_in(
     (select id from public.parking_sessions where slot_code = 'test-ci-5'))$$,
-  'P0001', '已有新的预留，不能撤销', '新预留存在时撤销冲突');
+  '没有新预留时撤销登记成功');
 select is((select count(*) from public.parking_sessions
-  where slot_code = 'test-ci-5'), 1::bigint, '撤销冲突不会删除停车记录');
+  where slot_code = 'test-ci-5'), 0::bigint, '撤销成功后停车记录删除');
 
 -- 更换非家庭账号，RLS 与 RPC 双重限制。
 set local request.jwt.claim.sub = '00000000-0000-4000-8000-000000000099';

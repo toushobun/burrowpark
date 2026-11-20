@@ -337,7 +337,7 @@ export function createParkingRepository(
       try {
         const { data, error } = await supabase.rpc("check_in_vehicle", {
           p_slot_code: input.slotCode,
-          p_plate: input.plate,
+          p_plate: input.plate ?? "",
           p_billing_type: input.billingType,
           ...(input.paidUntil !== null
             ? { p_paid_until: input.paidUntil }
@@ -573,10 +573,10 @@ export function createParkingRepository(
         const { data, error } = await supabase.rpc("create_lease", {
           p_slot_code: input.slotCode,
           p_tenant_name: input.tenantName,
-          p_phone: input.phone,
+          p_phone: input.phone ?? "",
           p_plate: input.plate,
           p_starts_on: input.startsOn,
-          p_note: input.note,
+          p_note: input.note ?? "",
           p_paid_until: input.paidUntil,
           p_amount_cents: input.amountCents,
           p_payment_method: input.paymentMethod,
