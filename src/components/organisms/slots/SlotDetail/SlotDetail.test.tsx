@@ -54,7 +54,7 @@ describe("SlotDetail", () => {
   });
 
   it("私人位空闲时也只显示登记进场按钮", () => {
-    renderDetail({ ...emptyDetail, status: "privateIdle" });
+    renderDetail({ ...emptyDetail, kind: "private", status: "privateIdle" });
     expectActions(["登记进场"]);
   });
 
@@ -96,7 +96,7 @@ describe("SlotDetail", () => {
     renderDetail(leaseAwayDetail);
     expect(screen.getByText("王先生")).toBeInTheDocument();
     expect(screen.getByText("11月30日")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "打电话" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "打电话 13800000000" })).toHaveAttribute(
       "href",
       "tel:13800000000",
     );
@@ -109,7 +109,7 @@ describe("SlotDetail", () => {
       lease: { ...leaseAwayDetail.lease!, phone: null },
     });
     expect(
-      screen.queryByRole("link", { name: "打电话" }),
+      screen.queryByRole("link", { name: /打电话/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -119,7 +119,7 @@ describe("SlotDetail", () => {
       lease: { ...leaseAwayDetail.lease!, phone: "   " },
     });
     expect(
-      screen.queryByRole("link", { name: "打电话" }),
+      screen.queryByRole("link", { name: /打电话/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -151,6 +151,27 @@ describe("SlotDetail", () => {
     renderDetail(privateBorrowedDetail);
     expect(screen.getByText("12:30")).toBeInTheDocument();
     expectActions(["再借一会儿", "离场"]);
+  });
+
+  it("私人位借用逾期后仍保留再借一会儿和离场按钮", () => {
+    renderDetail({ ...privateBorrowedDetail, status: "overdue" });
+    expect(screen.getByText("已过期")).toBeInTheDocument();
+    expectActions(["再借一会儿", "离场"]);
+  });
+
+  it("普通酒店客逾期时不出现私人位借用按钮", () => {
+    renderDetail({ ...hotelExpiringDetail, status: "overdue" });
+    expectActions(["续费", "离场"]);
+  });
+
+  it("预留内容为空且同位有长租时不渲染空白卡片", () => {
+    const { container } = renderDetail({
+      ...leaseAwayDetail,
+      status: "reserved",
+      reservation: { guestName: null, note: null },
+    });
+    expect(container.querySelector(".MuiPaper-root")).toBeNull();
+    expectActions(["登记进场"]);
   });
 
   it("长租车在场与已过期状态仍只显示续费和离场", () => {
