@@ -3,9 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createRequestContainer } from "internal/container";
-import {
-  requireAuthenticatedUserId,
-} from "internal/shared/auth/authContext";
+import { requireAuthenticatedUserId } from "internal/shared/auth/authContext";
 import {
   createErrorState,
   createSuccessState,
@@ -38,7 +36,8 @@ export async function checkInAction(
   try {
     await requireAuthenticatedUserId(dependencies.getAuth);
     const result = await createRequestContainer(dependencies).parking.checkIn(
-      readCheckInFormData(formData), new Date(),
+      readCheckInFormData(formData),
+      new Date(),
     );
     revalidatePath("/");
     revalidatePath("/slots/[code]", "page");

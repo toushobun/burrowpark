@@ -25,13 +25,16 @@ const form: CheckInFormData = {
 const action = vi.fn(async () => ({}));
 const undoAction = vi.fn(async () => ({}));
 
-function renderForm(overrides: Partial<CheckInFormData> = {}, initialState?: {
-  error?: string;
-  errorKey?: string;
-  success?: string;
-  successKey?: string;
-  result?: { sessionId: string; plate: string };
-}) {
+function renderForm(
+  overrides: Partial<CheckInFormData> = {},
+  initialState?: {
+    error?: string;
+    errorKey?: string;
+    success?: string;
+    successKey?: string;
+    result?: { sessionId: string; plate: string };
+  },
+) {
   return render(
     <CheckInForm
       action={action}
@@ -47,13 +50,18 @@ describe("CheckInForm", () => {
     renderForm();
     expect(screen.getByRole("button", { name: "酒店客" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "临停" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "免费（装卸）" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "免费（装卸）" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "长租" })).toBeNull();
   });
 
   it("有在租长租时显示并默认选中长租", () => {
     renderForm({ hasLease: true });
-    expect(screen.getByRole("button", { name: "长租" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "长租" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(screen.queryByText("实收金额（元）")).toBeNull();
   });
 
@@ -61,7 +69,10 @@ describe("CheckInForm", () => {
     renderForm({ kind: "private" });
     expect(screen.queryByRole("button", { name: "酒店客" })).toBeNull();
     expect(screen.queryByRole("button", { name: "长租" })).toBeNull();
-    expect(screen.getByRole("button", { name: "临停" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "临停" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(screen.getByRole("button", { name: "10 分钟" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "30 分钟" })).toBeInTheDocument();
     fireEvent.change(screen.getByRole("textbox", { name: "车牌号码" }), {
@@ -120,24 +131,44 @@ describe("CheckInForm", () => {
   it("停用或已占用车位不显示登记表单", () => {
     const { rerender } = renderForm({ isActive: false });
     expect(screen.queryByRole("button", { name: "确认登记" })).toBeNull();
-    rerender(<CheckInForm action={action} form={{ ...form, occupied: true }} undoAction={undoAction} />);
+    rerender(
+      <CheckInForm
+        action={action}
+        form={{ ...form, occupied: true }}
+        undoAction={undoAction}
+      />,
+    );
     expect(screen.queryByRole("button", { name: "确认登记" })).toBeNull();
   });
 
   it("冲突失败使用统一对话框反馈", () => {
     renderForm({}, { error: "这个车位刚刚被登记了", errorKey: "once" });
-    expect(screen.getByRole("dialog")).toHaveTextContent("这个车位刚刚被登记了");
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "这个车位刚刚被登记了",
+    );
   });
 
   it("登记成功后持续展示车牌车位及三项大按钮", () => {
-    renderForm({}, {
-      success: "登记成功",
-      successKey: "ok",
-      result: { sessionId: "00000000-0000-4000-8000-000000000001", plate: "粤B12345" },
-    });
+    renderForm(
+      {},
+      {
+        success: "登记成功",
+        successKey: "ok",
+        result: {
+          sessionId: "00000000-0000-4000-8000-000000000001",
+          plate: "粤B12345",
+        },
+      },
+    );
     expect(screen.getByText("已登记：粤B·12345 停在 3号")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "回地图" })).toHaveAttribute("href", "/");
-    expect(screen.getByRole("link", { name: "查看车位" })).toHaveAttribute("href", "/slots/3");
+    expect(screen.getByRole("link", { name: "回地图" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+    expect(screen.getByRole("link", { name: "查看车位" })).toHaveAttribute(
+      "href",
+      "/slots/3",
+    );
     expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
   });
 });

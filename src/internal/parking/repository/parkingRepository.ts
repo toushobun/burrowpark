@@ -15,7 +15,10 @@ import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import type { Enums, Tables } from "internal/shared/supabase/database.types";
 
-import type { ParkingBillingType, ParkingPricingSettings } from "../entity/parkingDomain";
+import type {
+  ParkingBillingType,
+  ParkingPricingSettings,
+} from "../entity/parkingDomain";
 
 import { parkingMessages } from "../errors";
 
@@ -121,7 +124,8 @@ export function createParkingRepository(
 
   async function getPricingSettings(): Promise<ParkingPricingSettings> {
     try {
-      const { data, error } = await supabase.from("pricing_settings")
+      const { data, error } = await supabase
+        .from("pricing_settings")
         .select(
           "hotel_daily_price_cents,hotel_checkout_hour,hotel_previous_day_before_hour,hourly_price_cents",
         )
@@ -134,13 +138,23 @@ export function createParkingRepository(
     }
   }
 
-  async function resolveUniqueConflict(input: CheckInRpcInput): Promise<ConflictError> {
+  async function resolveUniqueConflict(
+    input: CheckInRpcInput,
+  ): Promise<ConflictError> {
     // 数据库 UNIQUE 约束是第二道防线；分类依据占用事实，绝不解析原始 message。
     const [slot, plate] = await Promise.all([
-      supabase.from("parking_sessions").select("id")
-        .eq("slot_code", input.slotCode).is("left_at", null).limit(1),
-      supabase.from("parking_sessions").select("slot_code")
-        .eq("plate", input.plate).is("left_at", null).maybeSingle(),
+      supabase
+        .from("parking_sessions")
+        .select("id")
+        .eq("slot_code", input.slotCode)
+        .is("left_at", null)
+        .limit(1),
+      supabase
+        .from("parking_sessions")
+        .select("slot_code")
+        .eq("plate", input.plate)
+        .is("left_at", null)
+        .maybeSingle(),
     ]);
     if (slot.error || plate.error) {
       return fail("resolveUniqueConflict", slot.error ?? plate.error);
@@ -149,8 +163,11 @@ export function createParkingRepository(
       return new ConflictError("slot_occupied", parkingMessages.slotOccupied);
     }
     if (plate.data) {
-      const match = await supabase.from("slots").select("name")
-        .eq("code", plate.data.slot_code).single();
+      const match = await supabase
+        .from("slots")
+        .select("name")
+        .eq("code", plate.data.slot_code)
+        .single();
       if (match.error) return fail("resolvePlateSlot", match.error);
       return plateOccupiedError(match.data?.name);
     }
@@ -166,10 +183,18 @@ export function createParkingRepository(
           p_slot_code: input.slotCode,
           p_plate: input.plate,
           p_billing_type: input.billingType,
-          ...(input.paidUntil !== null ? { p_paid_until: input.paidUntil } : {}),
-          ...(input.borrowUntil !== null ? { p_borrow_until: input.borrowUntil } : {}),
-          ...(input.amountCents !== null ? { p_amount_cents: input.amountCents } : {}),
-          ...(input.paymentMethod !== null ? { p_payment_method: input.paymentMethod } : {}),
+          ...(input.paidUntil !== null
+            ? { p_paid_until: input.paidUntil }
+            : {}),
+          ...(input.borrowUntil !== null
+            ? { p_borrow_until: input.borrowUntil }
+            : {}),
+          ...(input.amountCents !== null
+            ? { p_amount_cents: input.amountCents }
+            : {}),
+          ...(input.paymentMethod !== null
+            ? { p_payment_method: input.paymentMethod }
+            : {}),
         });
         if (error) {
           const code = findRpcBusinessError(error, checkInBusinessCodes);
@@ -190,38 +215,60 @@ export function createParkingRepository(
           if (isRpcUniqueViolation(error)) {
             throw await resolveUniqueConflict(input);
           }
-          const conflict = toConcurrentModificationError(error, logger, "check_in_vehicle");
+          const conflict = toConcurrentModificationError(
+            error,
+            logger,
+            "check_in_vehicle",
+          );
           if (conflict) throw conflict;
           return fail("checkInVehicle", error);
         }
         if (!data) return fail("checkInVehicleEmpty", null);
         return data;
       } catch (error) {
-        if (error instanceof ConflictError || error instanceof ValidationError ||
-            error instanceof AuthorizationError || error instanceof RepositoryError) throw error;
+        if (
+          error instanceof ConflictError ||
+          error instanceof ValidationError ||
+          error instanceof AuthorizationError ||
+          error instanceof RepositoryError
+        )
+          throw error;
         return fail("checkInVehicle", error);
       }
     },
     async undoCheckIn(sessionId) {
       try {
-        const { error } = await supabase.rpc("undo_check_in", { p_session_id: sessionId });
+        const { error } = await supabase.rpc("undo_check_in", {
+          p_session_id: sessionId,
+        });
         if (!error) return;
         const code = findRpcBusinessError(error, {
           UNDO_UNAVAILABLE: "undo_unavailable",
           FAMILY_REQUIRED: "family_required",
         });
         if (code === "undo_unavailable" || isRpcUniqueViolation(error)) {
-          throw new ConflictError("undo_unavailable", parkingMessages.cannotUndo);
+          throw new ConflictError(
+            "undo_unavailable",
+            parkingMessages.cannotUndo,
+          );
         }
         if (code === "family_required") {
           throw new AuthorizationError(code, parkingMessages.invalidInput);
         }
-        const conflict = toConcurrentModificationError(error, logger, "undo_check_in");
+        const conflict = toConcurrentModificationError(
+          error,
+          logger,
+          "undo_check_in",
+        );
         if (conflict) throw conflict;
         return fail("undoCheckIn", error);
       } catch (error) {
-        if (error instanceof ConflictError || error instanceof AuthorizationError ||
-            error instanceof RepositoryError) throw error;
+        if (
+          error instanceof ConflictError ||
+          error instanceof AuthorizationError ||
+          error instanceof RepositoryError
+        )
+          throw error;
         return fail("undoCheckIn", error);
       }
     },

@@ -17,7 +17,11 @@ export default async function CheckInPage({
 
   return (
     <PageShell title={checkInText.title}>
-      <CheckInForm action={checkInAction} form={form} undoAction={undoCheckInAction} />
+      <CheckInForm
+        action={checkInAction}
+        form={form}
+        undoAction={undoCheckInAction}
+      />
     </PageShell>
   );
 }

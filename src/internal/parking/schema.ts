@@ -27,12 +27,23 @@ export const checkInInputSchema = z
   .superRefine((value, ctx) => {
     const hotel = value.billingType === "hotel_daily";
     if (hotel && value.days === undefined) {
-      ctx.addIssue({ code: "custom", path: ["days"], message: parkingMessages.invalidDays });
+      ctx.addIssue({
+        code: "custom",
+        path: ["days"],
+        message: parkingMessages.invalidDays,
+      });
     }
     if (hotel && (!value.paymentMethod || !value.amountYuan)) {
-      ctx.addIssue({ code: "custom", path: ["paymentMethod"], message: parkingMessages.paymentRequired });
+      ctx.addIssue({
+        code: "custom",
+        path: ["paymentMethod"],
+        message: parkingMessages.paymentRequired,
+      });
     }
-    if (!hotel && (value.days !== undefined || value.paymentMethod || value.amountYuan)) {
+    if (
+      !hotel &&
+      (value.days !== undefined || value.paymentMethod || value.amountYuan)
+    ) {
       ctx.addIssue({ code: "custom", message: parkingMessages.invalidInput });
     }
   });

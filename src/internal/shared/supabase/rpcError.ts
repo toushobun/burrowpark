@@ -27,7 +27,9 @@ export function mapRpcBusinessError<TErrorCode extends string>(
 }
 
 /** 唯一索引并发碰撞：业务 RPC 应优先返回稳定的 details，23505 作为兜底。 */
-export function isRpcUniqueViolation(error: RpcErrorLike | null | undefined): boolean {
+export function isRpcUniqueViolation(
+  error: RpcErrorLike | null | undefined,
+): boolean {
   return error?.code === "23505";
 }
 

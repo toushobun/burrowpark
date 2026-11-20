@@ -197,8 +197,10 @@ describe("SlotDetail", () => {
 
   it("登记进场跳转独立画面而不是弹占位提示", () => {
     renderDetail(emptyDetail);
-    expect(screen.getByRole("link", { name: "登记进场" }))
-      .toHaveAttribute("href", "/slots/7/check-in");
+    expect(screen.getByRole("link", { name: "登记进场" })).toHaveAttribute(
+      "href",
+      "/slots/7/check-in",
+    );
     expect(screen.queryByText("功能开发中")).toBeNull();
   });
 

@@ -173,7 +173,9 @@ describe("toConcurrentModificationError", () => {
 describe("isRpcUniqueViolation", () => {
   it("只有 PostgreSQL 23505 识别为唯一索引冲突", () => {
     expect(isRpcUniqueViolation({ code: "23505" })).toBe(true);
-    expect(isRpcUniqueViolation({ code: "P0001", message: "23505" })).toBe(false);
+    expect(isRpcUniqueViolation({ code: "P0001", message: "23505" })).toBe(
+      false,
+    );
     expect(isRpcUniqueViolation(null)).toBe(false);
   });
 });

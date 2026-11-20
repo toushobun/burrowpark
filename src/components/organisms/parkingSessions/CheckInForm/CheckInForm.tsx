@@ -16,10 +16,7 @@ import {
   paymentMethodLabels,
 } from "config/checkInText";
 import { billingTypeLabels } from "config/slotDetailText";
-import type {
-  CheckInFormData,
-  ParkingBillingType,
-} from "internal/parking";
+import type { CheckInFormData, ParkingBillingType } from "internal/parking";
 import {
   calculateHotelCheckoutAt,
   formatBusinessDateTime,
@@ -33,7 +30,10 @@ import type { ActionState } from "types/actions";
 
 type Props = {
   form: CheckInFormData | null;
-  action: (state: CheckInActionState, data: FormData) => Promise<CheckInActionState>;
+  action: (
+    state: CheckInActionState,
+    data: FormData,
+  ) => Promise<CheckInActionState>;
   undoAction: (state: ActionState, data: FormData) => Promise<ActionState>;
   initialState?: CheckInActionState;
 };
@@ -73,20 +73,34 @@ export function CheckInForm({ form, action, undoAction, initialState }: Props) {
   const [undoState, undo, isUndoPending] = useActionState(undoAction, {});
   const [plate, setPlate] = useState("");
   const [billingType, setBillingType] = useState<ParkingBillingType>(
-    form?.kind === "private" ? "hourly" : form?.hasLease ? "lease" : "hotel_daily",
+    form?.kind === "private"
+      ? "hourly"
+      : form?.hasLease
+        ? "lease"
+        : "hotel_daily",
   );
   const [days, setDays] = useState(1);
   const [customDays, setCustomDays] = useState(false);
   const [borrowMinutes, setBorrowMinutes] = useState<10 | 30 | null>(null);
-  const [method, setMethod] = useState<keyof typeof paymentMethodLabels | null>(null);
-  const defaultAmount = form ? (form.pricing.hotel_daily_price_cents / 100).toFixed(2) : "";
+  const [method, setMethod] = useState<keyof typeof paymentMethodLabels | null>(
+    null,
+  );
+  const defaultAmount = form
+    ? (form.pricing.hotel_daily_price_cents / 100).toFixed(2)
+    : "";
   const [amountYuan, setAmountYuan] = useState(defaultAmount);
 
   if (!form) {
     return (
       <Stack spacing={3}>
         <Typography variant="h2">{checkInText.missing}</Typography>
-        <Button component={Link} fullWidth href="/" size="large" variant="contained">
+        <Button
+          component={Link}
+          fullWidth
+          href="/"
+          size="large"
+          variant="contained"
+        >
           {checkInText.backMap}
         </Button>
       </Stack>
@@ -96,8 +110,17 @@ export function CheckInForm({ form, action, undoAction, initialState }: Props) {
   if (undoState.success) {
     return (
       <Stack spacing={3}>
-        <Typography component="h2" variant="h2">{checkInText.undone}</Typography>
-        <Button component={Link} fullWidth href="/" size="large" sx={bigButtonSx} variant="contained">
+        <Typography component="h2" variant="h2">
+          {checkInText.undone}
+        </Typography>
+        <Button
+          component={Link}
+          fullWidth
+          href="/"
+          size="large"
+          sx={bigButtonSx}
+          variant="contained"
+        >
           {checkInText.backMap}
         </Button>
       </Stack>
@@ -107,8 +130,8 @@ export function CheckInForm({ form, action, undoAction, initialState }: Props) {
   const result = state.result;
   const isHotel = billingType === "hotel_daily";
   const isPrivate = form.kind === "private";
-  const allowedBilling = checkInBillingTypeOrder.filter(
-    (value) => isPrivate
+  const allowedBilling = checkInBillingTypeOrder.filter((value) =>
+    isPrivate
       ? value === "hourly" || value === "free"
       : value !== "lease" || form.hasLease,
   );
@@ -116,19 +139,29 @@ export function CheckInForm({ form, action, undoAction, initialState }: Props) {
   const setHotelDays = (nextDays: number, custom: boolean) => {
     setDays(nextDays);
     setCustomDays(custom);
-    setAmountYuan(((nextDays * form.pricing.hotel_daily_price_cents) / 100).toFixed(2));
+    setAmountYuan(
+      ((nextDays * form.pricing.hotel_daily_price_cents) / 100).toFixed(2),
+    );
   };
   const validDays = Number.isInteger(days) && days >= 1 && days <= 30;
   const suggestedCents = days * form.pricing.hotel_daily_price_cents;
   const paidUntil = validDays
-    ? formatBusinessDateTime(calculateHotelCheckoutAt(new Date(form.now), days, form.pricing))
+    ? formatBusinessDateTime(
+        calculateHotelCheckoutAt(new Date(form.now), days, form.pricing),
+      )
     : null;
   const normalizedPlate = normalizePlate(plate);
-  const validPlate = normalizedPlate.length >= 2 && normalizedPlate.length <= 10;
-  const validAmount = /^(?:0|[1-9]\d{0,7})(?:\.\d{1,2})?$/.test(amountYuan)
-    && Number(amountYuan) > 0 && Number(amountYuan) <= 21474836.47;
+  const validPlate =
+    normalizedPlate.length >= 2 && normalizedPlate.length <= 10;
+  const validAmount =
+    /^(?:0|[1-9]\d{0,7})(?:\.\d{1,2})?$/.test(amountYuan) &&
+    Number(amountYuan) > 0 &&
+    Number(amountYuan) <= 21474836.47;
   const canSubmit =
-    !isPending && !form.occupied && form.isActive && validPlate &&
+    !isPending &&
+    !form.occupied &&
+    form.isActive &&
+    validPlate &&
     (!isPrivate || borrowMinutes !== null) &&
     (!isHotel || (validDays && method !== null && validAmount));
 
@@ -136,52 +169,104 @@ export function CheckInForm({ form, action, undoAction, initialState }: Props) {
     <>
       {result ? (
         <Stack spacing={3}>
-          <Paper variant="outlined" sx={{ borderRadius: String(designTokens.radius.lg) + "px", p: 3 }}>
+          <Paper
+            variant="outlined"
+            sx={{ borderRadius: String(designTokens.radius.lg) + "px", p: 3 }}
+          >
             <Typography component="h2" variant="h2">
-              {checkInText.success(formatPlateForDisplay(result.plate), form.name)}
+              {checkInText.success(
+                formatPlateForDisplay(result.plate),
+                form.name,
+              )}
             </Typography>
           </Paper>
-          <Button component={Link} fullWidth href="/" size="large" sx={bigButtonSx} variant="contained">
+          <Button
+            component={Link}
+            fullWidth
+            href="/"
+            size="large"
+            sx={bigButtonSx}
+            variant="contained"
+          >
             {checkInText.backMap}
           </Button>
-          <Button component={Link} fullWidth href={`/slots/${form.code}`} size="large" sx={bigButtonSx} variant="outlined">
+          <Button
+            component={Link}
+            fullWidth
+            href={`/slots/${form.code}`}
+            size="large"
+            sx={bigButtonSx}
+            variant="outlined"
+          >
             {checkInText.viewSlot}
           </Button>
           <form action={undo}>
             <input name="sessionId" type="hidden" value={result.sessionId} />
-            <Button disabled={isUndoPending} fullWidth size="large" sx={bigButtonSx} type="submit" variant="outlined">
-              {isUndoPending && <CircularProgress color="inherit" size={24} sx={{ mr: 1 }} />}
+            <Button
+              disabled={isUndoPending}
+              fullWidth
+              size="large"
+              sx={bigButtonSx}
+              type="submit"
+              variant="outlined"
+            >
+              {isUndoPending && (
+                <CircularProgress color="inherit" size={24} sx={{ mr: 1 }} />
+              )}
               {isUndoPending ? checkInText.undoing : checkInText.undo}
             </Button>
           </form>
         </Stack>
       ) : (
         <Stack spacing={3}>
-          <Typography component="h2" variant="h2">{form.name}</Typography>
+          <Typography component="h2" variant="h2">
+            {form.name}
+          </Typography>
           {!form.isActive || form.occupied ? (
-            <Typography color="error" variant="h3">{checkInText.unavailable}</Typography>
+            <Typography color="error" variant="h3">
+              {checkInText.unavailable}
+            </Typography>
           ) : (
             <form action={submit}>
               <Stack spacing={3}>
                 {form.hasReservation && (
-                  <Typography variant="body1">{checkInText.hasReservation}</Typography>
+                  <Typography variant="body1">
+                    {checkInText.hasReservation}
+                  </Typography>
                 )}
                 <TextField
                   fullWidth
                   label={checkInText.plate}
                   name="plate"
-                  onChange={(event) => setPlate(event.target.value.toUpperCase())}
+                  onChange={(event) =>
+                    setPlate(event.target.value.toUpperCase())
+                  }
                   slotProps={{
-                    htmlInput: { autoCapitalize: "characters", autoComplete: "off" },
+                    htmlInput: {
+                      autoCapitalize: "characters",
+                      autoComplete: "off",
+                    },
                   }}
                   sx={{
-                    "& .MuiInputBase-root": { minHeight: designTokens.size.touchTargetMin },
-                    "& .MuiInputBase-input": { fontSize: (theme) => theme.typography.h3.fontSize },
+                    "& .MuiInputBase-root": {
+                      minHeight: designTokens.size.touchTargetMin,
+                    },
+                    "& .MuiInputBase-input": {
+                      fontSize: (theme) => theme.typography.h3.fontSize,
+                    },
                   }}
                   value={plate}
                 />
-                <Typography component="h3" variant="h3">{checkInText.billingType}</Typography>
-                <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+                <Typography component="h3" variant="h3">
+                  {checkInText.billingType}
+                </Typography>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gap: 2,
+                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                  }}
+                >
                   {allowedBilling.map((value) => (
                     <ChoiceButton
                       key={value}
@@ -193,8 +278,16 @@ export function CheckInForm({ form, action, undoAction, initialState }: Props) {
                 </Box>
                 {isPrivate && (
                   <Stack spacing={2}>
-                    <Typography component="h3" variant="h3">{checkInText.borrowDuration}</Typography>
-                    <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+                    <Typography component="h3" variant="h3">
+                      {checkInText.borrowDuration}
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gap: 2,
+                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                      }}
+                    >
                       {([10, 30] as const).map((minutes) => (
                         <ChoiceButton
                           key={minutes}
@@ -208,8 +301,16 @@ export function CheckInForm({ form, action, undoAction, initialState }: Props) {
                 )}
                 {isHotel && (
                   <Stack spacing={2}>
-                    <Typography component="h3" variant="h3">{checkInText.days}</Typography>
-                    <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+                    <Typography component="h3" variant="h3">
+                      {checkInText.days}
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gap: 2,
+                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                      }}
+                    >
                       {([1, 2, 3] as const).map((value) => (
                         <ChoiceButton
                           key={value}
@@ -228,21 +329,40 @@ export function CheckInForm({ form, action, undoAction, initialState }: Props) {
                       <TextField
                         fullWidth
                         label={checkInText.days}
-                        onChange={(event) => setHotelDays(Number(event.target.value), true)}
-                        slotProps={{ htmlInput: { min: 1, max: 30, inputMode: "numeric" } }}
+                        onChange={(event) =>
+                          setHotelDays(Number(event.target.value), true)
+                        }
+                        slotProps={{
+                          htmlInput: { min: 1, max: 30, inputMode: "numeric" },
+                        }}
                         type="number"
                         value={days}
                       />
                     )}
                     {paidUntil && (
-                      <Typography variant="h3">{checkInText.paidUntil} {paidUntil}</Typography>
+                      <Typography variant="h3">
+                        {checkInText.paidUntil} {paidUntil}
+                      </Typography>
                     )}
                     <Typography variant="body1">
-                      {checkInText.suggestedAmount}：{(suggestedCents / 100).toFixed(2)} 元
+                      {checkInText.suggestedAmount}：
+                      {(suggestedCents / 100).toFixed(2)} 元
                     </Typography>
-                    <Typography component="h3" variant="h3">{checkInText.paymentMethod}</Typography>
-                    <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
-                      {(Object.keys(paymentMethodLabels) as (keyof typeof paymentMethodLabels)[]).map((value) => (
+                    <Typography component="h3" variant="h3">
+                      {checkInText.paymentMethod}
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gap: 2,
+                        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                      }}
+                    >
+                      {(
+                        Object.keys(
+                          paymentMethodLabels,
+                        ) as (keyof typeof paymentMethodLabels)[]
+                      ).map((value) => (
                         <ChoiceButton
                           key={value}
                           label={paymentMethodLabels[value]}
@@ -266,21 +386,49 @@ export function CheckInForm({ form, action, undoAction, initialState }: Props) {
                 {isHotel && (
                   <>
                     <input name="days" type="hidden" value={days} />
-                    <input name="paymentMethod" type="hidden" value={method ?? ""} />
+                    <input
+                      name="paymentMethod"
+                      type="hidden"
+                      value={method ?? ""}
+                    />
                     <input name="amountYuan" type="hidden" value={amountYuan} />
                   </>
                 )}
                 {isPrivate && borrowMinutes && (
-                  <input name="borrowMinutes" type="hidden" value={borrowMinutes} />
+                  <input
+                    name="borrowMinutes"
+                    type="hidden"
+                    value={borrowMinutes}
+                  />
                 )}
-                <Button disabled={!canSubmit} fullWidth size="large" sx={{ minHeight: designTokens.size.primaryActionHeight }} type="submit" variant="contained">
-                  {isPending && <CircularProgress color="inherit" size={24} sx={{ mr: 1 }} />}
+                <Button
+                  disabled={!canSubmit}
+                  fullWidth
+                  size="large"
+                  sx={{ minHeight: designTokens.size.primaryActionHeight }}
+                  type="submit"
+                  variant="contained"
+                >
+                  {isPending && (
+                    <CircularProgress
+                      color="inherit"
+                      size={24}
+                      sx={{ mr: 1 }}
+                    />
+                  )}
                   {isPending ? checkInText.submitting : checkInText.submit}
                 </Button>
               </Stack>
             </form>
           )}
-          <Button component={Link} fullWidth href="/" size="large" sx={bigButtonSx} variant="outlined">
+          <Button
+            component={Link}
+            fullWidth
+            href="/"
+            size="large"
+            sx={bigButtonSx}
+            variant="outlined"
+          >
             {checkInText.backMap}
           </Button>
         </Stack>

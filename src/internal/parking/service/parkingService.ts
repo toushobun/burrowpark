@@ -6,7 +6,11 @@ import type { SlotStatus } from "theme/slotStatusTokens";
 import { ValidationError } from "internal/shared/errors/appError";
 
 import { parkingMessages } from "../errors";
-import { parseAmountCents, parseCheckInInput, parseUndoSessionId } from "../schema";
+import {
+  parseAmountCents,
+  parseCheckInInput,
+  parseUndoSessionId,
+} from "../schema";
 
 import type {
   ParkingBillingType,
@@ -18,7 +22,10 @@ import type {
   ParkingRepository,
   SlotFactsRows,
 } from "../repository/parkingRepository";
-import { calculateHotelCheckoutAt, deriveSlotStatus } from "../util/parkingDomain";
+import {
+  calculateHotelCheckoutAt,
+  deriveSlotStatus,
+} from "../util/parkingDomain";
 
 export type SlotMapSlot = {
   code: string;
@@ -158,7 +165,9 @@ export function createParkingService(
         repository.readSlotFacts(),
         repository.getPricingSettings(),
       ]);
-      const match = assembleSlotFacts(facts).find(({ slot }) => slot.code === code);
+      const match = assembleSlotFacts(facts).find(
+        ({ slot }) => slot.code === code,
+      );
       if (!match) return null;
       return {
         code: match.slot.code,
@@ -178,12 +187,16 @@ export function createParkingService(
       const value = parseCheckInInput(input);
       const hotel = value.billingType === "hotel_daily";
       const pricing = hotel ? await repository.getPricingSettings() : null;
-      const paidUntil = hotel && pricing
-        ? calculateHotelCheckoutAt(now, value.days!, pricing)
-        : null;
-      const borrowUntil = value.borrowMinutes === undefined
-        ? null
-        : new Date(now.getTime() + value.borrowMinutes * 60_000).toISOString();
+      const paidUntil =
+        hotel && pricing
+          ? calculateHotelCheckoutAt(now, value.days!, pricing)
+          : null;
+      const borrowUntil =
+        value.borrowMinutes === undefined
+          ? null
+          : new Date(
+              now.getTime() + value.borrowMinutes * 60_000,
+            ).toISOString();
       const sessionId = await repository.checkInVehicle({
         slotCode: value.slotCode,
         plate: value.plate,
