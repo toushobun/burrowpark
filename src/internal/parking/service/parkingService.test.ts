@@ -213,6 +213,7 @@ describe("createParkingService", () => {
       name: "1号",
       isActive: true,
       status: "empty",
+      kind: "regular",
       presentVehicle: null,
       reservation: null,
       lease: null,
@@ -293,7 +294,29 @@ describe("createParkingService", () => {
 
     expect(await service.getSlotDetail("2", now)).toMatchObject({
       status: "privateBorrowed",
+      kind: "private",
       presentVehicle: { borrowUntil: "2026-11-19T04:30:00.000Z" },
+    });
+  });
+
+  it("私人位借用超时后保留私人位类型供详情操作判断", async () => {
+    const { service } = makeService(
+      makeRows({
+        slots: [{ code: "2", name: "2号", kind: "private", is_active: true }],
+        sessions: [
+          makeSession({
+            slot_code: "2",
+            billing_type: "hourly",
+            borrow_until: "2026-11-19T02:00:00.000Z",
+          }),
+        ],
+      }),
+    );
+
+    expect(await service.getSlotDetail("2", now)).toMatchObject({
+      status: "overdue",
+      kind: "private",
+      presentVehicle: { borrowUntil: "2026-11-19T02:00:00.000Z" },
     });
   });
 
