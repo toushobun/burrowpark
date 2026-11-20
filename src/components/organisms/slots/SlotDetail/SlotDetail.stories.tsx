@@ -46,6 +46,12 @@ export const PrivateBorrowed: Story = {
   args: { detail: privateBorrowedDetail },
 };
 
+export const PrivateBorrowOverdue: Story = {
+  args: {
+    detail: { ...privateBorrowedDetail, status: "overdue" },
+  },
+};
+
 export const Missing: Story = {
   args: { detail: null, display: null },
 };
