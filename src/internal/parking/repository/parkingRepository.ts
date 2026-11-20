@@ -73,7 +73,7 @@ function plateOccupiedError(name: string | null | undefined): ConflictError {
   const safeName = name && /^\d+号$/.test(name) ? name : "其他车位";
   return new ConflictError(
     "plate_present",
-    "这辆车已经停在 " + safeName + " 了",
+    "这辆车已经停在 " + safeName + "了",
   );
 }
 

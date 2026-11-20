@@ -62,7 +62,12 @@ begin
   if v_kind = 'private' then
     if p_billing_type not in ('hourly', 'free')
        or p_borrow_until is null
-       or p_borrow_until <= pg_catalog.now() then
+       or not (
+         p_borrow_until between pg_catalog.now() + interval '9 minutes'
+                            and pg_catalog.now() + interval '10 minutes'
+         or p_borrow_until between pg_catalog.now() + interval '29 minutes'
+                            and pg_catalog.now() + interval '30 minutes'
+       ) then
       raise exception '私人位只允许限时借用' using errcode = 'P0001',
         detail = 'INVALID_INPUT';
     end if;

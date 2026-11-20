@@ -1,5 +1,5 @@
 begin;
-select plan(36);
+select plan(38);
 
 -- 专用测试数据在事务内创建，不影响其他 pgTAP 文件。
 insert into public.slots (code, name, yard, kind, sort_order, is_active) values
@@ -79,6 +79,14 @@ select throws_ok(
 select throws_ok(
   $$select public.check_in_vehicle('test-ci-7', '粤B77777', 'hourly')$$,
   'P0001', '私人位只允许限时借用', '私人位缺少借用时长被拒绝');
+select throws_ok(
+  $$select public.check_in_vehicle('test-ci-7', '粤B77777', 'hourly',
+    p_borrow_until => now() + interval '20 minutes')$$,
+  'P0001', '私人位只允许限时借用', '私人位不接受 20 分钟借用时长');
+select throws_ok(
+  $$select public.check_in_vehicle('test-ci-7', '粤B77777', 'free',
+    p_borrow_until => now() + interval '60 minutes')$$,
+  'P0001', '私人位只允许限时借用', '私人位不接受 60 分钟借用时长');
 select throws_ok(
   $$select public.check_in_vehicle('test-ci-6', '粤B60001', 'hourly',
     p_borrow_until => now() + interval '10 minutes')$$,

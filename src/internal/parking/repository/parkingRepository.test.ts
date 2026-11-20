@@ -278,7 +278,7 @@ describe("ParkingRepository RPC", () => {
     ).rejects.toMatchObject({
       name: "ConflictError",
       code: "plate_present",
-      message: "这辆车已经停在 4号 了",
+      message: "这辆车已经停在 4号了",
     });
   });
 
@@ -297,7 +297,7 @@ describe("ParkingRepository RPC", () => {
       createParkingRepository(plate.client, logger).checkInVehicle(rpcInput),
     ).rejects.toMatchObject({
       code: "plate_present",
-      message: "这辆车已经停在 4号 了",
+      message: "这辆车已经停在 4号了",
     });
   });
 
