@@ -327,3 +327,30 @@ export const calculateHotelOverstay = (
     suggestedCents: days * dailyPriceCents,
   };
 };
+/** 提醒说明只依赖业务事实和传入时刻，避免浏览器自行计时。 */
+export const describeSlotReminder = (
+  kind: "hotel_daily" | "lease" | "private",
+  deadline: ParkingTimestamp,
+  now: ParkingTimestamp,
+): string => {
+  const deadlineTime = parseTimestamp(deadline).getTime();
+  const nowTime = parseTimestamp(now).getTime();
+  const difference = nowTime - deadlineTime;
+  if (difference === 0) return "超时 0 分钟";
+  if (difference > 0) {
+    const minutes = Math.max(1, Math.ceil(difference / 60000));
+    if (kind === "private") return "超时 " + minutes + " 分钟";
+    if (difference > 86400000) {
+      return "超时 " + Math.ceil(difference / 86400000) + " 天";
+    }
+    return "超时 " + Math.max(1, Math.ceil(difference / HOUR_IN_MS)) + " 小时";
+  }
+  if (kind === "private") {
+    return "借用还剩 " + Math.max(1, Math.ceil(-difference / 60000)) + " 分钟";
+  }
+  if (kind === "lease") return formatBusinessDate(deadline) + "到期";
+  if (getBusinessDate(deadline) === getBusinessDate(now)) {
+    return "今天 " + formatBusinessTime(deadline) + " 到期";
+  }
+  return formatBusinessDateTime(deadline) + " 到期";
+};

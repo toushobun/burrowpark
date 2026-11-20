@@ -783,3 +783,135 @@ describe("续费与离场 Service", () => {
     expect(repository.undoCheckOut).toHaveBeenCalledOnce();
   });
 });
+describe("首页要处理的事", () => {
+  it("无期限超时或快到期时返回空列表且只读一次事实", async () => {
+    const { service, repository } = makeService(makeRows());
+    expect(await service.getReminders(now)).toEqual([]);
+    expect(repository.readSlotFacts).toHaveBeenCalledOnce();
+    expect(repository.getPhotoSignedUrl).not.toHaveBeenCalled();
+  });
+  it("已过期优先，组内按截止时间排序且私人位只在五分钟内提醒", async () => {
+    const slots: SlotFactsRows["slots"] = [
+      { code: "1", name: "1号", kind: "regular", is_active: true },
+      { code: "2", name: "2号", kind: "private", is_active: true },
+      { code: "3", name: "3号", kind: "regular", is_active: true },
+      { code: "4", name: "4号", kind: "private", is_active: true },
+      { code: "5", name: "5号", kind: "regular", is_active: false },
+      { code: "6", name: "6号", kind: "regular", is_active: true },
+    ];
+    const { service } = makeService(
+      makeRows({
+        slots,
+        sessions: [
+          makeSession({
+            id: "a",
+            slot_code: "1",
+            session_payments: [{ paid_until: "2026-11-19T01:00:00.000Z" }],
+          }),
+          makeSession({
+            id: "b",
+            slot_code: "2",
+            plate: "粤B00002",
+            billing_type: "free",
+            borrow_until: "2026-11-19T03:03:00.000Z",
+          }),
+          makeSession({
+            id: "c",
+            slot_code: "3",
+            plate: "粤B00003",
+            session_payments: [{ paid_until: "2026-11-19T04:00:00.000Z" }],
+          }),
+          makeSession({
+            id: "d",
+            slot_code: "4",
+            plate: "粤B00004",
+            billing_type: "free",
+            borrow_until: "2026-11-19T03:07:00.000Z",
+          }),
+          makeSession({
+            id: "e",
+            slot_code: "5",
+            plate: "粤B00005",
+            session_payments: [{ paid_until: "2026-11-18T04:00:00.000Z" }],
+          }),
+          makeSession({
+            id: "f",
+            slot_code: "6",
+            plate: "粤B00006",
+            session_payments: [{ paid_until: "2026-11-19T00:00:00.000Z" }],
+          }),
+        ],
+      }),
+    );
+    const reminders = await service.getReminders(now);
+    expect(reminders.map(({ code }) => code)).toEqual(["6", "1", "2", "3"]);
+    expect(reminders[0]).toMatchObject({
+      status: "overdue",
+      description: "超时 3 小时",
+      displayName: "粤B·00006",
+    });
+    expect(reminders[2].description).toBe("借用还剩 3 分钟");
+    expect(reminders[3]).toMatchObject({
+      status: "expiringSoon",
+      description: "今天 12:00 到期",
+    });
+  });
+  it("只有长租时可显示已过期的离场租户及在场快到期租户", async () => {
+    const slots: SlotFactsRows["slots"] = [
+      { code: "1", name: "1号", kind: "regular", is_active: true },
+      { code: "3", name: "3号", kind: "regular", is_active: true },
+    ];
+    const { service } = makeService(
+      makeRows({
+        slots,
+        leases: [
+          makeLease({
+            id: "lease-1",
+            slot_code: "1",
+            tenant_name: "王先生",
+            lease_payments: [{ paid_until: "2026-11-18T15:59:59.000Z" }],
+          }),
+          makeLease({
+            id: "lease-3",
+            slot_code: "3",
+            tenant_name: "李女士",
+            lease_payments: [{ paid_until: "2026-11-22T15:59:59.000Z" }],
+          }),
+        ],
+        sessions: [
+          makeSession({
+            id: "lease-session",
+            slot_code: "3",
+            plate: "粤B00333",
+            billing_type: "lease",
+            lease_id: "lease-3",
+          }),
+        ],
+      }),
+    );
+    const reminders = await service.getReminders(now);
+    expect(reminders.map(({ code }) => code)).toEqual(["1", "3"]);
+    expect(reminders[0]).toMatchObject({
+      status: "overdue",
+      displayName: "王先生",
+      description: "超时 12 小时",
+    });
+    expect(reminders[1]).toMatchObject({
+      status: "expiringSoon",
+      displayName: "粤B·00333",
+      description: "11月22日到期",
+    });
+  });
+  it("未登录的用户无法获取提醒事实", async () => {
+    const { repository } = makeService(makeRows());
+    const service = createParkingService(repository, async () => ({
+      isAuthenticated: false,
+      userId: null,
+      email: null,
+    }));
+    await expect(service.getReminders(now)).rejects.toMatchObject({
+      code: "auth_required",
+    });
+    expect(repository.readSlotFacts).not.toHaveBeenCalled();
+  });
+});

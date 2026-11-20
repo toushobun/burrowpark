@@ -32,6 +32,9 @@ import {
   extendHotelPaidUntil,
   leaseDateToPaidUntil,
   nextLeaseRenewDate,
+  describeSlotReminder,
+  formatPlateForDisplay,
+  PRIVATE_BORROW_REMINDER_MINUTES,
 } from "../util/parkingDomain";
 
 export type SlotMapSlot = {
@@ -105,9 +108,18 @@ export type CheckOutFormData = {
 };
 export type RenewalResult = { paymentId: string; paidUntil: string };
 export type CheckOutResult = { sessionId: string; plate: string };
+export type SlotReminder = {
+  code: string;
+  name: string;
+  displayName: string;
+  status: SlotStatus;
+  deadline: string;
+  description: string;
+};
 
 export interface ParkingService {
   getSlotMap(now: Date): Promise<SlotMapSlot[]>;
+  getReminders(now: Date): Promise<SlotReminder[]>;
   getSlotDetail(code: string, now: Date): Promise<SlotDetail | null>;
   getCheckInForm(code: string, now: Date): Promise<CheckInFormData | null>;
   checkIn(input: unknown, now: Date): Promise<CheckInResult>;
@@ -414,6 +426,63 @@ export function createParkingService(
     async undoCheckOut(sessionId) {
       await requireAuthenticatedUserId(getAuth);
       await repository.undoCheckOut(parseUndoSessionId(sessionId));
+    },
+
+    async getReminders(now) {
+      await requireAuthenticatedUserId(getAuth);
+      const facts = await repository.readSlotFacts();
+      const reminders = assembleSlotFacts(facts)
+        .map((entry): SlotReminder | null => {
+          const {
+            slot,
+            session,
+            lease,
+            sessionPaidUntil,
+            leasePaidUntil,
+            statusFacts,
+          } = entry;
+          if (!slot.is_active) return null;
+          const status = deriveSlotStatus(statusFacts, now);
+          const privateBorrow = slot.kind === "private";
+          const deadline = privateBorrow
+            ? session?.borrow_until
+            : session
+              ? session.billing_type === "hotel_daily" ||
+                session.billing_type === "lease"
+                ? sessionPaidUntil
+                : null
+              : leasePaidUntil;
+          if (!deadline) return null;
+          const remainingMs = Date.parse(deadline) - now.getTime();
+          const shouldRemind =
+            status === "overdue" ||
+            status === "expiringSoon" ||
+            (status === "privateBorrowed" &&
+              remainingMs <= PRIVATE_BORROW_REMINDER_MINUTES * 60000);
+          if (!shouldRemind) return null;
+          const kind = privateBorrow
+            ? "private"
+            : session?.billing_type === "hotel_daily"
+              ? "hotel_daily"
+              : "lease";
+          return {
+            code: slot.code,
+            name: slot.name,
+            displayName: session?.plate
+              ? formatPlateForDisplay(session.plate)
+              : (lease?.tenant_name ?? ""),
+            status,
+            deadline,
+            description: describeSlotReminder(kind, deadline, now),
+          };
+        })
+        .filter((value): value is SlotReminder => value !== null);
+      return reminders.sort(
+        (a, b) =>
+          (a.status === "overdue" ? 0 : 1) - (b.status === "overdue" ? 0 : 1) ||
+          Date.parse(a.deadline) - Date.parse(b.deadline) ||
+          a.code.localeCompare(b.code),
+      );
     },
 
     async getSlotMap(now) {

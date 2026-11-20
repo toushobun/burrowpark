@@ -16,6 +16,7 @@ export type {
   ParkingService,
   SlotDetail,
   SlotMapSlot,
+  SlotReminder,
 } from "./service/parkingService";
 
 export {
