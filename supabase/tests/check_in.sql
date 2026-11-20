@@ -1,5 +1,5 @@
 begin;
-select plan(38);
+select plan(40);
 
 -- 专用测试数据在事务内创建，不影响其他 pgTAP 文件。
 insert into public.slots (code, name, yard, kind, sort_order, is_active) values
@@ -14,7 +14,7 @@ insert into public.slots (code, name, yard, kind, sort_order, is_active) values
   ('test-ci-9', '9号', 'outer', 'regular', 109, false);
 
 select ok(not has_function_privilege('anon',
-  'public.check_in_vehicle(text,text,public.billing_type,timestamptz,timestamptz,int,public.payment_method)',
+  'public.check_in_vehicle(text,text,public.billing_type,timestamptz,int,int,public.payment_method)',
   'execute'), '匿名用户没有登记权限');
 select ok(not has_function_privilege('anon', 'public.undo_check_in(uuid)', 'execute'),
   '匿名用户没有撤销权限');
@@ -37,14 +37,20 @@ select lives_ok(
   '免费成功登记');
 select lives_ok(
   $$select public.check_in_vehicle('test-ci-3', '粤B33333', 'hourly',
-    p_borrow_until => now() + interval '10 minutes')$$,
+    p_borrow_minutes => 10)$$,
   '私人位临停十分钟成功');
 select ok((select borrow_until is not null from public.parking_sessions
   where slot_code = 'test-ci-3'), '私人位记录了借用期限');
+select ok((select borrow_until from public.parking_sessions
+  where slot_code = 'test-ci-3') between now() + interval '9 minutes 59 seconds'
+  and now() + interval '10 minutes 1 second', '私人位十分钟由数据库计算截止时间');
 select lives_ok(
   $$select public.check_in_vehicle('test-ci-8', '粤B88888', 'free',
-    p_borrow_until => now() + interval '30 minutes')$$,
+    p_borrow_minutes => 30)$$,
   '私人位免费借用三十分钟成功');
+select ok((select borrow_until from public.parking_sessions
+  where slot_code = 'test-ci-8') between now() + interval '29 minutes 59 seconds'
+  and now() + interval '30 minutes 1 second', '私人位三十分钟由数据库计算截止时间');
 select lives_ok(
   $$select public.check_in_vehicle('test-ci-4', '粤B44444', 'lease')$$,
   '有在租长租的车位登记成功');
@@ -81,15 +87,15 @@ select throws_ok(
   'P0001', '私人位只允许限时借用', '私人位缺少借用时长被拒绝');
 select throws_ok(
   $$select public.check_in_vehicle('test-ci-7', '粤B77777', 'hourly',
-    p_borrow_until => now() + interval '20 minutes')$$,
+    p_borrow_minutes => 20)$$,
   'P0001', '私人位只允许限时借用', '私人位不接受 20 分钟借用时长');
 select throws_ok(
   $$select public.check_in_vehicle('test-ci-7', '粤B77777', 'free',
-    p_borrow_until => now() + interval '60 minutes')$$,
+    p_borrow_minutes => 60)$$,
   'P0001', '私人位只允许限时借用', '私人位不接受 60 分钟借用时长');
 select throws_ok(
   $$select public.check_in_vehicle('test-ci-6', '粤B60001', 'hourly',
-    p_borrow_until => now() + interval '10 minutes')$$,
+    p_borrow_minutes => 10)$$,
   'P0001', '普通车位没有借用时长', '非私人位不允许设置借用期限');
 select throws_ok(
   $$select public.check_in_vehicle('test-ci-7', '粤B77777', 'hotel_daily',

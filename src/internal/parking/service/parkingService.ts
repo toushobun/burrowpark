@@ -191,18 +191,12 @@ export function createParkingService(
         hotel && pricing
           ? calculateHotelCheckoutAt(now, value.days!, pricing)
           : null;
-      const borrowUntil =
-        value.borrowMinutes === undefined
-          ? null
-          : new Date(
-              now.getTime() + value.borrowMinutes * 60_000,
-            ).toISOString();
       const sessionId = await repository.checkInVehicle({
         slotCode: value.slotCode,
         plate: value.plate,
         billingType: value.billingType,
         paidUntil,
-        borrowUntil,
+        borrowMinutes: value.borrowMinutes ?? null,
         amountCents: hotel ? parseAmountCents(value.amountYuan!) : null,
         paymentMethod: hotel ? value.paymentMethod! : null,
       });

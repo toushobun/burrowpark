@@ -451,7 +451,7 @@ describe("createParkingService", () => {
       plate: "粤B12345",
       billingType: "hotel_daily",
       paidUntil: "2026-11-21T04:00:00.000Z",
-      borrowUntil: null,
+      borrowMinutes: null,
       amountCents: 5905,
       paymentMethod: "wechat",
     });
@@ -472,12 +472,12 @@ describe("createParkingService", () => {
         paidUntil: null,
         amountCents: null,
         paymentMethod: null,
-        borrowUntil: null,
+        borrowMinutes: null,
       }),
     );
   });
 
-  it("私人位借用使用同一个 now 加十分钟计算期限", async () => {
+  it("私人位借用直接传分钟数，由数据库计算截止时间", async () => {
     const { service, repository } = makeService(makeRows());
     await service.checkIn(
       {
@@ -490,7 +490,7 @@ describe("createParkingService", () => {
     );
     expect(repository.checkInVehicle).toHaveBeenCalledWith(
       expect.objectContaining({
-        borrowUntil: "2026-11-19T03:10:00.000Z",
+        borrowMinutes: 10,
         paidUntil: null,
       }),
     );

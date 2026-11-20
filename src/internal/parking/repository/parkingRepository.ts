@@ -54,7 +54,7 @@ export type CheckInRpcInput = {
   plate: string;
   billingType: ParkingBillingType;
   paidUntil: string | null;
-  borrowUntil: string | null;
+  borrowMinutes: number | null;
   amountCents: number | null;
   paymentMethod: Enums<"payment_method"> | null;
 };
@@ -186,8 +186,8 @@ export function createParkingRepository(
           ...(input.paidUntil !== null
             ? { p_paid_until: input.paidUntil }
             : {}),
-          ...(input.borrowUntil !== null
-            ? { p_borrow_until: input.borrowUntil }
+          ...(input.borrowMinutes !== null
+            ? { p_borrow_minutes: input.borrowMinutes }
             : {}),
           ...(input.amountCents !== null
             ? { p_amount_cents: input.amountCents }

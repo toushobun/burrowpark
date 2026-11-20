@@ -319,7 +319,7 @@ export type Database = {
         Args: {
           p_amount_cents?: number;
           p_billing_type: Database["public"]["Enums"]["billing_type"];
-          p_borrow_until?: string;
+          p_borrow_minutes?: number;
           p_paid_until?: string;
           p_payment_method?: Database["public"]["Enums"]["payment_method"];
           p_plate: string;

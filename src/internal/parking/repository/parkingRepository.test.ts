@@ -222,7 +222,7 @@ const rpcInput = {
   plate: "粤B12345",
   billingType: "hotel_daily" as const,
   paidUntil: "2026-11-21T04:00:00.000Z",
-  borrowUntil: null,
+  borrowMinutes: null,
   amountCents: 6000,
   paymentMethod: "wechat" as const,
 };
@@ -244,6 +244,27 @@ describe("ParkingRepository RPC", () => {
       p_paid_until: "2026-11-21T04:00:00.000Z",
       p_amount_cents: 6000,
       p_payment_method: "wechat",
+    });
+  });
+
+  it("私人位直接传借用分钟数，不使用应用服务器时钟", async () => {
+    const { client, rpc } = makeRpcClient({
+      data: "00000000-0000-4000-8000-000000000001",
+      error: null,
+    });
+    await createParkingRepository(client, logger).checkInVehicle({
+      ...rpcInput,
+      billingType: "hourly",
+      paidUntil: null,
+      amountCents: null,
+      paymentMethod: null,
+      borrowMinutes: 30,
+    });
+    expect(rpc).toHaveBeenCalledWith("check_in_vehicle", {
+      p_slot_code: "3",
+      p_plate: "粤B12345",
+      p_billing_type: "hourly",
+      p_borrow_minutes: 30,
     });
   });
 
