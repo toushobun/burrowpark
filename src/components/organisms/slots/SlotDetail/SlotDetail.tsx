@@ -73,14 +73,14 @@ export function SlotDetail({ detail, display }: SlotDetailProps) {
   const phone = detail.lease?.phone?.trim();
   const hasDetails = Boolean(
     vehicle ||
-    (detail.reservation &&
-      (detail.reservation.guestName || detail.reservation.note)) ||
-    detail.lease,
+      (detail.reservation
+        ? detail.reservation.guestName || detail.reservation.note
+        : detail.lease),
   );
   const actions = !detail.isActive
     ? []
     : vehicle
-      ? detail.status === "privateBorrowed"
+      ? detail.kind === "private"
         ? [slotDetailText.extendBorrow, slotDetailText.leave]
         : vehicle.billingType === "hotel_daily" ||
             vehicle.billingType === "lease"
@@ -201,7 +201,7 @@ export function SlotDetail({ detail, display }: SlotDetailProps) {
                     sx={{ minHeight: designTokens.size.touchTargetMin }}
                     variant="outlined"
                   >
-                    {slotDetailText.phone}
+                    {slotDetailText.phone} {phone}
                   </Button>
                 )}
               </>
