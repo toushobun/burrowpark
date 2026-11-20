@@ -1,5 +1,5 @@
 begin;
-select plan(57);
+select plan(60);
 
 insert into public.slots(code,name,yard,kind,sort_order,is_active) values
  ('test-lrb-1','31号','outer','regular',301,true),
@@ -113,8 +113,18 @@ select throws_ok($$select public.cancel_reservation(
  (select id from public.reservations where slot_code='test-lrb-2'))$$,
  'P0001','预留已经关闭了','已经关闭的预留不能重复取消');
 
-select lives_ok($$select public.undo_cancel_reservation(
- (select id from public.reservations where slot_code='test-lrb-2'))$$,'十分钟内撤销取消预留');
+select lives_ok($select public.create_lease(
+ 'test-lrb-2','新承租人',null,null,current_date,null,
+ (((current_date+31)::timestamp at time zone 'Asia/Shanghai')-interval '1 second'),
+ 3000,'cash')$,'预留取消后可以建立新长租');
+select throws_ok($select public.undo_cancel_reservation(
+ (select id from public.reservations where slot_code='test-lrb-2'))$,
+ 'P0001','已经不能撤销了','新长租生效后不能恢复已取消预留');
+select lives_ok($select public.undo_create_lease(
+ (select id from public.leases where slot_code='test-lrb-2'))$,
+ '撤销新长租后可以重新恢复预留');
+select lives_ok($select public.undo_cancel_reservation(
+ (select id from public.reservations where slot_code='test-lrb-2'))$,'十分钟内撤销取消预留');
 select ok((select closed_at is null from public.reservations where slot_code='test-lrb-2'),
  '撤销取消后预留重新开放');
 select lives_ok($$select public.undo_reservation(

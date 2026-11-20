@@ -218,6 +218,9 @@ begin
     or v_reservation.closed_at is null
     or v_reservation.closed_at < pg_catalog.now()-interval '10 minutes'
     or exists(select 1 from public.parking_sessions where slot_code=v_reservation.slot_code and left_at is null)
+    or exists(select 1 from public.leases where slot_code=v_reservation.slot_code and ended_on is null)
+    or not exists(select 1 from public.slots where code=v_reservation.slot_code
+      and is_active and kind='regular')
     or exists(select 1 from public.reservations where slot_code=v_reservation.slot_code
       and closed_at is null and id<>p_reservation_id) then
     raise exception '已经不能撤销了' using errcode='P0001',detail='UNDO_UNAVAILABLE';
