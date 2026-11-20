@@ -6,6 +6,7 @@ import type { SlotStatus } from "theme/slotStatusTokens";
 
 import type {
   ParkingBillingType,
+  ParkingSlotKind,
   SlotStatusFacts,
 } from "../entity/parkingDomain";
 import type {
@@ -22,6 +23,7 @@ export type SlotMapSlot = {
 };
 
 export type SlotDetail = SlotMapSlot & {
+  kind: ParkingSlotKind;
   presentVehicle: {
     plate: string;
     billingType: ParkingBillingType;
@@ -161,6 +163,7 @@ export function createParkingService(
         name: slot.name,
         isActive: slot.is_active,
         status: deriveSlotStatus(statusFacts, now),
+        kind: slot.kind,
         presentVehicle: session
           ? {
               plate: session.plate,
