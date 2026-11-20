@@ -315,6 +315,18 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      check_in_vehicle: {
+        Args: {
+          p_amount_cents?: number;
+          p_billing_type: Database["public"]["Enums"]["billing_type"];
+          p_borrow_minutes?: number;
+          p_paid_until?: string;
+          p_payment_method?: Database["public"]["Enums"]["payment_method"];
+          p_plate: string;
+          p_slot_code: string;
+        };
+        Returns: string;
+      };
       consume_login_attempt: {
         Args: { p_ip_key: string };
         Returns: {
@@ -324,6 +336,7 @@ export type Database = {
       };
       is_family_account: { Args: Record<PropertyKey, never>; Returns: boolean };
       reset_login_attempts: { Args: { p_ip_key: string }; Returns: undefined };
+      undo_check_in: { Args: { p_session_id: string }; Returns: undefined };
     };
     Enums: {
       billing_type: "hotel_daily" | "hourly" | "lease" | "free";

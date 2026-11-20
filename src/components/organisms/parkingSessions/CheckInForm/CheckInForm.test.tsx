@@ -1,0 +1,174 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
+import type { CheckInFormData } from "internal/parking";
+
+import { CheckInForm } from "./CheckInForm";
+
+const form: CheckInFormData = {
+  code: "3",
+  name: "3号",
+  kind: "regular",
+  isActive: true,
+  occupied: false,
+  hasLease: false,
+  hasReservation: false,
+  pricing: {
+    hotel_daily_price_cents: 3000,
+    hotel_checkout_hour: 12,
+    hotel_previous_day_before_hour: 6,
+    hourly_price_cents: 500,
+  },
+  now: "2026-11-20T03:00:00.000Z",
+};
+
+const action = vi.fn(async () => ({}));
+const undoAction = vi.fn(async () => ({}));
+
+function renderForm(
+  overrides: Partial<CheckInFormData> = {},
+  initialState?: {
+    error?: string;
+    errorKey?: string;
+    success?: string;
+    successKey?: string;
+    result?: { sessionId: string; plate: string };
+  },
+) {
+  return render(
+    <CheckInForm
+      action={action}
+      form={{ ...form, ...overrides }}
+      initialState={initialState}
+      undoAction={undoAction}
+    />,
+  );
+}
+
+describe("CheckInForm", () => {
+  it("普通空车位显示酒店客、临停和免费，不显示长租", () => {
+    renderForm();
+    expect(screen.getByRole("button", { name: "酒店客" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "临停" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "免费（装卸）" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "长租" })).toBeNull();
+  });
+
+  it("有在租长租时显示并默认选中长租", () => {
+    renderForm({ hasLease: true });
+    expect(screen.getByRole("button", { name: "长租" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.queryByText("实收金额（元）")).toBeNull();
+  });
+
+  it("私人位只允许临停或免费且必须选择借用时长", () => {
+    renderForm({ kind: "private" });
+    expect(screen.queryByRole("button", { name: "酒店客" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "长租" })).toBeNull();
+    expect(screen.getByRole("button", { name: "临停" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "10 分钟" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "30 分钟" })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox", { name: "车牌号码" }), {
+      target: { value: "粤b12345" },
+    });
+    expect(screen.getByRole("button", { name: "确认登记" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "10 分钟" }));
+    expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled();
+  });
+
+  it("自动大写车牌并在输入完成前禁用提交", () => {
+    renderForm();
+    const plate = screen.getByRole("textbox", { name: "车牌号码" });
+    expect(screen.getByRole("button", { name: "确认登记" })).toBeDisabled();
+    fireEvent.change(plate, { target: { value: "粤b12345" } });
+    expect(plate).toHaveValue("粤B12345");
+    expect(screen.getByRole("button", { name: "确认登记" })).toBeDisabled();
+  });
+
+  it("选择住宿天数后更新交到时间和建议金额", () => {
+    renderForm();
+    expect(screen.getByText("交到 11月21日 12:00")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "3 天" }));
+    expect(screen.getByText("建议金额：90.00 元")).toBeInTheDocument();
+    expect(screen.getByText("交到 11月23日 12:00")).toBeInTheDocument();
+  });
+
+  it("自定义天数支持 1 到 30 天", () => {
+    renderForm();
+    fireEvent.click(screen.getByRole("button", { name: "自定义" }));
+    const input = screen.getByRole("spinbutton", { name: "住宿天数" });
+    fireEvent.change(input, { target: { value: "30" } });
+    expect(input).toHaveValue(30);
+    expect(screen.getByText("建议金额：900.00 元")).toBeInTheDocument();
+  });
+
+  it("酒店客必须选择收款方式且金额必须大于零", () => {
+    renderForm();
+    fireEvent.change(screen.getByRole("textbox", { name: "车牌号码" }), {
+      target: { value: "粤B12345" },
+    });
+    expect(screen.getByRole("button", { name: "确认登记" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "微信" }));
+    expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled();
+    fireEvent.change(screen.getByRole("textbox", { name: "实收金额（元）" }), {
+      target: { value: "0" },
+    });
+    expect(screen.getByRole("button", { name: "确认登记" })).toBeDisabled();
+  });
+
+  it("有预留时说明登记将自动关闭预留", () => {
+    renderForm({ hasReservation: true });
+    expect(screen.getByText(/登记后会自动标记为已到场/)).toBeInTheDocument();
+  });
+
+  it("停用或已占用车位不显示登记表单", () => {
+    const { rerender } = renderForm({ isActive: false });
+    expect(screen.queryByRole("button", { name: "确认登记" })).toBeNull();
+    rerender(
+      <CheckInForm
+        action={action}
+        form={{ ...form, occupied: true }}
+        undoAction={undoAction}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "确认登记" })).toBeNull();
+  });
+
+  it("冲突失败使用统一对话框反馈", () => {
+    renderForm({}, { error: "这个车位刚刚被登记了", errorKey: "once" });
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "这个车位刚刚被登记了",
+    );
+  });
+
+  it("登记成功后持续展示车牌车位及三项大按钮", () => {
+    renderForm(
+      {},
+      {
+        success: "登记成功",
+        successKey: "ok",
+        result: {
+          sessionId: "00000000-0000-4000-8000-000000000001",
+          plate: "粤B12345",
+        },
+      },
+    );
+    expect(screen.getByText("已登记：粤B·12345 停在 3号")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "回地图" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+    expect(screen.getByRole("link", { name: "查看车位" })).toHaveAttribute(
+      "href",
+      "/slots/3",
+    );
+    expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
+  });
+});

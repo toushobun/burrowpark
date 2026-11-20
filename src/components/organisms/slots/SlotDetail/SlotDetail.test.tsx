@@ -22,10 +22,11 @@ function renderDetail(detail: SlotDetailData | null) {
 function expectActions(expected: string[]) {
   const actionNames = ["登记进场", "续费", "离场", "再借一会儿"];
   for (const name of actionNames) {
+    const role = name === "登记进场" ? "link" : "button";
     if (expected.includes(name)) {
-      expect(screen.getByRole("button", { name })).toBeInTheDocument();
+      expect(screen.getByRole(role, { name })).toBeInTheDocument();
     } else {
-      expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
+      expect(screen.queryByRole(role, { name })).not.toBeInTheDocument();
     }
   }
 }
@@ -38,7 +39,7 @@ describe("SlotDetail", () => {
       "href",
       "/",
     );
-    expect(screen.queryByRole("button", { name: "登记进场" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "登记进场" })).toBeNull();
   });
 
   it("空车位仅出现登记进场按钮且不显示空信息卡片", () => {
@@ -194,9 +195,18 @@ describe("SlotDetail", () => {
     expectActions([]);
   });
 
-  it("点击占位操作后通过 Snackbar 提示功能开发中", () => {
+  it("登记进场跳转独立画面而不是弹占位提示", () => {
     renderDetail(emptyDetail);
-    fireEvent.click(screen.getByRole("button", { name: "登记进场" }));
+    expect(screen.getByRole("link", { name: "登记进场" })).toHaveAttribute(
+      "href",
+      "/slots/7/check-in",
+    );
+    expect(screen.queryByText("功能开发中")).toBeNull();
+  });
+
+  it("其他占位按钮仍使用现有 Snackbar", () => {
+    renderDetail(hotelExpiringDetail);
+    fireEvent.click(screen.getByRole("button", { name: "续费" }));
     expect(screen.getByText("功能开发中")).toBeInTheDocument();
   });
 });
