@@ -67,6 +67,10 @@ function makeService(rows: SlotFactsRows) {
       .fn()
       .mockResolvedValue("00000000-0000-4000-8000-000000000001"),
     undoCheckIn: vi.fn().mockResolvedValue(undefined),
+    addRenewal: vi.fn().mockResolvedValue("00000000-0000-4000-8000-000000000002"),
+    undoRenewal: vi.fn().mockResolvedValue(undefined),
+    checkOutVehicle: vi.fn().mockResolvedValue(undefined),
+    undoCheckOut: vi.fn().mockResolvedValue(undefined),
   };
   const getAuth = vi.fn().mockResolvedValue({
     isAuthenticated: true,
@@ -611,5 +615,97 @@ describe("createParkingService", () => {
     expect(repository.checkInVehicle).not.toHaveBeenCalled();
     expect(repository.undoCheckIn).not.toHaveBeenCalled();
     expect(repository.readSlotFacts).not.toHaveBeenCalled();
+  });
+});
+
+describe("续费与离场 Service", () => {
+  it("过期酒店客仍从旧交到时间顺延并把收款写到本次停车", async () => {
+    const { service, repository } = makeService(makeRows({
+      sessions: [makeSession({ session_payments: [
+        { paid_until: "2026-10-31T04:00:00.000Z", amount_cents: 3000, purpose: "prepay" },
+      ] })],
+    }));
+    const form = await service.getRenewForm("1", now);
+    expect(form).toMatchObject({ mode: "hotel_daily", paidUntil: "2026-10-31T04:00:00.000Z" });
+    const result = await service.renew({
+      slotCode: "1", mode: "hotel_daily", days: 2,
+      amountYuan: "60.05", paymentMethod: "wechat",
+    });
+    expect(result.paidUntil).toBe("2026-11-02T04:00:00.000Z");
+    expect(repository.addRenewal).toHaveBeenCalledWith({
+      sessionId: "session-1", leaseId: null, amountCents: 6005,
+      method: "wechat", paidUntil: "2026-11-02T04:00:00.000Z",
+    });
+  });
+  it("长租车不在也可续租且收款关联长租而非停车", async () => {
+    const { service, repository } = makeService(makeRows({
+      leases: [makeLease({ lease_payments: [
+        { paid_until: "2026-11-30T15:59:59.000Z" },
+      ] })],
+    }));
+    expect(await service.getRenewForm("1", now)).toMatchObject({
+      mode: "lease", defaultEndDate: "2026-12-30",
+    });
+    const result = await service.renew({
+      slotCode: "1", mode: "lease", endDate: "2026-12-30",
+      amountYuan: "120.00", paymentMethod: "cash",
+    });
+    expect(result.paidUntil).toBe("2026-12-30T15:59:59.000Z");
+    expect(repository.addRenewal).toHaveBeenCalledWith(expect.objectContaining({
+      sessionId: null, leaseId: "lease-1", amountCents: 12000,
+    }));
+  });
+  it("长租不可续到旧期限或更早日期", async () => {
+    const { service, repository } = makeService(makeRows({
+      leases: [makeLease({ lease_payments: [
+        { paid_until: "2026-11-30T15:59:59.000Z" },
+      ] })],
+    }));
+    await expect(service.renew({
+      slotCode: "1", mode: "lease", endDate: "2026-11-30",
+      amountYuan: "20", paymentMethod: "cash",
+    })).rejects.toMatchObject({ code: "renew_date_invalid" });
+    expect(repository.addRenewal).not.toHaveBeenCalled();
+  });
+  it("临停离场按小时建议收费，酒店不足一天超时按一天补收", async () => {
+    const hourly = makeService(makeRows({
+      sessions: [makeSession({
+        billing_type: "hourly", entered_at: "2026-11-19T01:59:00.000Z",
+      })],
+    }));
+    expect((await hourly.service.getCheckOutForm("1", now))?.suggestedAmountCents).toBe(1000);
+
+    const hotel = makeService(makeRows({
+      sessions: [makeSession({ session_payments: [
+        { paid_until: "2026-11-19T02:59:00.000Z", amount_cents: 3000, purpose: "prepay" },
+      ] })],
+    }));
+    expect(await hotel.service.getCheckOutForm("1", now)).toMatchObject({
+      suggestedAmountCents: 3000, overstayHours: 1, totalPaidCents: 3000,
+    });
+  });
+  it("长租车离场不显示预交合计且建议金额为零", async () => {
+    const { service } = makeService(makeRows({
+      sessions: [makeSession({ billing_type: "lease", lease_id: "lease-1" })],
+      leases: [makeLease()],
+    }));
+    expect(await service.getCheckOutForm("1", now)).toMatchObject({
+      suggestedAmountCents: 0, totalPaidCents: null,
+    });
+  });
+  it("撤销及离场收款输入均先验证再执行 Repo", async () => {
+    const { service, repository } = makeService(makeRows());
+    await expect(service.undoRenewal("invalid")).rejects.toMatchObject({ code: "undo_invalid" });
+    await expect(service.undoCheckOut("invalid")).rejects.toMatchObject({ code: "undo_invalid" });
+    await expect(service.checkOut({
+      sessionId: "00000000-0000-4000-8000-000000000001", amountYuan: "10",
+    })).rejects.toMatchObject({ code: "checkout_invalid" });
+    await service.checkOut({ sessionId: "00000000-0000-4000-8000-000000000001" });
+    expect(repository.checkOutVehicle).toHaveBeenCalledWith({
+      sessionId: "00000000-0000-4000-8000-000000000001",
+      amountCents: null, paymentMethod: null,
+    });
+    await service.undoCheckOut("00000000-0000-4000-8000-000000000001");
+    expect(repository.undoCheckOut).toHaveBeenCalledOnce();
   });
 });

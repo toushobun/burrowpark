@@ -96,3 +96,65 @@ export function parseAmountCents(value: string): number {
   }
   return cents;
 }
+
+const paymentMethodSchema = z.enum(["wechat", "alipay", "cash"]);
+const slotCodeSchema = z.string().regex(/^\d+$/, parkingMessages.invalidInput);
+
+export const renewInputSchema = z.object({
+  slotCode: slotCodeSchema,
+  mode: z.enum(["hotel_daily", "lease"]),
+  days: z.number().int().min(1).max(30).optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  paymentMethod: paymentMethodSchema,
+  amountYuan: amountSchema,
+}).superRefine((value, ctx) => {
+  if ((value.mode === "hotel_daily" && value.days === undefined) ||
+      (value.mode === "lease" && !value.endDate) ||
+      (value.mode === "hotel_daily" && value.endDate !== undefined) ||
+      (value.mode === "lease" && value.days !== undefined)) {
+    ctx.addIssue({ code: "custom", message: parkingMessages.invalidInput });
+  }
+});
+export type RenewInput = z.infer<typeof renewInputSchema>;
+
+export const checkOutInputSchema = z.object({
+  sessionId: z.string().uuid(),
+  paymentMethod: paymentMethodSchema.optional(),
+  amountYuan: amountSchema.optional(),
+}).superRefine((value, ctx) => {
+  if (Boolean(value.paymentMethod) !== Boolean(value.amountYuan)) {
+    ctx.addIssue({ code: "custom", message: parkingMessages.paymentRequired });
+  }
+});
+export type CheckOutInput = z.infer<typeof checkOutInputSchema>;
+
+export function parseRenewInput(input: unknown): RenewInput {
+  const result = renewInputSchema.safeParse(input);
+  if (!result.success) throw new ValidationError("renew_invalid",
+    result.error.issues[0]?.message ?? parkingMessages.invalidInput);
+  return result.data;
+}
+export function parseCheckOutInput(input: unknown): CheckOutInput {
+  const result = checkOutInputSchema.safeParse(input);
+  if (!result.success) throw new ValidationError("checkout_invalid",
+    result.error.issues[0]?.message ?? parkingMessages.invalidInput);
+  return result.data;
+}
+export function readRenewFormData(data: FormData): unknown {
+  const days = data.get("days");
+  return {
+    slotCode: data.get("slotCode"),
+    mode: data.get("mode"),
+    days: days === null || days === "" ? undefined : Number(days),
+    endDate: data.get("endDate") || undefined,
+    paymentMethod: data.get("paymentMethod"),
+    amountYuan: data.get("amountYuan"),
+  };
+}
+export function readCheckOutFormData(data: FormData): unknown {
+  return {
+    sessionId: data.get("sessionId"),
+    amountYuan: data.get("amountYuan") || undefined,
+    paymentMethod: data.get("paymentMethod") || undefined,
+  };
+}

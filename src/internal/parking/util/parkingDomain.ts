@@ -279,3 +279,41 @@ export const deriveSlotStatus = (
 
   return facts.kind === "private" ? "privateIdle" : "empty";
 };
+
+/** 酒店客以原交到时间顺延，已过期也不改用当前时刻。 */
+export const extendHotelPaidUntil = (paidUntil: ParkingTimestamp, days: number): string => {
+  if (!Number.isInteger(days) || days < 1 || days > 30) {
+    throw new RangeError("续费天数应在 1～30 天内。");
+  }
+  return new Date(parseTimestamp(paidUntil).getTime() + days * 24 * HOUR_IN_MS).toISOString();
+};
+
+/** 月末日期顺延至下月的最后有效日期，按上海业务日期计算。 */
+export const nextLeaseRenewDate = (paidUntil: ParkingTimestamp): string => {
+  const current = parseBusinessDate(getBusinessDate(paidUntil));
+  const year = current.getUTCFullYear();
+  const month = current.getUTCMonth();
+  const next = new Date(Date.UTC(year, month + 1, 1));
+  const last = new Date(Date.UTC(year, month + 2, 0)).getUTCDate();
+  next.setUTCDate(Math.min(current.getUTCDate(), last));
+  return next.toISOString().slice(0, 10);
+};
+
+/** 选中的长租到期日一律结束于上海时间 23:59:59。 */
+export const leaseDateToPaidUntil = (businessDate: string): string =>
+  new Date(Date.parse(getBusinessDateTime(businessDate, 0)) + 86400000 - 1000).toISOString();
+
+/** 超时不足一天按一天计费；不足一小时也向上取整显示。 */
+export const calculateHotelOverstay = (
+  paidUntil: ParkingTimestamp,
+  now: ParkingTimestamp,
+  dailyPriceCents: number,
+): { days: number; hours: number; suggestedCents: number } => {
+  const exceeded = Math.max(0, parseTimestamp(now).getTime() - parseTimestamp(paidUntil).getTime());
+  const days = Math.ceil(exceeded / 86400000);
+  return {
+    days,
+    hours: Math.ceil(exceeded / HOUR_IN_MS),
+    suggestedCents: days * dailyPriceCents,
+  };
+};

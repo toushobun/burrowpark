@@ -86,7 +86,9 @@ export function SlotDetail({ detail, display }: SlotDetailProps) {
             vehicle.billingType === "lease"
           ? [slotDetailText.renew, slotDetailText.leave]
           : [slotDetailText.leave]
-      : [slotDetailText.enter];
+      : detail.lease
+        ? [slotDetailText.enter, slotDetailText.renew]
+        : [slotDetailText.enter];
 
   return (
     <Stack spacing={3}>
@@ -213,12 +215,20 @@ export function SlotDetail({ detail, display }: SlotDetailProps) {
       {actions.length > 0 && (
         <Stack spacing={2}>
           {actions.map((action, index) =>
-            action === slotDetailText.enter ? (
+            action === slotDetailText.enter ||
+            action === slotDetailText.renew ||
+            action === slotDetailText.leave ? (
               <Button
                 key={action}
                 component={Link}
                 fullWidth
-                href={`/slots/${detail.code}/check-in`}
+                href={`/slots/${detail.code}/${
+                  action === slotDetailText.enter
+                    ? "check-in"
+                    : action === slotDetailText.renew
+                      ? "renew"
+                      : "check-out"
+                }`}
                 size="large"
                 sx={{ minHeight: designTokens.size.touchTargetMin }}
                 variant="contained"

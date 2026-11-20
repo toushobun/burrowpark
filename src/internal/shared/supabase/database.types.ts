@@ -327,6 +327,14 @@ export type Database = {
         };
         Returns: string;
       };
+      check_out_vehicle: {
+        Args: {
+          p_amount_cents?: number;
+          p_payment_method?: Database["public"]["Enums"]["payment_method"];
+          p_session_id: string;
+        };
+        Returns: undefined;
+      };
       consume_login_attempt: {
         Args: { p_ip_key: string };
         Returns: {
@@ -337,6 +345,8 @@ export type Database = {
       is_family_account: { Args: Record<PropertyKey, never>; Returns: boolean };
       reset_login_attempts: { Args: { p_ip_key: string }; Returns: undefined };
       undo_check_in: { Args: { p_session_id: string }; Returns: undefined };
+      undo_check_out: { Args: { p_session_id: string }; Returns: undefined };
+      undo_renewal: { Args: { p_payment_id: string }; Returns: undefined };
     };
     Enums: {
       billing_type: "hotel_daily" | "hourly" | "lease" | "free";
