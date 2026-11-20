@@ -140,7 +140,7 @@ values ('test-lrb-4','粤B40004','free',now()+interval '5 minutes');
 select results_eq($$select previous_borrow_until < current_borrow_until
   from public.extend_borrow((select id from public.parking_sessions
   where slot_code='test-lrb-4'),10)$$,
- $$values(true)$$,'未超时借用延长十分钟');
+ $$select true$$,'未超时借用延长十分钟');
 select ok((select borrow_until > now()+interval '14 minutes'
  from public.parking_sessions where slot_code='test-lrb-4'),'从原结束时刻顺延');
 select lives_ok($$select public.undo_extend_borrow(
@@ -153,7 +153,7 @@ update public.parking_sessions set borrow_until=now()-interval '5 minutes'
 select results_eq($$select current_borrow_until > now()+interval '29 minutes'
   from public.extend_borrow((select id from public.parking_sessions
   where slot_code='test-lrb-4'),30)$$,
- $$values(true)$$,'已经超时后从数据库当前时间重新借三十分钟');
+ $$select true$$,'已经超时后从数据库当前时间重新借三十分钟');
 select throws_ok($$select public.undo_extend_borrow(
  (select id from public.parking_sessions where slot_code='test-lrb-4'),
  now()-interval '5 minutes',now()+interval '15 minutes')$$,
