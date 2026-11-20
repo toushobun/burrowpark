@@ -42,4 +42,4 @@ export const parkingOperationText = {
   undo: "撤销",
   undoing: "撤销中",
   suggestedSuffix: " 元",
-} as cons
+} as const;
