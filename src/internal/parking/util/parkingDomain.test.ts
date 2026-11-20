@@ -8,6 +8,7 @@ import {
   deriveSlotStatus,
   formatBusinessDate,
   formatBusinessDateTime,
+  formatBusinessTime,
   formatElapsed,
   formatPlateForDisplay,
   getBusinessDate,
@@ -89,6 +90,11 @@ describe("详情页业务时间显示", () => {
       "11月19日 00:30",
     );
     expect(formatBusinessDate("2026-11-18T16:30:00.000Z")).toBe("11月19日");
+  });
+
+  it("UTC 跨日时按上海时间显示时分并补零", () => {
+    expect(formatBusinessTime("2026-11-18T16:05:00.000Z")).toBe("00:05");
+    expect(formatBusinessTime("2026-11-19T04:30:00.000Z")).toBe("12:30");
   });
 
   it("跨月与跨年时日期进位且时分补零", () => {

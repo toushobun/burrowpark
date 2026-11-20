@@ -164,26 +164,29 @@ export function createParkingService(
         isActive: slot.is_active,
         status: deriveSlotStatus(statusFacts, now),
         kind: slot.kind,
-        presentVehicle: session
-          ? {
-              plate: session.plate,
-              billingType: session.billing_type,
-              enteredAt: session.entered_at,
-              paidUntil: sessionPaidUntil,
-              borrowUntil: session.borrow_until,
-              photoUrl,
-            }
-          : null,
-        reservation: reservation
-          ? { guestName: reservation.guest_name, note: reservation.note }
-          : null,
-        lease: lease
-          ? {
-              tenantName: lease.tenant_name,
-              phone: lease.phone,
-              paidUntil: leasePaidUntil,
-            }
-          : null,
+        presentVehicle:
+          slot.is_active && session
+            ? {
+                plate: session.plate,
+                billingType: session.billing_type,
+                enteredAt: session.entered_at,
+                paidUntil: sessionPaidUntil,
+                borrowUntil: session.borrow_until,
+                photoUrl,
+              }
+            : null,
+        reservation:
+          slot.is_active && reservation
+            ? { guestName: reservation.guest_name, note: reservation.note }
+            : null,
+        lease:
+          slot.is_active && lease
+            ? {
+                tenantName: lease.tenant_name,
+                phone: lease.phone,
+                paidUntil: leasePaidUntil,
+              }
+            : null,
       };
     },
   };

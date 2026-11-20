@@ -320,13 +320,38 @@ describe("createParkingService", () => {
     });
   });
 
-  it("详情页停用车位仍可读取但标为停用", async () => {
-    const { service } = makeService(makeRows());
-    expect(await service.getSlotDetail("2", now)).toMatchObject({
+  it("停用车位即使有车辆预留长租也不返回隐私且不签照片", async () => {
+    const { service, repository } = makeService(
+      makeRows({
+        sessions: [
+          makeSession({
+            slot_code: "2",
+            photo_path: "inactive-secret.png",
+          }),
+        ],
+        reservations: [
+          { slot_code: "2", guest_name: "李女士", note: "保密备注" },
+        ],
+        leases: [
+          makeLease({
+            slot_code: "2",
+            lease_payments: [{ paid_until: "2026-11-30T04:00:00.000Z" }],
+          }),
+        ],
+      }),
+    );
+
+    expect(await service.getSlotDetail("2", now)).toEqual({
       code: "2",
+      name: "2号",
       isActive: false,
-      status: "privateIdle",
+      status: "privateBorrowed",
+      kind: "private",
+      presentVehicle: null,
+      reservation: null,
+      lease: null,
     });
+    expect(repository.getPhotoSignedUrl).not.toHaveBeenCalled();
   });
 
   it("同一车位有多条收款时详情取最大 paid_until 且首页状态一致", async () => {

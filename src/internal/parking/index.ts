@@ -18,6 +18,7 @@ export {
   deriveSlotStatus,
   formatBusinessDate,
   formatBusinessDateTime,
+  formatBusinessTime,
   formatElapsed,
   formatPlateForDisplay,
   getBusinessDate,

@@ -75,22 +75,28 @@ export const getBusinessDate = (instant: ParkingTimestamp): string => {
   return shifted.toISOString().slice(0, 10);
 };
 
-/** 将业务时间点格式化为「11月19日 12:00」。 */
-export const formatBusinessDateTime = (instant: ParkingTimestamp): string => {
+/** 将业务时间点格式化为「12:30」。 */
+export const formatBusinessTime = (instant: ParkingTimestamp): string => {
   const shifted = new Date(
     parseTimestamp(instant).getTime() + BUSINESS_TIMEZONE_OFFSET_MS,
   );
   const hour = String(shifted.getUTCHours()).padStart(2, "0");
   const minute = String(shifted.getUTCMinutes()).padStart(2, "0");
 
+  return hour + ":" + minute;
+};
+
+/** 将业务时间点格式化为「11月19日 12:00」。 */
+export const formatBusinessDateTime = (instant: ParkingTimestamp): string => {
+  const shifted = new Date(
+    parseTimestamp(instant).getTime() + BUSINESS_TIMEZONE_OFFSET_MS,
+  );
   return (
     String(shifted.getUTCMonth() + 1) +
     "月" +
     String(shifted.getUTCDate()) +
     "日 " +
-    hour +
-    ":" +
-    minute
+    formatBusinessTime(instant)
   );
 };
 
