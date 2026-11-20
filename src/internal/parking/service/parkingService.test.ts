@@ -73,12 +73,16 @@ function makeService(rows: SlotFactsRows) {
     undoRenewal: vi.fn().mockResolvedValue(undefined),
     checkOutVehicle: vi.fn().mockResolvedValue(undefined),
     undoCheckOut: vi.fn().mockResolvedValue(undefined),
-    createLease: vi.fn().mockResolvedValue("00000000-0000-4000-8000-000000000003"),
+    createLease: vi
+      .fn()
+      .mockResolvedValue("00000000-0000-4000-8000-000000000003"),
     undoCreateLease: vi.fn().mockResolvedValue(undefined),
     updateLease: vi.fn().mockResolvedValue(undefined),
     endLease: vi.fn().mockResolvedValue(undefined),
     undoEndLease: vi.fn().mockResolvedValue(undefined),
-    createReservation: vi.fn().mockResolvedValue("00000000-0000-4000-8000-000000000004"),
+    createReservation: vi
+      .fn()
+      .mockResolvedValue("00000000-0000-4000-8000-000000000004"),
     cancelReservation: vi.fn().mockResolvedValue(undefined),
     undoReservation: vi.fn().mockResolvedValue(undefined),
     undoCancelReservation: vi.fn().mockResolvedValue(undefined),
@@ -930,74 +934,122 @@ describe("首页要处理的事", () => {
   });
 });
 
-
 describe("车位详情扩展操作", () => {
   it("空普通位建立长租时写入首笔预交", async () => {
     const { service, repository } = makeService(makeRows());
     const result = await service.createLease({
-      slotCode: "1", tenantName: "王先生", phone: "",
-      plate: "粤B·12345", startsOn: "2026-11-19", note: "",
-      paidThrough: "2026-12-19", amountYuan: "300.00", paymentMethod: "cash",
+      slotCode: "1",
+      tenantName: "王先生",
+      phone: "",
+      plate: "粤B·12345",
+      startsOn: "2026-11-19",
+      note: "",
+      paidThrough: "2026-12-19",
+      amountYuan: "300.00",
+      paymentMethod: "cash",
     });
     expect(result.leaseId).toBe("00000000-0000-4000-8000-000000000003");
-    expect(repository.createLease).toHaveBeenCalledWith(expect.objectContaining({
-      plate: "粤B12345", amountCents: 30000,
-      paidUntil: "2026-12-19T15:59:59.000Z",
-    }));
+    expect(repository.createLease).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plate: "粤B12345",
+        amountCents: 30000,
+        paidUntil: "2026-12-19T15:59:59.000Z",
+      }),
+    );
   });
 
   it("私人位不能设长租", async () => {
-    const { service, repository } = makeService(makeRows({
-      slots: [{ code: "1", name: "1号", is_active: true, kind: "private" }],
-    }));
-    await expect(service.createLease({
-      slotCode: "1", tenantName: "王先生", phone: "", plate: "",
-      startsOn: "2026-11-19", paidThrough: "2026-12-19",
-      note: "", amountYuan: "100", paymentMethod: "cash",
-    })).rejects.toMatchObject({ code: "slot_unavailable" });
+    const { service, repository } = makeService(
+      makeRows({
+        slots: [{ code: "1", name: "1号", is_active: true, kind: "private" }],
+      }),
+    );
+    await expect(
+      service.createLease({
+        slotCode: "1",
+        tenantName: "王先生",
+        phone: "",
+        plate: "",
+        startsOn: "2026-11-19",
+        paidThrough: "2026-12-19",
+        note: "",
+        amountYuan: "100",
+        paymentMethod: "cash",
+      }),
+    ).rejects.toMatchObject({ code: "slot_unavailable" });
     expect(repository.createLease).not.toHaveBeenCalled();
   });
 
   it("空车位可以预留并返回预留 ID", async () => {
     const { service, repository } = makeService(makeRows());
-    expect(await service.reserve({
-      slotCode: "1", guestName: "", note: "下午来",
-    })).toEqual({ reservationId: "00000000-0000-4000-8000-000000000004" });
-    expect(repository.createReservation).toHaveBeenCalledWith("1", null, "下午来");
+    expect(
+      await service.reserve({
+        slotCode: "1",
+        guestName: "",
+        note: "下午来",
+      }),
+    ).toEqual({ reservationId: "00000000-0000-4000-8000-000000000004" });
+    expect(repository.createReservation).toHaveBeenCalledWith(
+      "1",
+      null,
+      "下午来",
+    );
   });
 
   it("预留进场仍直接调用原 check_in_vehicle，预留到场状态由数据库原子关闭", async () => {
-    const { service, repository } = makeService(makeRows({
-      reservations: [{ id: "reserve-1", slot_code: "1", guest_name: null, note: null }],
-    }));
-    await service.checkIn({
-      slotCode: "1", plate: "粤B12345", billingType: "hourly",
-    }, now);
+    const { service, repository } = makeService(
+      makeRows({
+        reservations: [
+          { id: "reserve-1", slot_code: "1", guest_name: null, note: null },
+        ],
+      }),
+    );
+    await service.checkIn(
+      {
+        slotCode: "1",
+        plate: "粤B12345",
+        billingType: "hourly",
+      },
+      now,
+    );
     expect(repository.checkInVehicle).toHaveBeenCalledWith(
       expect.objectContaining({ slotCode: "1", billingType: "hourly" }),
     );
   });
 
   it("借用只能在有在场记录的私人位上顺延", async () => {
-    const { service, repository } = makeService(makeRows({
-      slots: [{ code: "2", name: "2号", is_active: true, kind: "private" }],
-      sessions: [makeSession({
-        id: "00000000-0000-4000-8000-000000000005",
-        slot_code: "2", billing_type: "free",
-        borrow_until: "2026-11-19T04:00:00.000Z",
-      })],
-    }));
-    expect(await service.extendBorrow({
-      sessionId: "00000000-0000-4000-8000-000000000005", minutes: 10,
-    })).toMatchObject({ current: "2026-11-19T04:10:00.000Z" });
+    const { service, repository } = makeService(
+      makeRows({
+        slots: [{ code: "2", name: "2号", is_active: true, kind: "private" }],
+        sessions: [
+          makeSession({
+            id: "00000000-0000-4000-8000-000000000005",
+            slot_code: "2",
+            billing_type: "free",
+            borrow_until: "2026-11-19T04:00:00.000Z",
+          }),
+        ],
+      }),
+    );
+    expect(
+      await service.extendBorrow({
+        sessionId: "00000000-0000-4000-8000-000000000005",
+        minutes: 10,
+      }),
+    ).toMatchObject({ current: "2026-11-19T04:10:00.000Z" });
     expect(repository.extendBorrow).toHaveBeenCalledWith(
-      "00000000-0000-4000-8000-000000000005", 10);
+      "00000000-0000-4000-8000-000000000005",
+      10,
+    );
   });
 
   it("借用的分钟数不能是二十分钟", async () => {
     const { service } = makeService(makeRows());
-    await expect(service.extendBorrow({
-      sessionId: "00000000-0000-4000-8000-000000000005", minutes: 20,
-    })).rejects.toMatchObject({ name: "ValidationError" });
+    await expect(
+      service.extendBorrow({
+        sessionId: "00000000-0000-4000-8000-000000000005",
+        minutes: 20,
+      }),
+    ).rejects.toMatchObject({ name: "ValidationError" });
   });
 });

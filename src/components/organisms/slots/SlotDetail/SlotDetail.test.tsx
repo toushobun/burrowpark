@@ -20,9 +20,17 @@ function renderDetail(detail: SlotDetailData | null) {
 }
 
 function expectActions(expected: string[]) {
-  const actionNames = ["登记进场", "续费", "续租", "离场", "再借 10 分钟", "取消预留"];
+  const actionNames = [
+    "登记进场",
+    "续费",
+    "续租",
+    "离场",
+    "再借 10 分钟",
+    "取消预留",
+  ];
   for (const name of actionNames) {
-    const role = name === "再借 10 分钟" || name === "取消预留" ? "button" : "link";
+    const role =
+      name === "再借 10 分钟" || name === "取消预留" ? "button" : "link";
     if (expected.includes(name)) {
       expect(screen.getByRole(role, { name })).toBeInTheDocument();
     } else {
@@ -148,7 +156,11 @@ describe("SlotDetail", () => {
     renderDetail({
       ...emptyDetail,
       status: "reserved",
-      reservation: { id: "00000000-0000-4000-8000-000000000007", guestName: "张女士", note: "夜间到达" },
+      reservation: {
+        id: "00000000-0000-4000-8000-000000000007",
+        guestName: "张女士",
+        note: "夜间到达",
+      },
     });
     expect(screen.getByText("张女士")).toBeInTheDocument();
     expect(screen.getByText("夜间到达")).toBeInTheDocument();
@@ -214,8 +226,12 @@ describe("SlotDetail", () => {
 
   it("私人位再借10分钟和再借30分钟分别位于主操作和更多操作", () => {
     renderDetail(privateBorrowedDetail);
-    expect(screen.getByRole("button", { name: "再借 10 分钟" })).toHaveAttribute("type", "submit");
-    expect(screen.getByRole("button", { name: "再借 30 分钟" })).toHaveAttribute("type", "submit");
+    expect(
+      screen.getByRole("button", { name: "再借 10 分钟" }),
+    ).toHaveAttribute("type", "submit");
+    expect(
+      screen.getByRole("button", { name: "再借 30 分钟" }),
+    ).toHaveAttribute("type", "submit");
     expect(screen.getByText("更多操作")).toBeInTheDocument();
   });
 
@@ -223,32 +239,39 @@ describe("SlotDetail", () => {
     renderDetail(emptyDetail);
     expect(screen.getByRole("button", { name: "预留" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "设为长租" })).toHaveAttribute(
-      "href", "/slots/7/lease/new");
+      "href",
+      "/slots/7/lease/new",
+    );
   });
 });
-
 
 describe("SlotDetail 预留、退租和成功结果", () => {
   it("预留按钮展开可填写的简短表单", () => {
     renderDetail(emptyDetail);
     fireEvent.click(screen.getByRole("button", { name: "预留" }));
     expect(screen.getByRole("textbox", { name: "预留人" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "确认预留" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "确认预留" }),
+    ).toBeInTheDocument();
   });
 
   it("长租车不在时退租需要 Dialog 二次确认", () => {
     renderDetail(leaseAwayDetail);
     fireEvent.click(screen.getByRole("button", { name: "退租" }));
     expect(screen.getByText("确定让 王先生 退租吗？")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "确定退租" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "确定退租" }),
+    ).toBeInTheDocument();
   });
 
   it("取消预留必须先经过 Dialog", () => {
     renderDetail({
-      ...emptyDetail, status: "reserved",
+      ...emptyDetail,
+      status: "reserved",
       reservation: {
         id: "00000000-0000-4000-8000-000000000007",
-        guestName: "张女士", note: null,
+        guestName: "张女士",
+        note: null,
       },
     });
     fireEvent.click(screen.getByRole("button", { name: "取消预留" }));
@@ -256,12 +279,20 @@ describe("SlotDetail 预留、退租和成功结果", () => {
   });
 
   it("预留成功结果常驻展示地图、查看车位和撤销", () => {
-    render(<SlotDetail detail={emptyDetail} display={detailDisplay}
-      initialState={{
-        reserve: { success: "预留成功", result: {
-          id: "00000000-0000-4000-8000-000000000007",
-        }},
-      }} />);
+    render(
+      <SlotDetail
+        detail={emptyDetail}
+        display={detailDisplay}
+        initialState={{
+          reserve: {
+            success: "预留成功",
+            result: {
+              id: "00000000-0000-4000-8000-000000000007",
+            },
+          },
+        }}
+      />,
+    );
     expect(screen.getByText("预留成功")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "回地图" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "查看车位" })).toBeInTheDocument();
@@ -269,12 +300,22 @@ describe("SlotDetail 预留、退租和成功结果", () => {
   });
 
   it("私人借用显示剩余和已超时分钟数", () => {
-    const { unmount } = render(<SlotDetail detail={privateBorrowedDetail}
-      display={detailDisplay} now="2026-11-19T04:00:00.000Z" />);
+    const { unmount } = render(
+      <SlotDetail
+        detail={privateBorrowedDetail}
+        display={detailDisplay}
+        now="2026-11-19T04:00:00.000Z"
+      />,
+    );
     expect(screen.getByText("还剩 30 分钟")).toBeInTheDocument();
     unmount();
-    render(<SlotDetail detail={privateBorrowedDetail}
-      display={detailDisplay} now="2026-11-19T04:32:00.000Z" />);
+    render(
+      <SlotDetail
+        detail={privateBorrowedDetail}
+        display={detailDisplay}
+        now="2026-11-19T04:32:00.000Z"
+      />,
+    );
     expect(screen.getByText("已超时 2 分钟")).toBeInTheDocument();
   });
 });

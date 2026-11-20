@@ -39,20 +39,30 @@ export type SlotFactsRows = {
   > & {
     session_payments: (Pick<Tables<"payments">, "paid_until"> &
       Partial<
-        Pick<Tables<"payments">, "id" | "amount_cents" | "paid_at" | "purpose" | "method">
+        Pick<
+          Tables<"payments">,
+          "id" | "amount_cents" | "paid_at" | "purpose" | "method"
+        >
       >)[];
   })[];
-  reservations: (Pick<Tables<"reservations">, "slot_code" | "guest_name" | "note"> &
+  reservations: (Pick<
+    Tables<"reservations">,
+    "slot_code" | "guest_name" | "note"
+  > &
     Partial<Pick<Tables<"reservations">, "id">>)[];
   leases: (Pick<
     Tables<"leases">,
     "id" | "slot_code" | "tenant_name" | "phone"
-  > & Partial<Pick<Tables<"leases">, "starts_on" | "plate" | "note">> & {
-    lease_payments: (Pick<Tables<"payments">, "paid_until"> &
-      Partial<
-        Pick<Tables<"payments">, "id" | "amount_cents" | "paid_at" | "purpose" | "method">
-      >)[];
-  })[];
+  > &
+    Partial<Pick<Tables<"leases">, "starts_on" | "plate" | "note">> & {
+      lease_payments: (Pick<Tables<"payments">, "paid_until"> &
+        Partial<
+          Pick<
+            Tables<"payments">,
+            "id" | "amount_cents" | "paid_at" | "purpose" | "method"
+          >
+        >)[];
+    })[];
 };
 
 export type CheckInRpcInput = {
@@ -104,25 +114,48 @@ export interface ParkingRepository {
   }): Promise<void>;
   undoCheckOut(sessionId: string): Promise<void>;
   createLease(input: {
-    slotCode: string; tenantName: string; phone: string | null;
-    plate: string | null; startsOn: string; note: string | null;
-    paidUntil: string; amountCents: number;
+    slotCode: string;
+    tenantName: string;
+    phone: string | null;
+    plate: string | null;
+    startsOn: string;
+    note: string | null;
+    paidUntil: string;
+    amountCents: number;
     paymentMethod: Enums<"payment_method">;
   }): Promise<string>;
   undoCreateLease(id: string): Promise<void>;
-  updateLease(id: string, data: {
-    tenant_name: string; phone: string | null; plate: string | null; note: string | null;
-  }): Promise<void>;
+  updateLease(
+    id: string,
+    data: {
+      tenant_name: string;
+      phone: string | null;
+      plate: string | null;
+      note: string | null;
+    },
+  ): Promise<void>;
   endLease(id: string, endedOn: string): Promise<void>;
   undoEndLease(id: string): Promise<void>;
-  createReservation(slotCode: string, guestName: string | null, note: string | null): Promise<string>;
+  createReservation(
+    slotCode: string,
+    guestName: string | null,
+    note: string | null,
+  ): Promise<string>;
   cancelReservation(id: string): Promise<void>;
   undoReservation(id: string): Promise<void>;
   undoCancelReservation(id: string): Promise<void>;
-  extendBorrow(sessionId: string, minutes: number): Promise<{
-    previous: string; current: string;
+  extendBorrow(
+    sessionId: string,
+    minutes: number,
+  ): Promise<{
+    previous: string;
+    current: string;
   }>;
-  undoExtendBorrow(sessionId: string, previous: string, expectedCurrent: string): Promise<void>;
+  undoExtendBorrow(
+    sessionId: string,
+    previous: string,
+    expectedCurrent: string,
+  ): Promise<void>;
 }
 
 export function createParkingRepository(
@@ -217,7 +250,10 @@ export function createParkingRepository(
   function throwMutationError(operation: string, error: RpcErrorLike): never {
     const code = error.details?.trim();
     if (code === "FAMILY_REQUIRED")
-      throw new AuthorizationError("family_required", parkingMessages.invalidInput);
+      throw new AuthorizationError(
+        "family_required",
+        parkingMessages.invalidInput,
+      );
     if (code === "UNDO_UNAVAILABLE")
       throw new ConflictError("undo_unavailable", parkingMessages.cannotUndo);
     if (code === "LEASE_EXISTS")
@@ -225,16 +261,31 @@ export function createParkingRepository(
     if (code === "SLOT_OCCUPIED")
       throw new ConflictError("slot_occupied", parkingMessages.slotOccupied);
     if (code === "LEASE_VEHICLE_PRESENT")
-      throw new ConflictError("lease_vehicle_present", parkingMessages.leaseVehiclePresent);
+      throw new ConflictError(
+        "lease_vehicle_present",
+        parkingMessages.leaseVehiclePresent,
+      );
     if (code === "RESERVATION_UNAVAILABLE")
-      throw new ConflictError("reservation_unavailable", parkingMessages.reservationUnavailable);
-    if (code === "SLOT_UNAVAILABLE" || code === "SESSION_UNAVAILABLE" ||
-        code === "LEASE_UNAVAILABLE" || code === "INVALID_INPUT")
-      throw new ValidationError("operation_invalid", parkingMessages.invalidInput);
+      throw new ConflictError(
+        "reservation_unavailable",
+        parkingMessages.reservationUnavailable,
+      );
+    if (
+      code === "SLOT_UNAVAILABLE" ||
+      code === "SESSION_UNAVAILABLE" ||
+      code === "LEASE_UNAVAILABLE" ||
+      code === "INVALID_INPUT"
+    )
+      throw new ValidationError(
+        "operation_invalid",
+        parkingMessages.invalidInput,
+      );
     if (isRpcUniqueViolation(error))
       throw new ConflictError(
         "unique_conflict",
-        operation === "createLease" ? parkingMessages.leaseExists : parkingMessages.slotReserved,
+        operation === "createLease"
+          ? parkingMessages.leaseExists
+          : parkingMessages.slotReserved,
       );
     const conflict = toConcurrentModificationError(error, logger, operation);
     if (conflict) throw conflict;
@@ -242,19 +293,36 @@ export function createParkingRepository(
   }
 
   async function runVoidRpc(
-    operation: "undo_create_lease" | "end_lease" | "undo_end_lease" |
-      "cancel_reservation" | "undo_reservation" | "undo_cancel_reservation" |
-      "undo_extend_borrow",
+    operation:
+      | "undo_create_lease"
+      | "end_lease"
+      | "undo_end_lease"
+      | "cancel_reservation"
+      | "undo_reservation"
+      | "undo_cancel_reservation"
+      | "undo_extend_borrow",
     args: {
-      p_lease_id?: string; p_ended_on?: string; p_reservation_id?: string;
-      p_session_id?: string; p_previous?: string; p_expected_current?: string;
+      p_lease_id?: string;
+      p_ended_on?: string;
+      p_reservation_id?: string;
+      p_session_id?: string;
+      p_previous?: string;
+      p_expected_current?: string;
     },
   ): Promise<void> {
     try {
       // 调用参数由具体方法限定；类型合并仅限仓库内部。
-      const { error } = await supabase.rpc(operation, args as
-        { p_lease_id: string; p_ended_on: string; p_reservation_id: string;
-          p_session_id: string; p_previous: string; p_expected_current: string });
+      const { error } = await supabase.rpc(
+        operation,
+        args as {
+          p_lease_id: string;
+          p_ended_on: string;
+          p_reservation_id: string;
+          p_session_id: string;
+          p_previous: string;
+          p_expected_current: string;
+        },
+      );
       if (error) throwMutationError(operation, error);
     } catch (error) {
       if (error instanceof AppError) throw error;
@@ -521,31 +589,48 @@ export function createParkingRepository(
         return fail("createLease", error);
       }
     },
-    undoCreateLease: (id) => runVoidRpc("undo_create_lease", { p_lease_id: id }),
+    undoCreateLease: (id) =>
+      runVoidRpc("undo_create_lease", { p_lease_id: id }),
     async updateLease(id, data) {
       try {
-        const result = await supabase.from("leases").update(data).eq("id", id)
-          .is("ended_on", null).select("id").maybeSingle();
+        const result = await supabase
+          .from("leases")
+          .update(data)
+          .eq("id", id)
+          .is("ended_on", null)
+          .select("id")
+          .maybeSingle();
         if (result.error) return fail("updateLease", result.error);
         if (!result.data)
-          throw new ConflictError("lease_unavailable", parkingMessages.leaseUnavailable);
+          throw new ConflictError(
+            "lease_unavailable",
+            parkingMessages.leaseUnavailable,
+          );
       } catch (error) {
         if (error instanceof AppError) throw error;
         return fail("updateLease", error);
       }
     },
-    endLease: (id, endedOn) => runVoidRpc("end_lease", { p_lease_id: id, p_ended_on: endedOn }),
+    endLease: (id, endedOn) =>
+      runVoidRpc("end_lease", { p_lease_id: id, p_ended_on: endedOn }),
     undoEndLease: (id) => runVoidRpc("undo_end_lease", { p_lease_id: id }),
     async createReservation(slotCode, guestName, note) {
       try {
-        const { data, error } = await supabase.from("reservations").insert({
-          slot_code: slotCode,
-          guest_name: guestName,
-          note,
-        }).select("id").single();
+        const { data, error } = await supabase
+          .from("reservations")
+          .insert({
+            slot_code: slotCode,
+            guest_name: guestName,
+            note,
+          })
+          .select("id")
+          .single();
         if (error) {
           if (isRpcUniqueViolation(error))
-            throw new ConflictError("reservation_exists", parkingMessages.slotReserved);
+            throw new ConflictError(
+              "reservation_exists",
+              parkingMessages.slotReserved,
+            );
           throwMutationError("createReservation", error);
         }
         if (!data) return fail("createReservation", null);
@@ -555,17 +640,24 @@ export function createParkingRepository(
         return fail("createReservation", error);
       }
     },
-    cancelReservation: (id) => runVoidRpc("cancel_reservation", { p_reservation_id: id }),
-    undoReservation: (id) => runVoidRpc("undo_reservation", { p_reservation_id: id }),
-    undoCancelReservation: (id) => runVoidRpc("undo_cancel_reservation", { p_reservation_id: id }),
+    cancelReservation: (id) =>
+      runVoidRpc("cancel_reservation", { p_reservation_id: id }),
+    undoReservation: (id) =>
+      runVoidRpc("undo_reservation", { p_reservation_id: id }),
+    undoCancelReservation: (id) =>
+      runVoidRpc("undo_cancel_reservation", { p_reservation_id: id }),
     async extendBorrow(sessionId, minutes) {
       try {
         const { data, error } = await supabase.rpc("extend_borrow", {
-          p_session_id: sessionId, p_minutes: minutes,
+          p_session_id: sessionId,
+          p_minutes: minutes,
         });
         if (error) throwMutationError("extend_borrow", error);
         if (!data?.[0]) return fail("extend_borrow", null);
-        return { previous: data[0].previous_borrow_until, current: data[0].current_borrow_until };
+        return {
+          previous: data[0].previous_borrow_until,
+          current: data[0].current_borrow_until,
+        };
       } catch (error) {
         if (error instanceof AppError) throw error;
         return fail("extend_borrow", error);
@@ -573,7 +665,9 @@ export function createParkingRepository(
     },
     undoExtendBorrow: (sessionId, previous, expectedCurrent) =>
       runVoidRpc("undo_extend_borrow", {
-        p_session_id: sessionId, p_previous: previous, p_expected_current: expectedCurrent,
+        p_session_id: sessionId,
+        p_previous: previous,
+        p_expected_current: expectedCurrent,
       }),
     async readSlotFacts() {
       try {

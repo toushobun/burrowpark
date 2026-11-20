@@ -66,52 +66,96 @@ type SlotDetailProps = {
 };
 
 const buttonSx = { minHeight: designTokens.size.touchTargetMin };
-const unavailableAction: SlotFormAction = async () => ({ error: slotDetailText.pending });
+const unavailableAction: SlotFormAction = async () => ({
+  error: slotDetailText.pending,
+});
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <Stack direction="row" spacing={1} sx={{ alignItems: "baseline", flexWrap: "wrap" }} useFlexGap>
-      <Typography color="textSecondary" variant="body2">{label}</Typography>
-      <Typography sx={{ overflowWrap: "anywhere" }} variant="body1">{value}</Typography>
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{ alignItems: "baseline", flexWrap: "wrap" }}
+      useFlexGap
+    >
+      <Typography color="textSecondary" variant="body2">
+        {label}
+      </Typography>
+      <Typography sx={{ overflowWrap: "anywhere" }} variant="body1">
+        {value}
+      </Typography>
     </Stack>
   );
 }
 
 /** 首页详情只保留最多两个主操作；低频操作集中在「更多操作」。 */
-export function SlotDetail({ detail, display, today = "", now = "", operations, initialState }: SlotDetailProps) {
+export function SlotDetail({
+  detail,
+  display,
+  today = "",
+  now = "",
+  operations,
+  initialState,
+}: SlotDetailProps) {
   const [reserveOpen, setReserveOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
   const [endDate, setEndDate] = useState(today);
   const [reserveState, submitReserve, reservePending] = useActionState(
-    operations?.reserve ?? unavailableAction, initialState?.reserve ?? {} as SlotActionState);
+    operations?.reserve ?? unavailableAction,
+    initialState?.reserve ?? ({} as SlotActionState),
+  );
   const [cancelState, submitCancel, cancelPending] = useActionState(
-    operations?.cancelReservation ?? unavailableAction, initialState?.cancel ?? {} as SlotActionState);
+    operations?.cancelReservation ?? unavailableAction,
+    initialState?.cancel ?? ({} as SlotActionState),
+  );
   const [extendState, submitExtend, extendPending] = useActionState(
-    operations?.extendBorrow ?? unavailableAction, initialState?.extend ?? {} as SlotActionState);
+    operations?.extendBorrow ?? unavailableAction,
+    initialState?.extend ?? ({} as SlotActionState),
+  );
   const [endState, submitEnd, endPending] = useActionState(
-    operations?.endLease ?? unavailableAction, initialState?.end ?? {} as SlotActionState);
+    operations?.endLease ?? unavailableAction,
+    initialState?.end ?? ({} as SlotActionState),
+  );
 
   const completed =
-    (reserveState.result ? { kind: "reserve", result: reserveState.result } : null) ??
-    (cancelState.result ? { kind: "cancel", result: cancelState.result } : null) ??
-    (extendState.result ? { kind: "extend", result: extendState.result } : null) ??
+    (reserveState.result
+      ? { kind: "reserve", result: reserveState.result }
+      : null) ??
+    (cancelState.result
+      ? { kind: "cancel", result: cancelState.result }
+      : null) ??
+    (extendState.result
+      ? { kind: "extend", result: extendState.result }
+      : null) ??
     (endState.result ? { kind: "end", result: endState.result } : null);
-  const undoAction = completed?.kind === "reserve"
-    ? operations?.undoReservation
-    : completed?.kind === "cancel"
-      ? operations?.undoCancelReservation
-      : completed?.kind === "extend"
-        ? operations?.undoExtendBorrow
-        : operations?.undoEndLease;
+  const undoAction =
+    completed?.kind === "reserve"
+      ? operations?.undoReservation
+      : completed?.kind === "cancel"
+        ? operations?.undoCancelReservation
+        : completed?.kind === "extend"
+          ? operations?.undoExtendBorrow
+          : operations?.undoEndLease;
   const [undoState, submitUndo, undoPending] = useActionState(
-    undoAction ?? unavailableAction, {} as SlotActionState);
+    undoAction ?? unavailableAction,
+    {} as SlotActionState,
+  );
 
   if (!detail) {
     return (
       <Stack spacing={3}>
-        <Typography component="h2" variant="h2">{slotDetailText.missing}</Typography>
-        <Button component={Link} fullWidth href="/" size="large" sx={buttonSx} variant="contained">
+        <Typography component="h2" variant="h2">
+          {slotDetailText.missing}
+        </Typography>
+        <Button
+          component={Link}
+          fullWidth
+          href="/"
+          size="large"
+          sx={buttonSx}
+          variant="contained"
+        >
           {slotDetailText.backHome}
         </Button>
       </Stack>
@@ -125,18 +169,30 @@ export function SlotDetail({ detail, display, today = "", now = "", operations, 
         <ParkingOperationResult
           code={detail.code}
           title={
-            completed.kind === "reserve" ? slotDetailText.reservedSuccess :
-            completed.kind === "cancel" ? slotDetailText.cancelledSuccess :
-            completed.kind === "extend" ? slotDetailText.extendedSuccess :
-            slotDetailText.endedSuccess
+            completed.kind === "reserve"
+              ? slotDetailText.reservedSuccess
+              : completed.kind === "cancel"
+                ? slotDetailText.cancelledSuccess
+                : completed.kind === "extend"
+                  ? slotDetailText.extendedSuccess
+                  : slotDetailText.endedSuccess
           }
           id={result.id}
-          idName={completed.kind === "reserve" || completed.kind === "cancel"
-            ? "reservationId" : completed.kind === "extend" ? "sessionId" : "leaseId"}
-          extraUndoFields={completed.kind === "extend"
-            ? [{ name: "previous", value: result.previous ?? "" },
-               { name: "expectedCurrent", value: result.current ?? "" }]
-            : undefined}
+          idName={
+            completed.kind === "reserve" || completed.kind === "cancel"
+              ? "reservationId"
+              : completed.kind === "extend"
+                ? "sessionId"
+                : "leaseId"
+          }
+          extraUndoFields={
+            completed.kind === "extend"
+              ? [
+                  { name: "previous", value: result.previous ?? "" },
+                  { name: "expectedCurrent", value: result.current ?? "" },
+                ]
+              : undefined
+          }
           undo={submitUndo}
           undoState={undoState}
           isUndoPending={undoPending}
@@ -154,32 +210,74 @@ export function SlotDetail({ detail, display, today = "", now = "", operations, 
   const links: { label: string; href: string }[] = [];
   if (detail.isActive) {
     if (vehicle) {
-      if (!privateBorrowed && (vehicle.billingType === "hotel_daily" ||
-        vehicle.billingType === "lease")) {
-        links.push({label: vehicle.billingType === "lease"
-          ? slotDetailText.renewLease : slotDetailText.renew,
-          href: `/slots/${detail.code}/renew`});
+      if (
+        !privateBorrowed &&
+        (vehicle.billingType === "hotel_daily" ||
+          vehicle.billingType === "lease")
+      ) {
+        links.push({
+          label:
+            vehicle.billingType === "lease"
+              ? slotDetailText.renewLease
+              : slotDetailText.renew,
+          href: `/slots/${detail.code}/renew`,
+        });
       }
-      links.push({label: slotDetailText.leave, href: `/slots/${detail.code}/check-out`});
+      links.push({
+        label: slotDetailText.leave,
+        href: `/slots/${detail.code}/check-out`,
+      });
     } else {
-      links.push({label: slotDetailText.enter, href: `/slots/${detail.code}/check-in`});
-      if (leaseAway) links.push({label: slotDetailText.renewLease, href: `/slots/${detail.code}/renew`});
+      links.push({
+        label: slotDetailText.enter,
+        href: `/slots/${detail.code}/check-in`,
+      });
+      if (leaseAway)
+        links.push({
+          label: slotDetailText.renewLease,
+          href: `/slots/${detail.code}/renew`,
+        });
     }
   }
-  const showReserve = detail.isActive && detail.kind === "regular" && !vehicle &&
-    !detail.lease && !detail.reservation;
-  const showNewLease = detail.isActive && detail.kind === "regular" && !vehicle &&
-    !detail.lease && !detail.reservation;
+  const showReserve =
+    detail.isActive &&
+    detail.kind === "regular" &&
+    !vehicle &&
+    !detail.lease &&
+    !detail.reservation;
+  const showNewLease =
+    detail.isActive &&
+    detail.kind === "regular" &&
+    !vehicle &&
+    !detail.lease &&
+    !detail.reservation;
   const showEditLease = detail.isActive && Boolean(detail.lease?.id);
   const showEndLease = showEditLease && !vehicle;
-  const hasMore = showReserve || showNewLease || showEditLease || showEndLease || privateBorrowed;
-  const errorState = reserveState.error ? reserveState
-    : cancelState.error ? cancelState : extendState.error ? extendState : endState;
+  const hasMore =
+    showReserve ||
+    showNewLease ||
+    showEditLease ||
+    showEndLease ||
+    privateBorrowed;
+  const errorState = reserveState.error
+    ? reserveState
+    : cancelState.error
+      ? cancelState
+      : extendState.error
+        ? extendState
+        : endState;
 
   return (
     <Stack spacing={3}>
-      <Stack direction="row" spacing={2} sx={{ alignItems: "center", flexWrap: "wrap" }} useFlexGap>
-        <Typography component="h2" variant="h2">{detail.name}</Typography>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{ alignItems: "center", flexWrap: "wrap" }}
+        useFlexGap
+      >
+        <Typography component="h2" variant="h2">
+          {detail.name}
+        </Typography>
         <SlotStatusBadge
           inactive={!detail.isActive}
           label={detail.isActive ? undefined : slotDetailText.inactive}
@@ -187,76 +285,144 @@ export function SlotDetail({ detail, display, today = "", now = "", operations, 
         />
       </Stack>
 
-      {detail.isActive && Boolean(vehicle || detail.lease || detail.reservation?.guestName || detail.reservation?.note) && (
-        <Paper variant="outlined" sx={{ borderRadius: String(designTokens.radius.lg) + "px", p: 2 }}>
-          <Stack spacing={2}>
-            {vehicle && (
-              <>
-                <DetailRow label={slotDetailText.plate} value={formatPlateForDisplay(vehicle.plate)} />
-                <DetailRow label={slotDetailText.billingType}
-                  value={billingTypeLabels[vehicle.billingType]} />
-                {display?.enteredAt && <DetailRow label={slotDetailText.enteredAt} value={display.enteredAt} />}
-                {(vehicle.billingType === "hotel_daily" || vehicle.billingType === "lease") &&
-                  display?.paidUntil && (
-                  <DetailRow label={slotDetailText.paidUntil} value={display.paidUntil} />
-                )}
-                {(vehicle.billingType === "hourly" || vehicle.billingType === "free") &&
-                  !privateBorrowed && display?.elapsed && (
-                  <Typography variant="body1">{display.elapsed}</Typography>
-                )}
-                {vehicle.borrowUntil && display?.borrowUntil && (
-                  <DetailRow label={slotDetailText.borrowUntil} value={display.borrowUntil} />
-                )}
-                {privateBorrowed && vehicle.borrowUntil && now && (
-                  <Typography variant="h3" color={detail.status === "overdue" ? "error" : "textPrimary"}>
-                    {describeBorrowRemaining(vehicle.borrowUntil, now)}
-                  </Typography>
-                )}
-                {vehicle.photoUrl && (
-                  <Box alt={slotDetailText.photo} component="img" src={vehicle.photoUrl}
-                    sx={{
-                      borderRadius: String(designTokens.radius.md) + "px",
-                      display: "block",
-                      maxHeight: designTokens.size.primaryActionHeight * 2,
-                      objectFit: "cover", width: "100%",
-                    }}
+      {detail.isActive &&
+        Boolean(
+          vehicle ||
+          detail.lease ||
+          detail.reservation?.guestName ||
+          detail.reservation?.note,
+        ) && (
+          <Paper
+            variant="outlined"
+            sx={{ borderRadius: String(designTokens.radius.lg) + "px", p: 2 }}
+          >
+            <Stack spacing={2}>
+              {vehicle && (
+                <>
+                  <DetailRow
+                    label={slotDetailText.plate}
+                    value={formatPlateForDisplay(vehicle.plate)}
                   />
-                )}
-              </>
-            )}
-            {reserved && detail.reservation && (
-              <>
-                {detail.reservation.guestName &&
-                  <DetailRow label={slotDetailText.guestName} value={detail.reservation.guestName} />}
-                {detail.reservation.note &&
-                  <DetailRow label={slotDetailText.note} value={detail.reservation.note} />}
-              </>
-            )}
-            {detail.lease && (
-              <>
-                <DetailRow label={slotDetailText.tenantName} value={detail.lease.tenantName} />
-                {display?.leasePaidUntil &&
-                  <DetailRow label={slotDetailText.leasePaidUntil} value={display.leasePaidUntil} />}
-                {detail.lease.plate &&
-                  <DetailRow label={slotDetailText.regularPlate}
-                    value={formatPlateForDisplay(detail.lease.plate)} />}
-                {phone && (
-                  <Button component="a" fullWidth href={"tel:" + phone}
-                    size="large" sx={buttonSx} variant="outlined">
-                    {slotDetailText.phone} {phone}
-                  </Button>
-                )}
-                {detail.lease.recentPayments?.map((payment) => (
-                  <DetailRow key={payment.id} label={slotDetailText.paymentRecord}
-                    value={formatBusinessDateTime(payment.paidAt) + " " +
-                      (payment.amountCents / 100).toFixed(2) + "元 " +
-                      paymentMethodLabels[payment.method]} />
-                ))}
-              </>
-            )}
-          </Stack>
-        </Paper>
-      )}
+                  <DetailRow
+                    label={slotDetailText.billingType}
+                    value={billingTypeLabels[vehicle.billingType]}
+                  />
+                  {display?.enteredAt && (
+                    <DetailRow
+                      label={slotDetailText.enteredAt}
+                      value={display.enteredAt}
+                    />
+                  )}
+                  {(vehicle.billingType === "hotel_daily" ||
+                    vehicle.billingType === "lease") &&
+                    display?.paidUntil && (
+                      <DetailRow
+                        label={slotDetailText.paidUntil}
+                        value={display.paidUntil}
+                      />
+                    )}
+                  {(vehicle.billingType === "hourly" ||
+                    vehicle.billingType === "free") &&
+                    !privateBorrowed &&
+                    display?.elapsed && (
+                      <Typography variant="body1">{display.elapsed}</Typography>
+                    )}
+                  {vehicle.borrowUntil && display?.borrowUntil && (
+                    <DetailRow
+                      label={slotDetailText.borrowUntil}
+                      value={display.borrowUntil}
+                    />
+                  )}
+                  {privateBorrowed && vehicle.borrowUntil && now && (
+                    <Typography
+                      variant="h3"
+                      color={
+                        detail.status === "overdue" ? "error" : "textPrimary"
+                      }
+                    >
+                      {describeBorrowRemaining(vehicle.borrowUntil, now)}
+                    </Typography>
+                  )}
+                  {vehicle.photoUrl && (
+                    <Box
+                      alt={slotDetailText.photo}
+                      component="img"
+                      src={vehicle.photoUrl}
+                      sx={{
+                        borderRadius: String(designTokens.radius.md) + "px",
+                        display: "block",
+                        maxHeight: designTokens.size.primaryActionHeight * 2,
+                        objectFit: "cover",
+                        width: "100%",
+                      }}
+                    />
+                  )}
+                </>
+              )}
+              {reserved && detail.reservation && (
+                <>
+                  {detail.reservation.guestName && (
+                    <DetailRow
+                      label={slotDetailText.guestName}
+                      value={detail.reservation.guestName}
+                    />
+                  )}
+                  {detail.reservation.note && (
+                    <DetailRow
+                      label={slotDetailText.note}
+                      value={detail.reservation.note}
+                    />
+                  )}
+                </>
+              )}
+              {detail.lease && (
+                <>
+                  <DetailRow
+                    label={slotDetailText.tenantName}
+                    value={detail.lease.tenantName}
+                  />
+                  {display?.leasePaidUntil && (
+                    <DetailRow
+                      label={slotDetailText.leasePaidUntil}
+                      value={display.leasePaidUntil}
+                    />
+                  )}
+                  {detail.lease.plate && (
+                    <DetailRow
+                      label={slotDetailText.regularPlate}
+                      value={formatPlateForDisplay(detail.lease.plate)}
+                    />
+                  )}
+                  {phone && (
+                    <Button
+                      component="a"
+                      fullWidth
+                      href={"tel:" + phone}
+                      size="large"
+                      sx={buttonSx}
+                      variant="outlined"
+                    >
+                      {slotDetailText.phone} {phone}
+                    </Button>
+                  )}
+                  {detail.lease.recentPayments?.map((payment) => (
+                    <DetailRow
+                      key={payment.id}
+                      label={slotDetailText.paymentRecord}
+                      value={
+                        formatBusinessDateTime(payment.paidAt) +
+                        " " +
+                        (payment.amountCents / 100).toFixed(2) +
+                        "元 " +
+                        paymentMethodLabels[payment.method]
+                      }
+                    />
+                  ))}
+                </>
+              )}
+            </Stack>
+          </Paper>
+        )}
 
       {detail.isActive && (
         <Stack spacing={2}>
@@ -264,20 +430,41 @@ export function SlotDetail({ detail, display, today = "", now = "", operations, 
             <form action={submitExtend}>
               <input type="hidden" name="sessionId" value={vehicle.sessionId} />
               <input type="hidden" name="minutes" value="10" />
-              <Button fullWidth size="large" sx={buttonSx} variant="contained"
-                disabled={extendPending} type="submit">{slotDetailText.borrow10}</Button>
+              <Button
+                fullWidth
+                size="large"
+                sx={buttonSx}
+                variant="contained"
+                disabled={extendPending}
+                type="submit"
+              >
+                {slotDetailText.borrow10}
+              </Button>
             </form>
           )}
           {links.map(({ label, href }, index) => (
-            <Button key={href} component={Link} fullWidth href={href} size="large"
+            <Button
+              key={href}
+              component={Link}
+              fullWidth
+              href={href}
+              size="large"
               sx={buttonSx}
-              variant={index === 0 && !privateBorrowed ? "contained" : "outlined"}>
+              variant={
+                index === 0 && !privateBorrowed ? "contained" : "outlined"
+              }
+            >
               {label}
             </Button>
           ))}
           {reserved && detail.reservation?.id && (
-            <Button fullWidth size="large" sx={buttonSx} variant="outlined"
-              onClick={() => setCancelOpen(true)}>
+            <Button
+              fullWidth
+              size="large"
+              sx={buttonSx}
+              variant="outlined"
+              onClick={() => setCancelOpen(true)}
+            >
               {slotDetailText.cancelReservation}
             </Button>
           )}
@@ -286,22 +473,48 @@ export function SlotDetail({ detail, display, today = "", now = "", operations, 
 
       {hasMore && (
         <Stack spacing={1}>
-          <Typography component="h3" variant="body1">{slotDetailText.moreActions}</Typography>
+          <Typography component="h3" variant="body1">
+            {slotDetailText.moreActions}
+          </Typography>
           {showReserve && (
-            <Button fullWidth sx={buttonSx} variant="text" onClick={() => setReserveOpen(!reserveOpen)}>
+            <Button
+              fullWidth
+              sx={buttonSx}
+              variant="text"
+              onClick={() => setReserveOpen(!reserveOpen)}
+            >
               {slotDetailText.reserve}
             </Button>
           )}
           {showNewLease && (
-            <Button component={Link} fullWidth href={`/slots/${detail.code}/lease/new`}
-              sx={buttonSx} variant="text">{slotDetailText.newLease}</Button>
+            <Button
+              component={Link}
+              fullWidth
+              href={`/slots/${detail.code}/lease/new`}
+              sx={buttonSx}
+              variant="text"
+            >
+              {slotDetailText.newLease}
+            </Button>
           )}
           {showEditLease && (
-            <Button component={Link} fullWidth href={`/slots/${detail.code}/lease/edit`}
-              sx={buttonSx} variant="text">{slotDetailText.editLease}</Button>
+            <Button
+              component={Link}
+              fullWidth
+              href={`/slots/${detail.code}/lease/edit`}
+              sx={buttonSx}
+              variant="text"
+            >
+              {slotDetailText.editLease}
+            </Button>
           )}
           {showEndLease && (
-            <Button fullWidth sx={buttonSx} variant="text" onClick={() => setEndOpen(true)}>
+            <Button
+              fullWidth
+              sx={buttonSx}
+              variant="text"
+              onClick={() => setEndOpen(true)}
+            >
               {slotDetailText.endLease}
             </Button>
           )}
@@ -309,8 +522,15 @@ export function SlotDetail({ detail, display, today = "", now = "", operations, 
             <form action={submitExtend}>
               <input type="hidden" name="sessionId" value={vehicle.sessionId} />
               <input type="hidden" name="minutes" value="30" />
-              <Button fullWidth sx={buttonSx} variant="text" type="submit"
-                disabled={extendPending}>{slotDetailText.borrow30}</Button>
+              <Button
+                fullWidth
+                sx={buttonSx}
+                variant="text"
+                type="submit"
+                disabled={extendPending}
+              >
+                {slotDetailText.borrow30}
+              </Button>
             </form>
           )}
         </Stack>
@@ -320,28 +540,59 @@ export function SlotDetail({ detail, display, today = "", now = "", operations, 
         <Paper variant="outlined" sx={{ p: 2 }}>
           <form action={submitReserve}>
             <Stack spacing={2}>
-              <TextField name="guestName" fullWidth label={slotDetailText.guestName} />
-              <TextField name="note" fullWidth multiline minRows={2} label={slotDetailText.note} />
+              <TextField
+                name="guestName"
+                fullWidth
+                label={slotDetailText.guestName}
+              />
+              <TextField
+                name="note"
+                fullWidth
+                multiline
+                minRows={2}
+                label={slotDetailText.note}
+              />
               <input type="hidden" name="slotCode" value={detail.code} />
-              <Button fullWidth type="submit" variant="contained" size="large"
-                disabled={reservePending} sx={buttonSx}>
+              <Button
+                fullWidth
+                type="submit"
+                variant="contained"
+                size="large"
+                disabled={reservePending}
+                sx={buttonSx}
+              >
                 {slotDetailText.confirmReserve}
               </Button>
             </Stack>
           </form>
         </Paper>
       )}
-      <Button component={Link} fullWidth href="/" size="large" sx={buttonSx} variant="outlined">
+      <Button
+        component={Link}
+        fullWidth
+        href="/"
+        size="large"
+        sx={buttonSx}
+        variant="outlined"
+      >
         {slotDetailText.backMap}
       </Button>
 
       <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} fullWidth>
         <DialogTitle>{slotDetailText.cancelReservationQuestion}</DialogTitle>
-        <DialogContent><Typography variant="body1">{detail.name}</Typography></DialogContent>
+        <DialogContent>
+          <Typography variant="body1">{detail.name}</Typography>
+        </DialogContent>
         <DialogActions>
-          <Button sx={buttonSx} onClick={() => setCancelOpen(false)}>{slotDetailText.keep}</Button>
+          <Button sx={buttonSx} onClick={() => setCancelOpen(false)}>
+            {slotDetailText.keep}
+          </Button>
           <form action={submitCancel}>
-            <input type="hidden" name="reservationId" value={detail.reservation?.id ?? ""} />
+            <input
+              type="hidden"
+              name="reservationId"
+              value={detail.reservation?.id ?? ""}
+            />
             <Button type="submit" sx={buttonSx} disabled={cancelPending}>
               {slotDetailText.confirmCancel}
             </Button>
@@ -349,17 +600,30 @@ export function SlotDetail({ detail, display, today = "", now = "", operations, 
         </DialogActions>
       </Dialog>
       <Dialog open={endOpen} onClose={() => setEndOpen(false)} fullWidth>
-        <DialogTitle>{slotDetailText.endLeaseQuestion(detail.lease?.tenantName ?? "")}</DialogTitle>
+        <DialogTitle>
+          {slotDetailText.endLeaseQuestion(detail.lease?.tenantName ?? "")}
+        </DialogTitle>
         <form action={submitEnd}>
           <DialogContent>
-            <TextField fullWidth type="date" label={slotDetailText.endDate}
-              value={endDate} onChange={(event) => setEndDate(event.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }} />
-            <input type="hidden" name="leaseId" value={detail.lease?.id ?? ""} />
+            <TextField
+              fullWidth
+              type="date"
+              label={slotDetailText.endDate}
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+            <input
+              type="hidden"
+              name="leaseId"
+              value={detail.lease?.id ?? ""}
+            />
             <input type="hidden" name="endedOn" value={endDate} />
           </DialogContent>
           <DialogActions>
-            <Button sx={buttonSx} onClick={() => setEndOpen(false)}>{slotDetailText.keep}</Button>
+            <Button sx={buttonSx} onClick={() => setEndOpen(false)}>
+              {slotDetailText.keep}
+            </Button>
             <Button sx={buttonSx} type="submit" disabled={endPending}>
               {slotDetailText.confirmEnd}
             </Button>

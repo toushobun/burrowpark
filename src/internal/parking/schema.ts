@@ -177,15 +177,32 @@ export function readCheckOutFormData(data: FormData): unknown {
   };
 }
 
-
-const optionalNote = z.string().trim().max(500).transform((value) => value || null);
-const optionalPhone = z.string().trim().max(50).transform((value) => value || null);
-const optionalPlate = z.string().trim().transform(normalizePlate)
+const optionalNote = z
+  .string()
+  .trim()
+  .max(500)
+  .transform((value) => value || null);
+const optionalPhone = z
+  .string()
+  .trim()
+  .max(50)
+  .transform((value) => value || null);
+const optionalPlate = z
+  .string()
+  .trim()
+  .transform(normalizePlate)
   .refine((value) => !value || (value.length >= 2 && value.length <= 10), {
     message: parkingMessages.invalidPlate,
-  }).transform((value) => value || null);
-const businessDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, parkingMessages.invalidInput);
-const tenantName = z.string().trim().min(1, parkingMessages.invalidInput).max(100);
+  })
+  .transform((value) => value || null);
+const businessDay = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, parkingMessages.invalidInput);
+const tenantName = z
+  .string()
+  .trim()
+  .min(1, parkingMessages.invalidInput)
+  .max(100);
 
 export const createLeaseInputSchema = z.object({
   slotCode: slotCodeSchema,
@@ -212,7 +229,11 @@ export const endLeaseInputSchema = z.object({
 });
 export const reserveInputSchema = z.object({
   slotCode: slotCodeSchema,
-  guestName: z.string().trim().max(100).transform((value) => value || null),
+  guestName: z
+    .string()
+    .trim()
+    .max(100)
+    .transform((value) => value || null),
   note: optionalNote,
 });
 export const borrowExtensionSchema = z.object({

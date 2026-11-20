@@ -3,7 +3,10 @@ import {
   type AuthContext,
 } from "internal/shared/auth/authContext";
 import type { SlotStatus } from "theme/slotStatusTokens";
-import { ConflictError, ValidationError } from "internal/shared/errors/appError";
+import {
+  ConflictError,
+  ValidationError,
+} from "internal/shared/errors/appError";
 
 import { parkingMessages } from "../errors";
 import {
@@ -160,7 +163,9 @@ export interface ParkingService {
   undoReservation(id: unknown): Promise<void>;
   undoCancelReservation(id: unknown): Promise<void>;
   extendBorrow(input: unknown): Promise<{
-    sessionId: string; previous: string; current: string;
+    sessionId: string;
+    previous: string;
+    current: string;
   }>;
   undoExtendBorrow(input: unknown): Promise<void>;
 }
@@ -466,9 +471,14 @@ export function createParkingService(
       await requireAuthenticatedUserId(getAuth);
       const value = parseParkingOperation(createLeaseInputSchema, input);
       const facts = await repository.readSlotFacts();
-      const match = assembleSlotFacts(facts).find(({ slot }) => slot.code === value.slotCode);
+      const match = assembleSlotFacts(facts).find(
+        ({ slot }) => slot.code === value.slotCode,
+      );
       if (!match?.slot.is_active || match.slot.kind !== "regular")
-        throw new ValidationError("slot_unavailable", parkingMessages.slotUnavailable);
+        throw new ValidationError(
+          "slot_unavailable",
+          parkingMessages.slotUnavailable,
+        );
       if (match.lease)
         throw new ConflictError("lease_exists", parkingMessages.leaseExists);
       if (match.session || match.reservation)
@@ -478,14 +488,25 @@ export function createParkingService(
         leaseDateToPaidUntil(value.startsOn);
         paidUntil = leaseDateToPaidUntil(value.paidThrough);
       } catch {
-        throw new ValidationError("lease_date_invalid", parkingMessages.leaseDateInvalid);
+        throw new ValidationError(
+          "lease_date_invalid",
+          parkingMessages.leaseDateInvalid,
+        );
       }
       if (value.paidThrough <= value.startsOn)
-        throw new ValidationError("lease_date_invalid", parkingMessages.leaseDateInvalid);
+        throw new ValidationError(
+          "lease_date_invalid",
+          parkingMessages.leaseDateInvalid,
+        );
       const leaseId = await repository.createLease({
-        slotCode: value.slotCode, tenantName: value.tenantName,
-        phone: value.phone, plate: value.plate, startsOn: value.startsOn,
-        note: value.note, paidUntil, amountCents: parseAmountCents(value.amountYuan),
+        slotCode: value.slotCode,
+        tenantName: value.tenantName,
+        phone: value.phone,
+        plate: value.plate,
+        startsOn: value.startsOn,
+        note: value.note,
+        paidUntil,
+        amountCents: parseAmountCents(value.amountYuan),
         paymentMethod: value.paymentMethod,
       });
       return { leaseId };
@@ -498,12 +519,20 @@ export function createParkingService(
       await requireAuthenticatedUserId(getAuth);
       const value = parseParkingOperation(editLeaseInputSchema, input);
       const facts = await repository.readSlotFacts();
-      const lease = facts.leases.find((item) =>
-        item.id === value.leaseId && item.slot_code === value.slotCode);
+      const lease = facts.leases.find(
+        (item) =>
+          item.id === value.leaseId && item.slot_code === value.slotCode,
+      );
       if (!lease)
-        throw new ValidationError("lease_unavailable", parkingMessages.leaseUnavailable);
+        throw new ValidationError(
+          "lease_unavailable",
+          parkingMessages.leaseUnavailable,
+        );
       await repository.updateLease(value.leaseId, {
-        tenant_name: value.tenantName, phone: value.phone, plate: value.plate, note: value.note,
+        tenant_name: value.tenantName,
+        phone: value.phone,
+        plate: value.plate,
+        note: value.note,
       });
     },
     async endLease(input) {
@@ -512,14 +541,23 @@ export function createParkingService(
       const facts = await repository.readSlotFacts();
       const lease = facts.leases.find((entry) => entry.id === value.leaseId);
       if (!lease)
-        throw new ValidationError("lease_unavailable", parkingMessages.leaseUnavailable);
+        throw new ValidationError(
+          "lease_unavailable",
+          parkingMessages.leaseUnavailable,
+        );
       try {
         leaseDateToPaidUntil(value.endedOn);
       } catch {
-        throw new ValidationError("lease_date_invalid", parkingMessages.leaseDateInvalid);
+        throw new ValidationError(
+          "lease_date_invalid",
+          parkingMessages.leaseDateInvalid,
+        );
       }
       if (lease.starts_on && value.endedOn < lease.starts_on)
-        throw new ValidationError("lease_date_invalid", parkingMessages.leaseDateInvalid);
+        throw new ValidationError(
+          "lease_date_invalid",
+          parkingMessages.leaseDateInvalid,
+        );
       await repository.endLease(value.leaseId, value.endedOn);
       return { leaseId: value.leaseId };
     },
@@ -531,14 +569,28 @@ export function createParkingService(
       await requireAuthenticatedUserId(getAuth);
       const value = parseParkingOperation(reserveInputSchema, input);
       const facts = await repository.readSlotFacts();
-      const match = assembleSlotFacts(facts).find(({slot})=>slot.code===value.slotCode);
+      const match = assembleSlotFacts(facts).find(
+        ({ slot }) => slot.code === value.slotCode,
+      );
       if (match?.reservation)
-        throw new ConflictError("reservation_exists", parkingMessages.slotReserved);
-      if (!match?.slot.is_active || match.slot.kind !== "regular" ||
-        match.session || match.lease)
-        throw new ValidationError("slot_unavailable", parkingMessages.slotUnavailable);
+        throw new ConflictError(
+          "reservation_exists",
+          parkingMessages.slotReserved,
+        );
+      if (
+        !match?.slot.is_active ||
+        match.slot.kind !== "regular" ||
+        match.session ||
+        match.lease
+      )
+        throw new ValidationError(
+          "slot_unavailable",
+          parkingMessages.slotUnavailable,
+        );
       const reservationId = await repository.createReservation(
-        value.slotCode,value.guestName,value.note,
+        value.slotCode,
+        value.guestName,
+        value.note,
       );
       return { reservationId };
     },
@@ -547,7 +599,10 @@ export function createParkingService(
       const reservationId = parseUndoSessionId(id);
       const facts = await repository.readSlotFacts();
       if (!facts.reservations.some((res) => res.id === reservationId))
-        throw new ConflictError("reservation_unavailable", parkingMessages.reservationUnavailable);
+        throw new ConflictError(
+          "reservation_unavailable",
+          parkingMessages.reservationUnavailable,
+        );
       await repository.cancelReservation(reservationId);
       return { reservationId };
     },
@@ -563,17 +618,31 @@ export function createParkingService(
       await requireAuthenticatedUserId(getAuth);
       const value = parseParkingOperation(borrowExtensionSchema, input);
       const facts = await repository.readSlotFacts();
-      const match = assembleSlotFacts(facts).find(({slot, session}) =>
-        slot.kind === "private" && slot.is_active && session?.id === value.sessionId);
+      const match = assembleSlotFacts(facts).find(
+        ({ slot, session }) =>
+          slot.kind === "private" &&
+          slot.is_active &&
+          session?.id === value.sessionId,
+      );
       if (!match)
-        throw new ValidationError("borrow_unavailable", parkingMessages.invalidInput);
-      const result = await repository.extendBorrow(value.sessionId,value.minutes);
+        throw new ValidationError(
+          "borrow_unavailable",
+          parkingMessages.invalidInput,
+        );
+      const result = await repository.extendBorrow(
+        value.sessionId,
+        value.minutes,
+      );
       return { sessionId: value.sessionId, ...result };
     },
     async undoExtendBorrow(input) {
       await requireAuthenticatedUserId(getAuth);
       const value = parseParkingOperation(borrowUndoSchema, input);
-      await repository.undoExtendBorrow(value.sessionId,value.previous,value.expectedCurrent);
+      await repository.undoExtendBorrow(
+        value.sessionId,
+        value.previous,
+        value.expectedCurrent,
+      );
     },
 
     async getReminders(now) {
@@ -687,7 +756,11 @@ export function createParkingService(
             : null,
         reservation:
           slot.is_active && reservation
-            ? { id: reservation.id ?? null, guestName: reservation.guest_name, note: reservation.note }
+            ? {
+                id: reservation.id ?? null,
+                guestName: reservation.guest_name,
+                note: reservation.note,
+              }
             : null,
         lease:
           slot.is_active && lease
@@ -697,12 +770,20 @@ export function createParkingService(
                 plate: lease.plate ?? null,
                 note: lease.note ?? null,
                 recentPayments: lease.lease_payments
-                  .filter((payment) =>
-                    payment.id && payment.paid_at && payment.amount_cents && payment.method)
-                  .sort((a,b) => (b.paid_at ?? "").localeCompare(a.paid_at ?? ""))
-                  .slice(0,3)
+                  .filter(
+                    (payment) =>
+                      payment.id &&
+                      payment.paid_at &&
+                      payment.amount_cents &&
+                      payment.method,
+                  )
+                  .sort((a, b) =>
+                    (b.paid_at ?? "").localeCompare(a.paid_at ?? ""),
+                  )
+                  .slice(0, 3)
                   .map((payment) => ({
-                    id: payment.id!, paidAt: payment.paid_at!,
+                    id: payment.id!,
+                    paidAt: payment.paid_at!,
                     amountCents: payment.amount_cents!,
                     method: payment.method!,
                   })),

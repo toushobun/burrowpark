@@ -315,7 +315,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      cancel_reservation: { Args: { p_reservation_id: string }; Returns: undefined };
+      cancel_reservation: {
+        Args: { p_reservation_id: string };
+        Returns: undefined;
+      };
       create_lease: {
         Args: {
           p_slot_code: string;
@@ -330,17 +333,33 @@ export type Database = {
         };
         Returns: string;
       };
-      end_lease: { Args: { p_lease_id: string; p_ended_on: string }; Returns: undefined };
+      end_lease: {
+        Args: { p_lease_id: string; p_ended_on: string };
+        Returns: undefined;
+      };
       extend_borrow: {
         Args: { p_session_id: string; p_minutes: number };
-        Returns: { previous_borrow_until: string; current_borrow_until: string }[];
+        Returns: {
+          previous_borrow_until: string;
+          current_borrow_until: string;
+        }[];
       };
       undo_create_lease: { Args: { p_lease_id: string }; Returns: undefined };
       undo_end_lease: { Args: { p_lease_id: string }; Returns: undefined };
-      undo_reservation: { Args: { p_reservation_id: string }; Returns: undefined };
-      undo_cancel_reservation: { Args: { p_reservation_id: string }; Returns: undefined };
+      undo_reservation: {
+        Args: { p_reservation_id: string };
+        Returns: undefined;
+      };
+      undo_cancel_reservation: {
+        Args: { p_reservation_id: string };
+        Returns: undefined;
+      };
       undo_extend_borrow: {
-        Args: { p_session_id: string; p_previous: string; p_expected_current: string };
+        Args: {
+          p_session_id: string;
+          p_previous: string;
+          p_expected_current: string;
+        };
         Returns: undefined;
       };
       check_in_vehicle: {

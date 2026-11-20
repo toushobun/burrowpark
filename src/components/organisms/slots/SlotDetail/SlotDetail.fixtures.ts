@@ -53,7 +53,12 @@ export const leaseAwayDetail: SlotDetailData = {
     startsOn: "2026-11-01",
     note: "夜市长期",
     recentPayments: [
-      { id: "payment-1", paidAt: "2026-11-01T04:00:00.000Z", amountCents: 10000, method: "cash" },
+      {
+        id: "payment-1",
+        paidAt: "2026-11-01T04:00:00.000Z",
+        amountCents: 10000,
+        method: "cash",
+      },
     ],
     tenantName: "王先生",
     phone: "13800000000",

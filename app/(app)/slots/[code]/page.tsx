@@ -51,8 +51,13 @@ export default async function SlotDetailPage({
 
   return (
     <PageShell title={slotDetailText.pageTitle}>
-      {detail?.kind === "private" && detail.presentVehicle && <ReminderRefresh />}
-      <SlotDetail detail={detail} display={display} now={now.toISOString()}
+      {detail?.kind === "private" && detail.presentVehicle && (
+        <ReminderRefresh />
+      )}
+      <SlotDetail
+        detail={detail}
+        display={display}
+        now={now.toISOString()}
         today={getBusinessDate(now)}
         operations={{
           reserve: reserveAction,

@@ -319,7 +319,8 @@ export const describeBorrowRemaining = (
   borrowUntil: ParkingTimestamp,
   now: ParkingTimestamp,
 ): string => {
-  const difference = parseTimestamp(borrowUntil).getTime() - parseTimestamp(now).getTime();
+  const difference =
+    parseTimestamp(borrowUntil).getTime() - parseTimestamp(now).getTime();
   return difference > 0
     ? "还剩 " + Math.ceil(difference / 60000) + " 分钟"
     : "已超时 " + Math.ceil(-difference / 60000) + " 分钟";

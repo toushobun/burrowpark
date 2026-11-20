@@ -14,7 +14,9 @@ import {
 const meta = {
   component: SlotDetail,
   args: {
-    detail: emptyDetail, display: detailDisplay, now: "2026-11-19T04:00:00.000Z",
+    detail: emptyDetail,
+    display: detailDisplay,
+    now: "2026-11-19T04:00:00.000Z",
     today: "2026-11-19",
   },
   decorators: [
@@ -59,48 +61,83 @@ export const Missing: Story = {
   args: { detail: null, display: null },
 };
 
-
 export const Reserved: Story = {
-  args: { detail: {
-    ...emptyDetail, status: "reserved", reservation: {
-      id: "00000000-0000-4000-8000-000000000007",
-      guestName: "张女士", note: "下午五点到",
+  args: {
+    detail: {
+      ...emptyDetail,
+      status: "reserved",
+      reservation: {
+        id: "00000000-0000-4000-8000-000000000007",
+        guestName: "张女士",
+        note: "下午五点到",
+      },
     },
-  }},
+  },
 };
 export const LeaseOccupied: Story = {
-  args: { detail: {
-    ...leaseAwayDetail, status: "occupied",
-    presentVehicle: {
-      ...hotelExpiringDetail.presentVehicle!,
-      billingType: "lease",
+  args: {
+    detail: {
+      ...leaseAwayDetail,
+      status: "occupied",
+      presentVehicle: {
+        ...hotelExpiringDetail.presentVehicle!,
+        billingType: "lease",
+      },
     },
-  }},
+  },
 };
 export const ReserveSuccess: Story = {
-  args: { initialState: {
-    reserve: { success: "预留成功", result: { id: "00000000-0000-4000-8000-000000000007" } },
-  }},
+  args: {
+    initialState: {
+      reserve: {
+        success: "预留成功",
+        result: { id: "00000000-0000-4000-8000-000000000007" },
+      },
+    },
+  },
 };
 export const CancelReservationSuccess: Story = {
-  args: { detail: {
-    ...emptyDetail, status: "reserved",
-    reservation: { id: "00000000-0000-4000-8000-000000000007", guestName: "张女士", note: null },
-  }, initialState: {
-    cancel: { success: "已取消预留", result: { id: "00000000-0000-4000-8000-000000000007" } },
-  }},
+  args: {
+    detail: {
+      ...emptyDetail,
+      status: "reserved",
+      reservation: {
+        id: "00000000-0000-4000-8000-000000000007",
+        guestName: "张女士",
+        note: null,
+      },
+    },
+    initialState: {
+      cancel: {
+        success: "已取消预留",
+        result: { id: "00000000-0000-4000-8000-000000000007" },
+      },
+    },
+  },
 };
 export const ExtendBorrowSuccess: Story = {
-  args: { detail: privateBorrowedDetail, initialState: {
-    extend: { success: "借用已延长", result: {
-      id: "00000000-0000-4000-8000-000000000005",
-      previous: "2026-11-19T04:00:00.000Z",
-      current: "2026-11-19T04:10:00.000Z",
-    }},
-  }},
+  args: {
+    detail: privateBorrowedDetail,
+    initialState: {
+      extend: {
+        success: "借用已延长",
+        result: {
+          id: "00000000-0000-4000-8000-000000000005",
+          previous: "2026-11-19T04:00:00.000Z",
+          current: "2026-11-19T04:10:00.000Z",
+        },
+      },
+    },
+  },
 };
 export const EndLeaseSuccess: Story = {
-  args: { detail: leaseAwayDetail, initialState: {
-    end: { success: "退租成功", result: { id: "00000000-0000-4000-8000-000000000006" } },
-  }},
+  args: {
+    detail: leaseAwayDetail,
+    initialState: {
+      end: {
+        success: "退租成功",
+        result: { id: "00000000-0000-4000-8000-000000000006" },
+      },
+    },
+  },
 };

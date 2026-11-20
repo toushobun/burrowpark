@@ -459,19 +459,24 @@ describe("首页提醒说明文案", () => {
   });
 });
 
-
 describe("私人位借用和长租初始日期", () => {
   it("还没超时显示剩余向上取整的分钟数", async () => {
     const { describeBorrowRemaining } = await import("./parkingDomain");
-    expect(describeBorrowRemaining(
-      "2026-11-19T04:00:30.000Z", "2026-11-19T04:00:00.000Z",
-    )).toBe("还剩 1 分钟");
+    expect(
+      describeBorrowRemaining(
+        "2026-11-19T04:00:30.000Z",
+        "2026-11-19T04:00:00.000Z",
+      ),
+    ).toBe("还剩 1 分钟");
   });
   it("超时后显示超过的分钟数", async () => {
     const { describeBorrowRemaining } = await import("./parkingDomain");
-    expect(describeBorrowRemaining(
-      "2026-11-19T03:58:00.000Z", "2026-11-19T04:00:00.000Z",
-    )).toBe("已超时 2 分钟");
+    expect(
+      describeBorrowRemaining(
+        "2026-11-19T03:58:00.000Z",
+        "2026-11-19T04:00:00.000Z",
+      ),
+    ).toBe("已超时 2 分钟");
   });
   it("月底起租默认交到下个月最后一日", async () => {
     const { defaultLeasePaidThrough } = await import("./parkingDomain");
