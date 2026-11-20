@@ -181,7 +181,7 @@ $$;
 
 create function public.cancel_reservation(p_reservation_id uuid) returns void
 language plpgsql security invoker set search_path = ''
-as $
+as $$
 declare v_reservation public.reservations%rowtype;
 begin
   if not public.is_family_account() then
@@ -194,7 +194,7 @@ begin
   update public.reservations set closed_at=pg_catalog.now(),outcome='cancelled'
     where id=p_reservation_id;
 end;
-$;
+$$;
 
 create function public.undo_cancel_reservation(p_reservation_id uuid) returns void
 language plpgsql security invoker set search_path = ''
