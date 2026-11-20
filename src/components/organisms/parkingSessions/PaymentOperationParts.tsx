@@ -86,6 +86,7 @@ export function ParkingOperationResult({
   undoState,
   undo,
   isUndoPending,
+  extraUndoFields,
 }: {
   code: string;
   title: string;
@@ -94,6 +95,7 @@ export function ParkingOperationResult({
   undoState: ActionState;
   undo: (data: FormData) => void;
   isUndoPending: boolean;
+  extraUndoFields?: { name: string; value: string }[];
 }) {
   return (
     <Stack spacing={3}>
@@ -128,6 +130,9 @@ export function ParkingOperationResult({
       {!undoState.success && (
         <form action={undo}>
           <input type="hidden" name={idName} value={id} />
+          {extraUndoFields?.map(({ name, value }) => (
+            <input key={name} type="hidden" name={name} value={value} />
+          ))}
           <Button
             disabled={isUndoPending}
             fullWidth

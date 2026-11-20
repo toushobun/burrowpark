@@ -13,5 +13,10 @@ export const parkingMessages = {
   renewUnavailable: "这个车位当前不能续费。",
   renewDateInvalid: "续租日期必须晚于当前交到日期。",
   checkoutUnavailable: "这辆车已经离场了",
+  leaseExists: "这个车位已经有长租了",
+  slotReserved: "这个车位已经有预留了",
+  leaseVehiclePresent: "长租车还在场，请先办离场",
+  reservationUnavailable: "这条预留已经关闭了",
+  leaseDateInvalid: "交到哪天必须晚于起租日。",
   checkoutUndoOccupied: "这个车位已经停了别的车，不能撤销",
 } as const;

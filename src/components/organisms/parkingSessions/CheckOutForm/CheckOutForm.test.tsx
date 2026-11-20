@@ -66,7 +66,7 @@ describe("CheckOutForm", () => {
         initialState={{
           success: "离场成功",
           successKey: "ok",
-          result: { sessionId: hourly.sessionId, plate: hourly.plate },
+          result: { sessionId: hourly.sessionId },
         }}
       />,
     );

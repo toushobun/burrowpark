@@ -310,6 +310,21 @@ export const leaseDateToPaidUntil = (businessDate: string): string =>
     Date.parse(getBusinessDateTime(businessDate, 0)) + 86400000 - 1000,
   ).toISOString();
 
+/** 设立长租时，下个月同日（不存在则月末）作为默认交到日。 */
+export const defaultLeasePaidThrough = (startDate: string): string =>
+  nextLeaseRenewDate(leaseDateToPaidUntil(startDate));
+
+/** 私人车位借用剩余或超时的分钟数，完全由传入时间推导。 */
+export const describeBorrowRemaining = (
+  borrowUntil: ParkingTimestamp,
+  now: ParkingTimestamp,
+): string => {
+  const difference = parseTimestamp(borrowUntil).getTime() - parseTimestamp(now).getTime();
+  return difference > 0
+    ? "还剩 " + Math.ceil(difference / 60000) + " 分钟"
+    : "已超时 " + Math.ceil(-difference / 60000) + " 分钟";
+};
+
 /** 超时不足一天按一天计费；不足一小时也向上取整显示。 */
 export const calculateHotelOverstay = (
   paidUntil: ParkingTimestamp,

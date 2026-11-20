@@ -176,3 +176,88 @@ export function readCheckOutFormData(data: FormData): unknown {
     paymentMethod: data.get("paymentMethod") || undefined,
   };
 }
+
+
+const optionalNote = z.string().trim().max(500).transform((value) => value || null);
+const optionalPhone = z.string().trim().max(50).transform((value) => value || null);
+const optionalPlate = z.string().trim().transform(normalizePlate)
+  .refine((value) => !value || (value.length >= 2 && value.length <= 10), {
+    message: parkingMessages.invalidPlate,
+  }).transform((value) => value || null);
+const businessDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, parkingMessages.invalidInput);
+const tenantName = z.string().trim().min(1, parkingMessages.invalidInput).max(100);
+
+export const createLeaseInputSchema = z.object({
+  slotCode: slotCodeSchema,
+  tenantName,
+  phone: optionalPhone,
+  plate: optionalPlate,
+  startsOn: businessDay,
+  note: optionalNote,
+  paidThrough: businessDay,
+  paymentMethod: paymentMethodSchema,
+  amountYuan: amountSchema,
+});
+export const editLeaseInputSchema = z.object({
+  leaseId: z.string().uuid(),
+  slotCode: slotCodeSchema,
+  tenantName,
+  phone: optionalPhone,
+  plate: optionalPlate,
+  note: optionalNote,
+});
+export const endLeaseInputSchema = z.object({
+  leaseId: z.string().uuid(),
+  endedOn: businessDay,
+});
+export const reserveInputSchema = z.object({
+  slotCode: slotCodeSchema,
+  guestName: z.string().trim().max(100).transform((value) => value || null),
+  note: optionalNote,
+});
+export const borrowExtensionSchema = z.object({
+  sessionId: z.string().uuid(),
+  minutes: z.union([z.literal(10), z.literal(30)]),
+});
+export const borrowUndoSchema = z.object({
+  sessionId: z.string().uuid(),
+  previous: z.string().datetime({ offset: true }),
+  expectedCurrent: z.string().datetime({ offset: true }),
+});
+
+/** 所有新操作复用单一 Zod 错误出口。 */
+export function parseParkingOperation<T extends z.ZodType>(
+  schema: T,
+  input: unknown,
+): z.infer<T> {
+  const result = schema.safeParse(input);
+  if (!result.success)
+    throw new ValidationError(
+      "operation_invalid",
+      result.error.issues[0]?.message ?? parkingMessages.invalidInput,
+    );
+  return result.data;
+}
+
+export function readParkingOperationFormData(formData: FormData): unknown {
+  const minutes = formData.get("minutes");
+  return {
+    slotCode: formData.get("slotCode"),
+    leaseId: formData.get("leaseId"),
+    reservationId: formData.get("reservationId"),
+    sessionId: formData.get("sessionId"),
+    tenantName: formData.get("tenantName"),
+    phone: formData.get("phone") ?? "",
+    plate: formData.get("plate") ?? "",
+    startsOn: formData.get("startsOn"),
+    endedOn: formData.get("endedOn"),
+    paidThrough: formData.get("paidThrough"),
+    note: formData.get("note") ?? "",
+    guestName: formData.get("guestName") ?? "",
+    amountYuan: formData.get("amountYuan"),
+    paymentMethod: formData.get("paymentMethod"),
+    minutes: minutes === null || minutes === "" ? undefined : Number(minutes),
+    previous: formData.get("previous"),
+    expectedCurrent: formData.get("expectedCurrent"),
+  };
+}

@@ -315,6 +315,34 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      cancel_reservation: { Args: { p_reservation_id: string }; Returns: undefined };
+      create_lease: {
+        Args: {
+          p_slot_code: string;
+          p_tenant_name: string;
+          p_phone: string | null;
+          p_plate: string | null;
+          p_starts_on: string;
+          p_note: string | null;
+          p_paid_until: string;
+          p_amount_cents: number;
+          p_payment_method: Database["public"]["Enums"]["payment_method"];
+        };
+        Returns: string;
+      };
+      end_lease: { Args: { p_lease_id: string; p_ended_on: string }; Returns: undefined };
+      extend_borrow: {
+        Args: { p_session_id: string; p_minutes: number };
+        Returns: { previous_borrow_until: string; current_borrow_until: string }[];
+      };
+      undo_create_lease: { Args: { p_lease_id: string }; Returns: undefined };
+      undo_end_lease: { Args: { p_lease_id: string }; Returns: undefined };
+      undo_reservation: { Args: { p_reservation_id: string }; Returns: undefined };
+      undo_cancel_reservation: { Args: { p_reservation_id: string }; Returns: undefined };
+      undo_extend_borrow: {
+        Args: { p_session_id: string; p_previous: string; p_expected_current: string };
+        Returns: undefined;
+      };
       check_in_vehicle: {
         Args: {
           p_amount_cents?: number;

@@ -20,6 +20,8 @@ export type {
 } from "./service/parkingService";
 
 export {
+  defaultLeasePaidThrough,
+  describeBorrowRemaining,
   calculateHourlySuggestedAmountCents,
   calculateHotelOverstay,
   extendHotelPaidUntil,

@@ -506,3 +506,102 @@ describe("续费与离场 Repository", () => {
     });
   });
 });
+
+
+describe("长租、预留和再借的 Repository", () => {
+  it("建立长租通过 create_lease 一次性写两张表", async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: "00000000-0000-4000-8000-000000000001", error: null,
+    });
+    const client = { rpc } as unknown as AuthenticatedSupabaseClient;
+    const result = await createParkingRepository(client, logger).createLease({
+      slotCode: "1", tenantName: "王先生", phone: null, plate: "粤B12345",
+      startsOn: "2026-11-19", note: null,
+      paidUntil: "2026-12-19T15:59:59.000Z",
+      amountCents: 30000, paymentMethod: "cash",
+    });
+    expect(result).toBe("00000000-0000-4000-8000-000000000001");
+    expect(rpc).toHaveBeenCalledOnce();
+    expect(rpc).toHaveBeenCalledWith("create_lease", expect.objectContaining({
+      p_amount_cents: 30000, p_payment_method: "cash",
+    }));
+  });
+
+  it("长租唯一索引冲突转为业务错误而不是数据库错误", async () => {
+    const client = {
+      rpc: vi.fn().mockResolvedValue({
+        data: null, error: { code: "23505", details: null, message: "secret table" },
+      }),
+    } as unknown as AuthenticatedSupabaseClient;
+    await expect(createParkingRepository(client, logger).createLease({
+      slotCode: "1", tenantName: "王先生", phone: null, plate: null,
+      startsOn: "2026-11-19", note: null,
+      paidUntil: "2026-12-19T15:59:59.000Z", amountCents: 1000, paymentMethod: "cash",
+    })).rejects.toMatchObject({
+      name: "ConflictError", message: "这个车位已经有长租了",
+    });
+  });
+
+  it("预留只对 reservations 插入一次并返回 ID", async () => {
+    const single = vi.fn().mockResolvedValue({
+      data: { id: "00000000-0000-4000-8000-000000000002" }, error: null,
+    });
+    const select = vi.fn().mockReturnValue({ single });
+    const insert = vi.fn().mockReturnValue({ select });
+    const client = { from: vi.fn().mockReturnValue({ insert }) }
+      as unknown as AuthenticatedSupabaseClient;
+    expect(await createParkingRepository(client, logger).createReservation(
+      "1", null, "下午到",
+    )).toBe("00000000-0000-4000-8000-000000000002");
+    expect(insert).toHaveBeenCalledWith({
+      slot_code: "1", guest_name: null, note: "下午到",
+    });
+  });
+
+  it("预留唯一索引冲突显示安全业务错误", async () => {
+    const single = vi.fn().mockResolvedValue({
+      data: null, error: { code: "23505", details: "", message: "secret table" },
+    });
+    const client = { from: vi.fn().mockReturnValue({
+      insert: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ single }) }),
+    }) } as unknown as AuthenticatedSupabaseClient;
+    await expect(createParkingRepository(client, logger).createReservation(
+      "1", null, null,
+    )).rejects.toMatchObject({
+      name: "ConflictError", message: "这个车位已经有预留了",
+    });
+  });
+
+  it("借用顺延使用原借到和新借到时间的数据库返回值", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [{
+      previous_borrow_until: "2026-11-19T04:00:00.000Z",
+      current_borrow_until: "2026-11-19T04:10:00.000Z",
+    }], error: null });
+    const client = { rpc } as unknown as AuthenticatedSupabaseClient;
+    const result = await createParkingRepository(client, logger).extendBorrow(
+      "00000000-0000-4000-8000-000000000003",10,
+    );
+    expect(result).toEqual({
+      previous: "2026-11-19T04:00:00.000Z",
+      current: "2026-11-19T04:10:00.000Z",
+    });
+    expect(rpc).toHaveBeenCalledWith("extend_borrow", {
+      p_session_id: "00000000-0000-4000-8000-000000000003",
+      p_minutes: 10,
+    });
+  });
+
+  it("撤销借用的版本不匹配会返回明确冲突", async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: null, error: { code: "P0001", details: "UNDO_UNAVAILABLE" },
+    });
+    const client = { rpc } as unknown as AuthenticatedSupabaseClient;
+    await expect(
+      createParkingRepository(client, logger).undoExtendBorrow(
+        "00000000-0000-4000-8000-000000000003",
+        "2026-11-19T04:00:00.000Z",
+        "2026-11-19T04:10:00.000Z",
+      ),
+    ).rejects.toMatchObject({ name: "ConflictError", message: "已经不能撤销了" });
+  });
+});
