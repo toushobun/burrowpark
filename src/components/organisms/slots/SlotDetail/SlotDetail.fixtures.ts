@@ -13,6 +13,7 @@ export const detailDisplay: SlotDetailDisplay = {
 export const emptyDetail: SlotDetailData = {
   code: "7",
   name: "7号",
+  kind: "regular",
   isActive: true,
   status: "empty",
   presentVehicle: null,
@@ -55,6 +56,7 @@ export const leaseAwayDetail: SlotDetailData = {
 
 export const privateBorrowedDetail: SlotDetailData = {
   ...hourlyDetail,
+  kind: "private",
   status: "privateBorrowed",
   presentVehicle: {
     ...hourlyDetail.presentVehicle!,
