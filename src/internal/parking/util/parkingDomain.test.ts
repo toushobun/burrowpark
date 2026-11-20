@@ -395,6 +395,18 @@ describe("续费与超时纯函数", () => {
   });
 });
 describe("首页提醒说明文案", () => {
+  it("恰好到点时不错误地显示已超时一小时或一分钟", () => {
+    for (const kind of ["hotel_daily", "lease", "private"] as const) {
+      expect(
+        describeSlotReminder(
+          kind,
+          "2026-11-20T04:00:00.000Z",
+          "2026-11-20T04:00:00.000Z",
+        ),
+      ).toBe("超时 0 分钟");
+    }
+  });
+
   it("酒店客当天到期明确显示今天和上海时间", () => {
     expect(
       describeSlotReminder(

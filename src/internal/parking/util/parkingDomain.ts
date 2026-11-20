@@ -336,7 +336,8 @@ export const describeSlotReminder = (
   const deadlineTime = parseTimestamp(deadline).getTime();
   const nowTime = parseTimestamp(now).getTime();
   const difference = nowTime - deadlineTime;
-  if (difference >= 0) {
+  if (difference === 0) return "超时 0 分钟";
+  if (difference > 0) {
     const minutes = Math.max(1, Math.ceil(difference / 60000));
     if (kind === "private") return "超时 " + minutes + " 分钟";
     if (difference > 86400000) {
