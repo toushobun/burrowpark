@@ -983,3 +983,23 @@ describe("照片 Storage 操作", () => {
     expect(remove).toHaveBeenCalledWith([photoPath]);
   });
 });
+
+describe("收费设置 Repository", () => {
+  it("只更新单行且检查数据库失败", async () => {
+    const single = vi.fn().mockResolvedValue({ data: { id: true }, error: null });
+    const select = vi.fn(() => ({ single }));
+    const eq = vi.fn(() => ({ select }));
+    const update = vi.fn(() => ({ eq }));
+    const client = { from: vi.fn(() => ({ update })) } as unknown as AuthenticatedSupabaseClient;
+    const value = {
+      hotel_daily_price_cents: 3500, hotel_checkout_hour: 13,
+      hotel_previous_day_before_hour: 5, hourly_price_cents: 600,
+    };
+    await createParkingRepository(client, logger).updatePricingSettings(value);
+    expect(update).toHaveBeenCalledWith(value);
+    expect(eq).toHaveBeenCalledWith("id", true);
+    single.mockResolvedValue({ data: null, error: new Error("secret") });
+    await expect(createParkingRepository(client, logger).updatePricingSettings(value))
+      .rejects.toMatchObject({ code: "parking_unavailable" });
+  });
+});

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseAmountCents,
   parseMonthlyStatsMonth,
+  pricingSettingsInputSchema,
   parseCheckInInput,
   parseCheckOutInput,
   parseRenewInput,
@@ -178,6 +179,20 @@ describe("月统计月份参数", () => {
       123,
     ]) {
       expect(parseMonthlyStatsMonth(input, now)).toBe("2026-11");
+    }
+  });
+});
+
+describe("收费设置校验", () => {
+  it("钟点只允许0至23的整数", () => {
+    const base = {
+      hotelDailyYuan: "30", hotelCheckoutHour: 12,
+      hotelPreviousDayBeforeHour: 6, hourlyYuan: "5",
+    };
+    expect(pricingSettingsInputSchema.safeParse(base).success).toBe(true);
+    for (const value of [-1, 24, 2.5]) {
+      expect(pricingSettingsInputSchema.safeParse({ ...base, hotelCheckoutHour: value }).success)
+        .toBe(false);
     }
   });
 });

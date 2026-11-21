@@ -317,6 +317,23 @@ export function readSlotSettingsFormData(form: FormData): unknown {
   };
 }
 
+
+export const pricingSettingsInputSchema = z.object({
+  hotelDailyYuan: amountSchema,
+  hotelCheckoutHour: z.number().int().min(0, parkingMessages.invalidHour).max(23, parkingMessages.invalidHour),
+  hotelPreviousDayBeforeHour: z.number().int().min(0, parkingMessages.invalidHour).max(23, parkingMessages.invalidHour),
+  hourlyYuan: amountSchema,
+});
+export type PricingSettingsInput = z.infer<typeof pricingSettingsInputSchema>;
+export function readPricingSettingsFormData(form: FormData): unknown {
+  return {
+    hotelDailyYuan: form.get("hotelDailyYuan"),
+    hotelCheckoutHour: Number(form.get("hotelCheckoutHour")),
+    hotelPreviousDayBeforeHour: Number(form.get("hotelPreviousDayBeforeHour")),
+    hourlyYuan: form.get("hourlyYuan"),
+  };
+}
+
 /** URL 月份格式不合法或缺省时回退上海本月。 */
 const businessMonthSchema = z
   .string()

@@ -62,6 +62,7 @@ function makeService(rows: SlotFactsRows) {
       .fn()
       .mockResolvedValue(rows.slots.map(({ code, name }) => ({ code, name }))),
     getPhotoSignedUrl: vi.fn().mockResolvedValue("https://example.com/photo"),
+    updatePricingSettings: vi.fn().mockResolvedValue(undefined),
     getPricingSettings: vi.fn().mockResolvedValue({
       hotel_daily_price_cents: 3000,
       hotel_checkout_hour: 12,
@@ -1359,5 +1360,29 @@ describe("月统计 Service", () => {
       code: "auth_required",
     });
     expect(repository.readMonthlyPayments).not.toHaveBeenCalled();
+  });
+});
+
+describe("收费设置 Service", () => {
+  it("金额按十进制转分且正确更新四个字段", async () => {
+    const { service, repository } = makeService(makeRows());
+    await service.updatePricingSettings({
+      hotelDailyYuan: "39.99", hotelCheckoutHour: 11,
+      hotelPreviousDayBeforeHour: 5, hourlyYuan: "6.01",
+    });
+    expect(repository.updatePricingSettings).toHaveBeenCalledWith({
+      hotel_daily_price_cents: 3999, hotel_checkout_hour: 11,
+      hotel_previous_day_before_hour: 5, hourly_price_cents: 601,
+    });
+  });
+  it("金额为零或钟点越界拒绝保存", async () => {
+    const { service, repository } = makeService(makeRows());
+    const input = {
+      hotelDailyYuan: "30.00", hotelCheckoutHour: 12,
+      hotelPreviousDayBeforeHour: 6, hourlyYuan: "5.00",
+    };
+    await expect(service.updatePricingSettings({ ...input, hourlyYuan: "0" })).rejects.toThrow();
+    await expect(service.updatePricingSettings({ ...input, hotelCheckoutHour: 24 })).rejects.toThrow();
+    expect(repository.updatePricingSettings).not.toHaveBeenCalled();
   });
 });
