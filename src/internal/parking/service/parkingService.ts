@@ -415,7 +415,9 @@ export function createParkingService(
       await requireAuthenticatedUserId(getAuth);
       const id = parseUndoSessionId(sessionId);
       const facts = await repository.readSlotFacts();
-      const photoPath = facts.sessions.find((session) => session.id === id)?.photo_path;
+      const photoPath = facts.sessions.find(
+        (session) => session.id === id,
+      )?.photo_path;
       await repository.undoCheckIn(id);
       if (photoPath) {
         try {

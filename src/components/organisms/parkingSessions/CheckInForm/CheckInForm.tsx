@@ -9,7 +9,13 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { startTransition, useActionState, useEffect, useRef, useState } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   checkInBillingTypeOrder,
@@ -72,22 +78,35 @@ function ChoiceButton({
 }
 
 /** 提供给长辈的大号登记按钮；结果区不会自动消失。 */
-export function CheckInForm({ form, action, undoAction, initialState, storyPhoto }: Props) {
+export function CheckInForm({
+  form,
+  action,
+  undoAction,
+  initialState,
+  storyPhoto,
+}: Props) {
   const [state, submit, isPending] = useActionState(action, initialState ?? {});
   const [undoState, undo, isUndoPending] = useActionState(undoAction, {});
   const [plate, setPlate] = useState(form?.defaultLeasePlate ?? "");
   const [photo, setPhoto] = useState<Blob | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(storyPhoto?.previewUrl ?? null);
-  const [recognitionStatus, setRecognitionStatus] = useState<"idle" | "loading" | "filled" | "suggestion" | "failed">(storyPhoto?.status ?? "idle");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(
+    storyPhoto?.previewUrl ?? null,
+  );
+  const [recognitionStatus, setRecognitionStatus] = useState<
+    "idle" | "loading" | "filled" | "suggestion" | "failed"
+  >(storyPhoto?.status ?? "idle");
   const [recognizedPlate, setRecognizedPlate] = useState<string | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const manualPlateEdited = useRef(false);
   const recognitionSerial = useRef(0);
   const photoUrlRef = useRef<string | null>(null);
 
-  useEffect(() => () => {
-    if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current);
+    },
+    [],
+  );
 
   const clearPhoto = () => {
     recognitionSerial.current += 1;
@@ -292,10 +311,12 @@ export function CheckInForm({ form, action, undoAction, initialState, storyPhoto
               {checkInText.unavailable}
             </Typography>
           ) : (
-            <form action={(data) => {
-              if (photo) data.set("photo", photo, "plate.jpg");
-              startTransition(() => submit(data));
-            }}>
+            <form
+              action={(data) => {
+                if (photo) data.set("photo", photo, "plate.jpg");
+                startTransition(() => submit(data));
+              }}
+            >
               <Stack spacing={3}>
                 {form.hasReservation && (
                   <Typography variant="body1">
@@ -330,29 +351,54 @@ export function CheckInForm({ form, action, undoAction, initialState, storyPhoto
                       alt={checkInText.photoPreview}
                       component="img"
                       src={photoUrl}
-                      sx={{ borderRadius: 1, maxHeight: 300, objectFit: "contain", width: "100%" }}
+                      sx={{
+                        borderRadius: 1,
+                        maxHeight: 300,
+                        objectFit: "contain",
+                        width: "100%",
+                      }}
                     />
                     <Stack direction="row" spacing={1}>
-                      <Button onClick={() => photoInput.current?.click()} size="large" sx={bigButtonSx} type="button" variant="text">
+                      <Button
+                        onClick={() => photoInput.current?.click()}
+                        size="large"
+                        sx={bigButtonSx}
+                        type="button"
+                        variant="text"
+                      >
                         {checkInText.retakePhoto}
                       </Button>
-                      <Button onClick={clearPhoto} size="large" sx={bigButtonSx} type="button" variant="text">
+                      <Button
+                        onClick={clearPhoto}
+                        size="large"
+                        sx={bigButtonSx}
+                        type="button"
+                        variant="text"
+                      >
                         {checkInText.removePhoto}
                       </Button>
                     </Stack>
                   </Stack>
                 )}
                 {recognitionStatus === "loading" && (
-                  <Stack alignItems="center" direction="row" spacing={1}>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: "center" }}
+                  >
                     <CircularProgress size={24} />
                     <Typography>{checkInText.recognizing}</Typography>
                   </Stack>
                 )}
                 {recognitionStatus === "failed" && (
-                  <Typography color="textSecondary">{checkInText.recognitionFailed}</Typography>
+                  <Typography color="textSecondary">
+                    {checkInText.recognitionFailed}
+                  </Typography>
                 )}
                 {recognitionStatus === "filled" && (
-                  <Typography color="textSecondary">{checkInText.recognized}</Typography>
+                  <Typography color="textSecondary">
+                    {checkInText.recognized}
+                  </Typography>
                 )}
                 {recognitionStatus === "suggestion" && recognizedPlate && (
                   <Button
@@ -366,7 +412,9 @@ export function CheckInForm({ form, action, undoAction, initialState, storyPhoto
                     type="button"
                     variant="text"
                   >
-                    {checkInText.recognitionSuggestion(formatPlateForDisplay(recognizedPlate))}
+                    {checkInText.recognitionSuggestion(
+                      formatPlateForDisplay(recognizedPlate),
+                    )}
                   </Button>
                 )}
                 <TextField

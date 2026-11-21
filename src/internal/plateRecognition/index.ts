@@ -3,10 +3,13 @@
 /** 模型推理只在点击拍照后才动态加载，不在主线程上运行。 */
 let worker: Worker | null = null;
 let serial = 0;
-const requests = new Map<number, {
-  resolve: (plate: string | null) => void;
-  timer: ReturnType<typeof setTimeout>;
-}>();
+const requests = new Map<
+  number,
+  {
+    resolve: (plate: string | null) => void;
+    timer: ReturnType<typeof setTimeout>;
+  }
+>();
 
 function resetWorker(): void {
   worker?.terminate();
@@ -23,7 +26,9 @@ function getWorker(): Worker {
   const instance = new Worker(new URL("./plateWorker.ts", import.meta.url), {
     type: "module",
   });
-  instance.onmessage = (event: MessageEvent<{ id: number; plate: string | null }>) => {
+  instance.onmessage = (
+    event: MessageEvent<{ id: number; plate: string | null }>,
+  ) => {
     const request = requests.get(event.data.id);
     if (!request) return;
     requests.delete(event.data.id);

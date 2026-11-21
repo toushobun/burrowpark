@@ -859,14 +859,23 @@ describe("月统计 Repository", () => {
   });
 });
 
-
 describe("照片 Storage 操作", () => {
   const id = "00000000-0000-4000-8000-000000000001";
   const photoPath = "2026/11/" + id + ".jpg";
 
-  function makePhotoClient(options: { uploadError?: Error; updateError?: Error; removeError?: Error } = {}) {
-    const upload = vi.fn().mockResolvedValue({ error: options.uploadError ?? null });
-    const remove = vi.fn().mockResolvedValue({ error: options.removeError ?? null });
+  function makePhotoClient(
+    options: {
+      uploadError?: Error;
+      updateError?: Error;
+      removeError?: Error;
+    } = {},
+  ) {
+    const upload = vi
+      .fn()
+      .mockResolvedValue({ error: options.uploadError ?? null });
+    const remove = vi
+      .fn()
+      .mockResolvedValue({ error: options.removeError ?? null });
     const single = vi.fn().mockResolvedValue({
       data: options.updateError ? null : { id },
       error: options.updateError ?? null,
@@ -877,44 +886,73 @@ describe("照片 Storage 操作", () => {
     const from = vi.fn(() => ({ update }));
     const storageFrom = vi.fn(() => ({ upload, remove }));
     return {
-      client: { from, storage: { from: storageFrom } } as unknown as AuthenticatedSupabaseClient,
-      upload, remove, update, eq, storageFrom,
+      client: {
+        from,
+        storage: { from: storageFrom },
+      } as unknown as AuthenticatedSupabaseClient,
+      upload,
+      remove,
+      update,
+      eq,
+      storageFrom,
     };
   }
 
   it("上传 JPEG 后更新停车记录路径且禁止覆盖", async () => {
     const { client, upload, update, eq } = makePhotoClient();
     const photo = new Blob(["photo"], { type: "image/jpeg" });
-    await createParkingRepository(client, logger).savePlatePhoto(id, photoPath, photo);
+    await createParkingRepository(client, logger).savePlatePhoto(
+      id,
+      photoPath,
+      photo,
+    );
     expect(upload).toHaveBeenCalledWith(photoPath, photo, {
-      contentType: "image/jpeg", upsert: false,
+      contentType: "image/jpeg",
+      upsert: false,
     });
     expect(update).toHaveBeenCalledWith({ photo_path: photoPath });
     expect(eq).toHaveBeenCalledWith("id", id);
   });
 
   it("上传失败只记安全警告且不会更新路径", async () => {
-    const { client, update } = makePhotoClient({ uploadError: new Error("secret storage failure") });
+    const { client, update } = makePhotoClient({
+      uploadError: new Error("secret storage failure"),
+    });
     vi.mocked(logger.warn).mockClear();
-    await expect(createParkingRepository(client, logger).savePlatePhoto(
-      id, photoPath, new Blob(["x"], { type: "image/jpeg" }),
-    )).rejects.toMatchObject({ code: "plate_photo_failed" });
+    await expect(
+      createParkingRepository(client, logger).savePlatePhoto(
+        id,
+        photoPath,
+        new Blob(["x"], { type: "image/jpeg" }),
+      ),
+    ).rejects.toMatchObject({ code: "plate_photo_failed" });
     expect(update).not.toHaveBeenCalled();
-    expect(JSON.stringify(vi.mocked(logger.warn).mock.calls)).not.toContain(photoPath);
-    expect(JSON.stringify(vi.mocked(logger.warn).mock.calls)).not.toContain("secret storage failure");
+    expect(JSON.stringify(vi.mocked(logger.warn).mock.calls)).not.toContain(
+      photoPath,
+    );
+    expect(JSON.stringify(vi.mocked(logger.warn).mock.calls)).not.toContain(
+      "secret storage failure",
+    );
   });
 
   it("路径更新失败只记警告并向 Service 报告附件失败", async () => {
     const { client } = makePhotoClient({ updateError: new Error("secret") });
-    await expect(createParkingRepository(client, logger).savePlatePhoto(
-      id, photoPath, new Blob(["x"], { type: "image/jpeg" }),
-    )).rejects.toMatchObject({ code: "plate_photo_failed" });
+    await expect(
+      createParkingRepository(client, logger).savePlatePhoto(
+        id,
+        photoPath,
+        new Blob(["x"], { type: "image/jpeg" }),
+      ),
+    ).rejects.toMatchObject({ code: "plate_photo_failed" });
   });
 
   it("撤销清理失败只记录警告", async () => {
-    const { client, remove } = makePhotoClient({ removeError: new Error("secret") });
-    await expect(createParkingRepository(client, logger).deletePlatePhoto(photoPath))
-      .rejects.toMatchObject({ code: "plate_photo_failed" });
+    const { client, remove } = makePhotoClient({
+      removeError: new Error("secret"),
+    });
+    await expect(
+      createParkingRepository(client, logger).deletePlatePhoto(photoPath),
+    ).rejects.toMatchObject({ code: "plate_photo_failed" });
     expect(remove).toHaveBeenCalledWith([photoPath]);
   });
 });

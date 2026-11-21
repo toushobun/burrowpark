@@ -55,15 +55,27 @@ describe("CheckInForm", () => {
   beforeEach(() => {
     vi.mocked(recognizePlate).mockReset();
     vi.mocked(compressPhoto).mockReset();
-    vi.mocked(compressPhoto).mockResolvedValue(new Blob(["jpeg"], { type: "image/jpeg" }));
-    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:test-photo") });
-    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
+    vi.mocked(compressPhoto).mockResolvedValue(
+      new Blob(["jpeg"], { type: "image/jpeg" }),
+    );
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: vi.fn(() => "blob:test-photo"),
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: vi.fn(),
+    });
   });
 
   function choosePhoto(container: HTMLElement) {
     const input = container.querySelector('input[type="file"]');
     if (!input) throw new Error("缺少拍照输入框");
-    fireEvent.change(input, { target: { files: [new File(["photo"], "photo.png", { type: "image/png" })] } });
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["photo"], "photo.png", { type: "image/png" })],
+      },
+    });
   }
 
   it("普通空车位显示酒店客、临停和免费，不显示长租", () => {
@@ -168,13 +180,14 @@ describe("CheckInForm", () => {
     );
   });
 
-
   it("拍照后出现缩略图、重拍删除与识别加载状态", async () => {
     vi.mocked(recognizePlate).mockImplementation(() => new Promise(() => {}));
     const { container } = renderForm();
     expect(screen.getByRole("button", { name: "拍照" })).toBeInTheDocument();
     choosePhoto(container);
-    await waitFor(() => expect(screen.getByRole("img", { name: "车头照片" })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("img", { name: "车头照片" })).toBeInTheDocument(),
+    );
     expect(screen.getByText("正在识别车牌…")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "重拍" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "删除照片" }));
@@ -185,31 +198,58 @@ describe("CheckInForm", () => {
     vi.mocked(recognizePlate).mockResolvedValue("辽a·12345");
     const { container } = renderForm();
     choosePhoto(container);
-    await waitFor(() => expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue("辽A12345"));
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue(
+        "辽A12345",
+      ),
+    );
     expect(screen.getByText("已自动填入，请核对")).toBeInTheDocument();
-    fireEvent.change(screen.getByRole("textbox", { name: "车牌号码" }), { target: { value: "粤B11111" } });
-    expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue("粤B11111");
+    fireEvent.change(screen.getByRole("textbox", { name: "车牌号码" }), {
+      target: { value: "粤B11111" },
+    });
+    expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue(
+      "粤B11111",
+    );
   });
 
   it("手动输入过车牌时只显示可点击的识别建议而不覆盖", async () => {
     let finish: (value: string | null) => void = () => {};
-    vi.mocked(recognizePlate).mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+    vi.mocked(recognizePlate).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
     const { container } = renderForm();
     choosePhoto(container);
-    fireEvent.change(screen.getByRole("textbox", { name: "车牌号码" }), { target: { value: "京A88888" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "车牌号码" }), {
+      target: { value: "京A88888" },
+    });
     await waitFor(() => expect(recognizePlate).toHaveBeenCalledOnce());
     finish("辽A12345");
-    await waitFor(() => expect(screen.getByRole("button", { name: "识别结果：辽A·12345，点这里填入" })).toBeInTheDocument());
-    expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue("京A88888");
-    fireEvent.click(screen.getByRole("button", { name: "识别结果：辽A·12345，点这里填入" }));
-    expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue("辽A12345");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "识别结果：辽A·12345，点这里填入" }),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue(
+      "京A88888",
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "识别结果：辽A·12345，点这里填入" }),
+    );
+    expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue(
+      "辽A12345",
+    );
   });
 
   it("识别失败只显示手动输入提示，不弹失败对话框", async () => {
     vi.mocked(recognizePlate).mockResolvedValue(null);
     const { container } = renderForm();
     choosePhoto(container);
-    await waitFor(() => expect(screen.getByText("没认出来，请手动输入")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("没认出来，请手动输入")).toBeInTheDocument(),
+    );
     expect(screen.queryByRole("dialog")).toBeNull();
   });
   it("登记成功后持续展示车牌车位及三项大按钮", () => {

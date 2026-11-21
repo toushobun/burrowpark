@@ -8,9 +8,13 @@ describe("识别 Worker 接口", () => {
 
   it("发起 Worker 推理并使用匹配请求的识别结果", async () => {
     const postMessage = vi.fn();
-    let handler: ((event: MessageEvent<{ id: number; plate: string | null }>) => void) | null = null;
+    let handler:
+      | ((event: MessageEvent<{ id: number; plate: string | null }>) => void)
+      | null = null;
     class FakeWorker {
-      set onmessage(value: typeof handler) { handler = value; }
+      set onmessage(value: typeof handler) {
+        handler = value;
+      }
       onerror = null;
       postMessage = postMessage;
       terminate = vi.fn();
@@ -20,8 +24,13 @@ describe("识别 Worker 接口", () => {
     const result = recognizePlate(new Blob(["jpeg"], { type: "image/jpeg" }));
     expect(postMessage).toHaveBeenCalledOnce();
     const request = postMessage.mock.calls[0][0] as { id: number };
-    const dispatch = handler as unknown as (event: MessageEvent<{ id: number; plate: string }>) => void;
-    dispatch({ data: { id: request.id, plate: "辽A12345" } } as MessageEvent<{ id: number; plate: string }>);
+    const dispatch = handler as unknown as (
+      event: MessageEvent<{ id: number; plate: string }>,
+    ) => void;
+    dispatch({ data: { id: request.id, plate: "辽A12345" } } as MessageEvent<{
+      id: number;
+      plate: string;
+    }>);
     await expect(result).resolves.toBe("辽A12345");
   });
 });

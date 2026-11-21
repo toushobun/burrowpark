@@ -5,9 +5,16 @@ import { decodePlate, plateTokens, selectDetections } from "./recognitionMath";
 describe("车牌识别纯函数", () => {
   it("CTC 移除 blank 与重复索引后得到车牌", () => {
     const plate = "辽A12345";
-    const indices = [0, ...Array.from(plate, (character) => plateTokens.indexOf(character as typeof plateTokens[number]))];
+    const indices = [
+      0,
+      ...Array.from(plate, (character) =>
+        plateTokens.indexOf(character as (typeof plateTokens)[number]),
+      ),
+    ];
     const scores = new Float32Array(indices.length * plateTokens.length);
-    indices.forEach((index, t) => { scores[t * plateTokens.length + index] = 0.96; });
+    indices.forEach((index, t) => {
+      scores[t * plateTokens.length + index] = 0.96;
+    });
     expect(decodePlate(scores, indices.length, plateTokens.length)).toBe(plate);
   });
 

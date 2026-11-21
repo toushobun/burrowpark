@@ -189,7 +189,10 @@ export function createParkingRepository(
       operation,
       errorName: error instanceof Error ? error.name : "unknown",
     });
-    throw new RepositoryError("plate_photo_failed", parkingMessages.unavailable);
+    throw new RepositoryError(
+      "plate_photo_failed",
+      parkingMessages.unavailable,
+    );
   }
 
   async function signPhotoUrl(photoPath: string): Promise<string | null> {
@@ -423,7 +426,8 @@ export function createParkingRepository(
           .eq("id", sessionId)
           .select("id")
           .single();
-        if (updateError || !updated) return photoFailure("updatePhotoPath", updateError);
+        if (updateError || !updated)
+          return photoFailure("updatePhotoPath", updateError);
       } catch (error) {
         if (error instanceof RepositoryError) throw error;
         return photoFailure("savePlatePhoto", error);

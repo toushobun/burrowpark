@@ -38,7 +38,10 @@ async function prepareModel(model) {
   let bytes;
   try {
     bytes = await readFile(destination);
-    if (bytes.byteLength !== model.size || hashes(bytes).gitBlob !== model.gitSha) {
+    if (
+      bytes.byteLength !== model.size ||
+      hashes(bytes).gitBlob !== model.gitSha
+    ) {
       bytes = undefined;
     }
   } catch {
@@ -46,25 +49,56 @@ async function prepareModel(model) {
   }
   if (!bytes) {
     const source = modelBase + model.name;
-    const response = await fetch(source, { signal: AbortSignal.timeout(120000) });
-    if (!response.ok) throw new Error("模型下载失败：" + model.name + " HTTP " + response.status);
+    const response = await fetch(source, {
+      signal: AbortSignal.timeout(120000),
+    });
+    if (!response.ok)
+      throw new Error(
+        "模型下载失败：" + model.name + " HTTP " + response.status,
+      );
     bytes = Buffer.from(await response.arrayBuffer());
-    if (bytes.byteLength !== model.size || hashes(bytes).gitBlob !== model.gitSha) {
+    if (
+      bytes.byteLength !== model.size ||
+      hashes(bytes).gitBlob !== model.gitSha
+    ) {
       throw new Error("模型来源校验失败：" + model.name);
     }
     await writeFile(destination, bytes);
   }
-  console.info("[plate-assets]", model.name, bytes.byteLength, "bytes", "SHA-256", hashes(bytes).sha256);
+  console.info(
+    "[plate-assets]",
+    model.name,
+    bytes.byteLength,
+    "bytes",
+    "SHA-256",
+    hashes(bytes).sha256,
+  );
 }
 
 await mkdir(modelDir, { recursive: true });
 await mkdir(wasmDir, { recursive: true });
 for (const model of models) await prepareModel(model);
 
-for (const name of ["ort-wasm-simd-threaded.mjs", "ort-wasm-simd-threaded.wasm"]) {
-  const source = join(repoRoot, "node_modules", "onnxruntime-web", "dist", name);
+for (const name of [
+  "ort-wasm-simd-threaded.mjs",
+  "ort-wasm-simd-threaded.wasm",
+]) {
+  const source = join(
+    repoRoot,
+    "node_modules",
+    "onnxruntime-web",
+    "dist",
+    name,
+  );
   const destination = join(wasmDir, name);
   await copyFile(source, destination);
   const bytes = await readFile(destination);
-  console.info("[plate-assets]", name, bytes.byteLength, "bytes", "SHA-256", hashes(bytes).sha256);
+  console.info(
+    "[plate-assets]",
+    name,
+    bytes.byteLength,
+    "bytes",
+    "SHA-256",
+    hashes(bytes).sha256,
+  );
 }

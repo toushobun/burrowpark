@@ -20,7 +20,8 @@ export async function compressPhoto(file: Blob): Promise<Blob> {
     context.drawImage(bitmap, 0, 0, size.width, size.height);
     return await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
-        (result) => result ? resolve(result) : reject(new Error("照片压缩失败")),
+        (result) =>
+          result ? resolve(result) : reject(new Error("照片压缩失败")),
         "image/jpeg",
         0.7,
       );
