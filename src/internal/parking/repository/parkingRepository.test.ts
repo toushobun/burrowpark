@@ -1001,8 +1001,9 @@ describe("历史记录 Repository", () => {
     const limit = vi.fn().mockResolvedValue({ data: [], error: null });
     const order = vi.fn(() => ({ limit }));
     const eq = vi.fn(() => ({ order }));
-    const client = { from: vi.fn(() => ({ select: vi.fn(() => ({ eq })) })) }
-      as unknown as AuthenticatedSupabaseClient;
+    const client = {
+      from: vi.fn(() => ({ select: vi.fn(() => ({ eq })) })),
+    } as unknown as AuthenticatedSupabaseClient;
     await createParkingRepository(client, logger).readSessionsByPlate("辽A12345", 999);
     expect(eq).toHaveBeenCalledWith("plate", "辽A12345");
     expect(order).toHaveBeenCalledWith("entered_at", { ascending: false });
