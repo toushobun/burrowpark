@@ -20,5 +20,6 @@ export const parkingMessages = {
   leaseDateInvalid: "交到哪天必须晚于起租日。",
   slotSettingsBusy: "有车、预留或长租的车位不能修改设置。",
   slotSettingsKindInvalid: "只允许普通车位或私人位。",
+  paymentLocked: "这笔钱决定了交到时间，不能删。记错金额请用『改金额』",
   checkoutUndoOccupied: "这个车位已经停了别的车，不能撤销",
 } as const;

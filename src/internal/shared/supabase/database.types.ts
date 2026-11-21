@@ -315,6 +315,9 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      correct_session_plate: { Args: { p_session_id: string; p_plate: string }; Returns: undefined };
+      correct_payment: { Args: { p_payment_id: string; p_amount_cents: number; p_method: Database["public"]["Enums"]["payment_method"] }; Returns: undefined };
+      delete_payment: { Args: { p_payment_id: string }; Returns: undefined };
       cancel_reservation: {
         Args: { p_reservation_id: string };
         Returns: undefined;

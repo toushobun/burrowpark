@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ValidationError } from "internal/shared/errors/appError";
 
 import { parkingMessages } from "./errors";
-import { getBusinessMonth, normalizePlate } from "./util/parkingDomain";
+import { getBusinessDate, getBusinessMonth, normalizePlate } from "./util/parkingDomain";
 
 const amountSchema = z.string().regex(/^(?:0|[1-9]\d{0,7})(?:\.\d{1,2})?$/, {
   message: parkingMessages.invalidAmount,
@@ -316,6 +316,39 @@ export function readSlotSettingsFormData(form: FormData): unknown {
     isActive: form.get("isActive") === "true",
   };
 }
+
+
+const recordDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((date) => {
+  const parsed = new Date(date + "T00:00:00Z");
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
+});
+const recordPlateSchema = z.string().transform(normalizePlate).refine(
+  (value) => value.length >= 2 && value.length <= 10, parkingMessages.invalidPlate,
+);
+export type RecordsFilter = { kind: "date"; date: string } | { kind: "plate"; plate: string };
+export function parseRecordsFilter(
+  params: { date?: unknown; plate?: unknown; mode?: unknown }, now: Date,
+): RecordsFilter {
+  if (params.mode === "plate" && params.plate === undefined)
+    return { kind: "plate", plate: "" };
+  if (params.plate !== undefined) {
+    const result = recordPlateSchema.safeParse(params.plate);
+    return result.success ? { kind: "plate", plate: result.data } : { kind: "date", date: getBusinessDate(now) };
+  }
+  if (params.date !== undefined) {
+    const result = recordDateSchema.safeParse(params.date);
+    if (result.success && result.data <= getBusinessDate(now))
+      return { kind: "date", date: result.data };
+  }
+  return { kind: "date", date: getBusinessDate(now) };
+}
+export const recordPlateCorrectionSchema = z.object({
+  sessionId: z.string().uuid(), plate: recordPlateSchema,
+});
+export const recordPaymentCorrectionSchema = z.object({
+  paymentId: z.string().uuid(), amountYuan: amountSchema, method: paymentMethodSchema,
+});
+export const recordPaymentDeletionSchema = z.object({ paymentId: z.string().uuid() });
 
 /** URL 月份格式不合法或缺省时回退上海本月。 */
 const businessMonthSchema = z
