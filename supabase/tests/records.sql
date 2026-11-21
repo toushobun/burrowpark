@@ -39,7 +39,7 @@ select lives_ok($$select public.correct_payment(
  (select id from public.payments where purpose='settlement'),100,'alipay')$$,
  '已结算金额和收款方式可更正');
 select results_eq($$select amount_cents,method::text from public.payments
- where purpose='settlement'$$,$$values(100,'alipay'::text)$$,
+ where purpose='settlement'$,$select 100,'alipay'::text$,
  '更正后其余收款事实不变');
 select throws_ok($$select public.correct_payment(
  (select id from public.payments where purpose='settlement'),0,'cash')$$,

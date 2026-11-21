@@ -348,14 +348,14 @@ export type Database = {
       };
       correct_payment: {
         Args: {
-          p_payment_id: string;
           p_amount_cents: number;
           p_method: Database["public"]["Enums"]["payment_method"];
+          p_payment_id: string;
         };
         Returns: undefined;
       };
       correct_session_plate: {
-        Args: { p_session_id: string; p_plate: string };
+        Args: { p_plate: string; p_session_id: string };
         Returns: undefined;
       };
       create_lease: {
