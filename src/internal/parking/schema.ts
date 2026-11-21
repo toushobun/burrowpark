@@ -333,10 +333,17 @@ export const pricingSettingsInputSchema = z.object({
 });
 export type PricingSettingsInput = z.infer<typeof pricingSettingsInputSchema>;
 export function readPricingSettingsFormData(form: FormData): unknown {
+  // 空字符串与缺失值不能被 Number() 静默转成合法的零点。
+  const readHour = (field: string): unknown => {
+    const value = form.get(field);
+    return typeof value === "string" && /^(?:[0-9]|1[0-9]|2[0-3])$/.test(value)
+      ? Number(value)
+      : value;
+  };
   return {
     hotelDailyYuan: form.get("hotelDailyYuan"),
-    hotelCheckoutHour: Number(form.get("hotelCheckoutHour")),
-    hotelPreviousDayBeforeHour: Number(form.get("hotelPreviousDayBeforeHour")),
+    hotelCheckoutHour: readHour("hotelCheckoutHour"),
+    hotelPreviousDayBeforeHour: readHour("hotelPreviousDayBeforeHour"),
     hourlyYuan: form.get("hourlyYuan"),
   };
 }

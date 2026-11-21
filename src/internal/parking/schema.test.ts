@@ -4,6 +4,7 @@ import {
   parseAmountCents,
   parseMonthlyStatsMonth,
   pricingSettingsInputSchema,
+  readPricingSettingsFormData,
   parseCheckInInput,
   parseCheckOutInput,
   parseRenewInput,
@@ -200,5 +201,34 @@ describe("收费设置校验", () => {
         }).success,
       ).toBe(false);
     }
+  });
+
+  it("表单钟点缺失或为空时不能静默变成0点", () => {
+    const form = new FormData();
+    form.set("hotelDailyYuan", "30");
+    form.set("hourlyYuan", "5");
+    form.set("hotelPreviousDayBeforeHour", "6");
+    expect(
+      pricingSettingsInputSchema.safeParse(readPricingSettingsFormData(form))
+        .success,
+    ).toBe(false);
+
+    form.set("hotelCheckoutHour", "");
+    expect(
+      pricingSettingsInputSchema.safeParse(readPricingSettingsFormData(form))
+        .success,
+    ).toBe(false);
+
+    form.set("hotelCheckoutHour", "0");
+    expect(
+      pricingSettingsInputSchema.safeParse(readPricingSettingsFormData(form))
+        .success,
+    ).toBe(true);
+
+    form.set("hotelCheckoutHour", "1e1");
+    expect(
+      pricingSettingsInputSchema.safeParse(readPricingSettingsFormData(form))
+        .success,
+    ).toBe(false);
   });
 });
