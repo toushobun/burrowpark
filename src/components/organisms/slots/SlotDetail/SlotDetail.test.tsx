@@ -295,7 +295,9 @@ describe("SlotDetail 预留、退租和成功结果", () => {
     );
     expect(screen.getByText("预留成功")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "回地图" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "查看车位" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "查看车位" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "查看车位" }));
     expect(screen.queryByText("预留成功")).not.toBeInTheDocument();
