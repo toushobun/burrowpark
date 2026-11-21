@@ -18,10 +18,18 @@ export const recordsText = {
   method: "收款方式",
   cancel: "取消",
   confirm: "确定",
-  newPlate: (before: string, after: string) => `确定把 ${before} 改成 ${after} 吗？`,
-  newAmount: (before: string, after: string) => `确定把这笔 ${before} 元改成 ${after} 元吗？`,
-  deletePayment: (amount: string) => `确定删除这笔 ${amount} 元吗？删除后不能恢复。`,
-  billing: { hotel_daily: "酒店客", hourly: "临停", lease: "长租", free: "免费" },
+  newPlate: (before: string, after: string) =>
+    `确定把 ${before} 改成 ${after} 吗？`,
+  newAmount: (before: string, after: string) =>
+    `确定把这笔 ${before} 元改成 ${after} 元吗？`,
+  deletePayment: (amount: string) =>
+    `确定删除这笔 ${amount} 元吗？删除后不能恢复。`,
+  billing: {
+    hotel_daily: "酒店客",
+    hourly: "临停",
+    lease: "长租",
+    free: "免费",
+  },
   methods: { cash: "现金", wechat: "微信", alipay: "支付宝" },
   purpose: { prepay: "预交", renewal: "续费", settlement: "结算" },
 } as const;

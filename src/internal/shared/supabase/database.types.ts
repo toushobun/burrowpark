@@ -315,9 +315,6 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      correct_session_plate: { Args: { p_session_id: string; p_plate: string }; Returns: undefined };
-      correct_payment: { Args: { p_payment_id: string; p_amount_cents: number; p_method: Database["public"]["Enums"]["payment_method"] }; Returns: undefined };
-      delete_payment: { Args: { p_payment_id: string }; Returns: undefined };
       cancel_reservation: {
         Args: { p_reservation_id: string };
         Returns: undefined;
@@ -349,6 +346,18 @@ export type Database = {
           retry_after_seconds: number;
         }[];
       };
+      correct_payment: {
+        Args: {
+          p_payment_id: string;
+          p_amount_cents: number;
+          p_method: Database["public"]["Enums"]["payment_method"];
+        };
+        Returns: undefined;
+      };
+      correct_session_plate: {
+        Args: { p_session_id: string; p_plate: string };
+        Returns: undefined;
+      };
       create_lease: {
         Args: {
           p_amount_cents: number;
@@ -363,6 +372,7 @@ export type Database = {
         };
         Returns: string;
       };
+      delete_payment: { Args: { p_payment_id: string }; Returns: undefined };
       end_lease: {
         Args: { p_ended_on: string; p_lease_id: string };
         Returns: undefined;

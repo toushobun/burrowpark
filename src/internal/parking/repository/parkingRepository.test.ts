@@ -989,9 +989,12 @@ describe("历史记录 Repository", () => {
     const order = vi.fn().mockResolvedValue({ data: [], error: null });
     const or = vi.fn(() => ({ order }));
     const select = vi.fn(() => ({ or }));
-    const client = { from: vi.fn(() => ({ select })) } as unknown as AuthenticatedSupabaseClient;
+    const client = {
+      from: vi.fn(() => ({ select })),
+    } as unknown as AuthenticatedSupabaseClient;
     await createParkingRepository(client, logger).readSessionsByDate(
-      "2026-11-20T16:00:00.000Z", "2026-11-21T16:00:00.000Z",
+      "2026-11-20T16:00:00.000Z",
+      "2026-11-21T16:00:00.000Z",
     );
     expect(or).toHaveBeenCalledWith(
       "and(entered_at.gte.2026-11-20T16:00:00.000Z,entered_at.lt.2026-11-21T16:00:00.000Z),and(left_at.gte.2026-11-20T16:00:00.000Z,left_at.lt.2026-11-21T16:00:00.000Z)",
@@ -1004,18 +1007,27 @@ describe("历史记录 Repository", () => {
     const client = {
       from: vi.fn(() => ({ select: vi.fn(() => ({ eq })) })),
     } as unknown as AuthenticatedSupabaseClient;
-    await createParkingRepository(client, logger).readSessionsByPlate("辽A12345", 999);
+    await createParkingRepository(client, logger).readSessionsByPlate(
+      "辽A12345",
+      999,
+    );
     expect(eq).toHaveBeenCalledWith("plate", "辽A12345");
     expect(order).toHaveBeenCalledWith("entered_at", { ascending: false });
     expect(limit).toHaveBeenCalledWith(50);
   });
   it("更正业务冲突按稳定 detail 映射且不暴露数据库异常", async () => {
-    const rpc = vi.fn().mockResolvedValue({ error: {
-      code: "P0001", details: "PAYMENT_LOCKED", message: "secret database info",
-    } });
+    const rpc = vi.fn().mockResolvedValue({
+      error: {
+        code: "P0001",
+        details: "PAYMENT_LOCKED",
+        message: "secret database info",
+      },
+    });
     const client = { rpc } as unknown as AuthenticatedSupabaseClient;
-    await expect(createParkingRepository(client, logger).deletePayment(
-      "00000000-0000-4000-8000-000000000001",
-    )).rejects.toMatchObject({ code: "payment_locked" });
+    await expect(
+      createParkingRepository(client, logger).deletePayment(
+        "00000000-0000-4000-8000-000000000001",
+      ),
+    ).rejects.toMatchObject({ code: "payment_locked" });
   });
 });

@@ -7,9 +7,15 @@ import { PageShell } from "templates/layout/PageShell/PageShell";
 export default async function RecordsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string | string[]; plate?: string | string[]; mode?: string | string[] }>;
+  searchParams: Promise<{
+    date?: string | string[];
+    plate?: string | string[];
+    mode?: string | string[];
+  }>;
 }) {
-  const { filter, records, previousDate, nextDate } = await loadRecords(await searchParams);
+  const { filter, records, previousDate, nextDate } = await loadRecords(
+    await searchParams,
+  );
   return (
     <PageShell title={recordsText.title}>
       <RecordsView

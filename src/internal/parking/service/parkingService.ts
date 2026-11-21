@@ -177,7 +177,10 @@ export type MonthlyStats = MonthlyPaymentSummary & {
 
 export type RecordResults = {
   sessions: (RecordSession & { slotName: string })[];
-  leasePayments: (RecordLeasePayment & { slotName: string; tenantName: string })[];
+  leasePayments: (RecordLeasePayment & {
+    slotName: string;
+    tenantName: string;
+  })[];
 };
 export interface ParkingService {
   getRecords(filter: RecordsFilter): Promise<RecordResults>;
@@ -296,26 +299,35 @@ export function createParkingService(
       await requireAuthenticatedUserId(getAuth);
       const byDate = filter.kind === "date";
       const start = byDate ? getBusinessDateTime(filter.date, 0) : undefined;
-      const end = byDate ? getBusinessDateTime(
-        getBusinessDate(new Date(Date.parse(start!) + 86400000)), 0
-      ) : undefined;
+      const end = byDate
+        ? getBusinessDateTime(
+            getBusinessDate(new Date(Date.parse(start!) + 86400000)),
+            0,
+          )
+        : undefined;
       const [sessions, leasePayments, slots] = await Promise.all([
         byDate
           ? repository.readSessionsByDate(start!, end!)
-          : filter.plate ? repository.readSessionsByPlate(filter.plate, 50) : Promise.resolve([]),
+          : filter.plate
+            ? repository.readSessionsByPlate(filter.plate, 50)
+            : Promise.resolve([]),
         byDate
           ? repository.readLeasePayments({ start, end })
-          : filter.plate ? repository.readLeasePayments({ plate: filter.plate }) : Promise.resolve([]),
+          : filter.plate
+            ? repository.readLeasePayments({ plate: filter.plate })
+            : Promise.resolve([]),
         repository.readSlotNames(),
       ]);
       const slotNames = new Map(slots.map((slot) => [slot.code, slot.name]));
       return {
         sessions: sessions.map((session) => ({
-          ...session, slotName: slotNames.get(session.slot_code) ?? session.slot_code,
+          ...session,
+          slotName: slotNames.get(session.slot_code) ?? session.slot_code,
         })),
         leasePayments: leasePayments.map((payment) => ({
           ...payment,
-          slotName: slotNames.get(payment.leases.slot_code) ?? payment.leases.slot_code,
+          slotName:
+            slotNames.get(payment.leases.slot_code) ?? payment.leases.slot_code,
           tenantName: payment.leases.tenant_name,
         })),
       };
@@ -328,7 +340,11 @@ export function createParkingService(
     async correctPayment(input) {
       await requireAuthenticatedUserId(getAuth);
       const value = parseParkingOperation(recordPaymentCorrectionSchema, input);
-      await repository.correctPayment(value.paymentId, parseAmountCents(value.amountYuan), value.method);
+      await repository.correctPayment(
+        value.paymentId,
+        parseAmountCents(value.amountYuan),
+        value.method,
+      );
     },
     async deletePayment(input) {
       await requireAuthenticatedUserId(getAuth);

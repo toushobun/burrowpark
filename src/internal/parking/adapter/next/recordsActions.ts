@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createRequestContainer } from "internal/container";
 import { requireAuthenticatedUserId } from "internal/shared/auth/authContext";
-import { createErrorState, createSuccessState } from "internal/shared/adapter/next/actionState";
+import {
+  createErrorState,
+  createSuccessState,
+} from "internal/shared/adapter/next/actionState";
 import { createRequestDependencies } from "internal/shared/context/requestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
@@ -11,7 +14,8 @@ import type { ActionState } from "types/actions";
 import { parkingMessages } from "../../errors";
 
 export async function recordsCorrectionAction(
-  _previous: ActionState, data: FormData,
+  _previous: ActionState,
+  data: FormData,
 ): Promise<ActionState> {
   let dependencies: Awaited<ReturnType<typeof createRequestDependencies>>;
   try {
@@ -27,10 +31,15 @@ export async function recordsCorrectionAction(
     const service = createRequestContainer(dependencies).parking;
     const operation = data.get("operation");
     if (operation === "plate") {
-      await service.correctSessionPlate({ sessionId: data.get("sessionId"), plate: data.get("plate") });
+      await service.correctSessionPlate({
+        sessionId: data.get("sessionId"),
+        plate: data.get("plate"),
+      });
     } else if (operation === "payment") {
       await service.correctPayment({
-        paymentId: data.get("paymentId"), amountYuan: data.get("amountYuan"), method: data.get("method"),
+        paymentId: data.get("paymentId"),
+        amountYuan: data.get("amountYuan"),
+        method: data.get("method"),
       });
     } else if (operation === "delete") {
       await service.deletePayment({ paymentId: data.get("paymentId") });

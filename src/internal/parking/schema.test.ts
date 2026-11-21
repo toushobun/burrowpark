@@ -187,19 +187,23 @@ describe("记录查询参数", () => {
   it("日期格式非法或未来日期回到上海今天", () => {
     const now = new Date("2026-11-20T16:10:00.000Z");
     expect(parseRecordsFilter({ date: "2026-02-30" }, now)).toEqual({
-      kind: "date", date: "2026-11-21",
+      kind: "date",
+      date: "2026-11-21",
     });
     expect(parseRecordsFilter({ date: "2026-11-22" }, now)).toEqual({
-      kind: "date", date: "2026-11-21",
+      kind: "date",
+      date: "2026-11-21",
     });
   });
   it("车牌去空格去点并自动大写，非法输入回到今天", () => {
     const now = new Date("2026-11-21T00:10:00.000Z");
     expect(parseRecordsFilter({ plate: "辽a·12345" }, now)).toEqual({
-      kind: "plate", plate: "辽A12345",
+      kind: "plate",
+      plate: "辽A12345",
     });
     expect(parseRecordsFilter({ plate: "" }, now)).toEqual({
-      kind: "date", date: "2026-11-21",
+      kind: "date",
+      date: "2026-11-21",
     });
   });
 });

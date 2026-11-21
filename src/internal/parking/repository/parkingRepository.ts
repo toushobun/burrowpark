@@ -99,9 +99,17 @@ export interface ParkingRepository {
   readSlotFacts(): Promise<SlotFactsRows>;
   readSessionsByDate(start: string, end: string): Promise<RecordSession[]>;
   readSessionsByPlate(plate: string, limit: number): Promise<RecordSession[]>;
-  readLeasePayments(input: { start?: string; end?: string; plate?: string }): Promise<RecordLeasePayment[]>;
+  readLeasePayments(input: {
+    start?: string;
+    end?: string;
+    plate?: string;
+  }): Promise<RecordLeasePayment[]>;
   correctSessionPlate(id: string, plate: string): Promise<void>;
-  correctPayment(id: string, cents: number, method: Enums<"payment_method">): Promise<void>;
+  correctPayment(
+    id: string,
+    cents: number,
+    method: Enums<"payment_method">,
+  ): Promise<void>;
   deletePayment(id: string): Promise<void>;
   readMonthlyPayments(start: string, end: string): Promise<MonthlyPayment[]>;
   countMonthlyEntries(start: string, end: string): Promise<number>;
@@ -286,7 +294,10 @@ export function createParkingRepository(
     if (code === "PAYMENT_LOCKED")
       throw new ConflictError("payment_locked", parkingMessages.paymentLocked);
     if (code === "PAYMENT_UNAVAILABLE")
-      throw new ValidationError("payment_unavailable", parkingMessages.invalidInput);
+      throw new ValidationError(
+        "payment_unavailable",
+        parkingMessages.invalidInput,
+      );
     if (code === "UNDO_UNAVAILABLE")
       throw new ConflictError("undo_unavailable", parkingMessages.cannotUndo);
     if (code === "LEASE_EXISTS")
@@ -366,9 +377,14 @@ export function createParkingRepository(
   return {
     async readSessionsByDate(start, end) {
       try {
-        const { data, error } = await supabase.from("parking_sessions").select(
-          "id,slot_code,plate,billing_type,entered_at,left_at,session_payments:payments!payments_session_id_fkey(id,amount_cents,method,purpose,paid_at,paid_until)"
-        ).or(`and(entered_at.gte.${start},entered_at.lt.${end}),and(left_at.gte.${start},left_at.lt.${end})`)
+        const { data, error } = await supabase
+          .from("parking_sessions")
+          .select(
+            "id,slot_code,plate,billing_type,entered_at,left_at,session_payments:payments!payments_session_id_fkey(id,amount_cents,method,purpose,paid_at,paid_until)",
+          )
+          .or(
+            `and(entered_at.gte.${start},entered_at.lt.${end}),and(left_at.gte.${start},left_at.lt.${end})`,
+          )
           .order("entered_at", { ascending: false });
         if (error || !data) return fail("readSessionsByDate", error);
         return data;
@@ -379,9 +395,14 @@ export function createParkingRepository(
     },
     async readSessionsByPlate(plate, limit) {
       try {
-        const { data, error } = await supabase.from("parking_sessions").select(
-          "id,slot_code,plate,billing_type,entered_at,left_at,session_payments:payments!payments_session_id_fkey(id,amount_cents,method,purpose,paid_at,paid_until)"
-        ).eq("plate", plate).order("entered_at", { ascending: false }).limit(Math.min(limit, 50));
+        const { data, error } = await supabase
+          .from("parking_sessions")
+          .select(
+            "id,slot_code,plate,billing_type,entered_at,left_at,session_payments:payments!payments_session_id_fkey(id,amount_cents,method,purpose,paid_at,paid_until)",
+          )
+          .eq("plate", plate)
+          .order("entered_at", { ascending: false })
+          .limit(Math.min(limit, 50));
         if (error || !data) return fail("readSessionsByPlate", error);
         return data;
       } catch (error) {
@@ -391,19 +412,30 @@ export function createParkingRepository(
     },
     async readLeasePayments(input) {
       try {
-        let query = supabase.from("payments").select(
-          "id,amount_cents,method,purpose,paid_at,paid_until,leases:leases!inner(slot_code,tenant_name,plate)"
-        ).not("lease_id", "is", null);
+        let query = supabase
+          .from("payments")
+          .select(
+            "id,amount_cents,method,purpose,paid_at,paid_until,leases:leases!inner(slot_code,tenant_name,plate)",
+          )
+          .not("lease_id", "is", null);
         if (input.start) query = query.gte("paid_at", input.start);
         if (input.end) query = query.lt("paid_at", input.end);
         if (input.plate) query = query.eq("leases.plate", input.plate);
-        const { data, error } = await query.order("paid_at", { ascending: false });
+        const { data, error } = await query.order("paid_at", {
+          ascending: false,
+        });
         if (error || !data) return fail("readLeasePayments", error);
-        return data.filter((row) => row.leases !== null).map((row) => ({
-          id: row.id, amount_cents: row.amount_cents, method: row.method,
-          purpose: row.purpose, paid_at: row.paid_at, paid_until: row.paid_until,
-          leases: row.leases,
-        }));
+        return data
+          .filter((row) => row.leases !== null)
+          .map((row) => ({
+            id: row.id,
+            amount_cents: row.amount_cents,
+            method: row.method,
+            purpose: row.purpose,
+            paid_at: row.paid_at,
+            paid_until: row.paid_until,
+            leases: row.leases,
+          }));
       } catch (error) {
         if (error instanceof RepositoryError) throw error;
         return fail("readLeasePayments", error);
@@ -411,7 +443,10 @@ export function createParkingRepository(
     },
     async correctSessionPlate(id, plate) {
       try {
-        const { error } = await supabase.rpc("correct_session_plate", { p_session_id: id, p_plate: plate });
+        const { error } = await supabase.rpc("correct_session_plate", {
+          p_session_id: id,
+          p_plate: plate,
+        });
         if (!error) return;
         const code = findRpcBusinessError(error, {
           PLATE_PRESENT: "plate_present",
@@ -425,7 +460,11 @@ export function createParkingRepository(
           throw new AuthorizationError(code, parkingMessages.invalidInput);
         if (code === "session_unavailable" || code === "invalid_input")
           throw new ValidationError(code, parkingMessages.invalidInput);
-        const conflict = toConcurrentModificationError(error, logger, "correctSessionPlate");
+        const conflict = toConcurrentModificationError(
+          error,
+          logger,
+          "correctSessionPlate",
+        );
         if (conflict) throw conflict;
         return fail("correctSessionPlate", error);
       } catch (error) {
@@ -436,7 +475,9 @@ export function createParkingRepository(
     async correctPayment(id, cents, method) {
       try {
         const { error } = await supabase.rpc("correct_payment", {
-          p_payment_id: id, p_amount_cents: cents, p_method: method,
+          p_payment_id: id,
+          p_amount_cents: cents,
+          p_method: method,
         });
         if (error) throwMutationError("correctPayment", error);
       } catch (error) {
@@ -446,7 +487,9 @@ export function createParkingRepository(
     },
     async deletePayment(id) {
       try {
-        const { error } = await supabase.rpc("delete_payment", { p_payment_id: id });
+        const { error } = await supabase.rpc("delete_payment", {
+          p_payment_id: id,
+        });
         if (error) throwMutationError("deletePayment", error);
       } catch (error) {
         if (error instanceof AppError) throw error;

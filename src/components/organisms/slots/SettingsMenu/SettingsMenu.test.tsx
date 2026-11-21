@@ -13,7 +13,10 @@ describe("SettingsMenu", () => {
       "href",
       "/stats",
     );
-    expect(screen.getByRole("link", { name: "记录查询" })).toHaveAttribute("href", "/records");
+    expect(screen.getByRole("link", { name: "记录查询" })).toHaveAttribute(
+      "href",
+      "/records",
+    );
     expect(screen.queryByText("收费设置")).toBeNull();
   });
 });

@@ -1373,29 +1373,45 @@ describe("记录查询与更正", () => {
     const { service, repository } = makeService(makeRows());
     await service.getRecords({ kind: "date", date: "2026-11-21" });
     expect(repository.readSessionsByDate).toHaveBeenCalledWith(
-      "2026-11-20T16:00:00.000Z", "2026-11-21T16:00:00.000Z",
+      "2026-11-20T16:00:00.000Z",
+      "2026-11-21T16:00:00.000Z",
     );
     expect(repository.readLeasePayments).toHaveBeenCalledWith({
-      start: "2026-11-20T16:00:00.000Z", end: "2026-11-21T16:00:00.000Z",
+      start: "2026-11-20T16:00:00.000Z",
+      end: "2026-11-21T16:00:00.000Z",
     });
   });
   it("车牌规范化后精确匹配并限制最近50条", async () => {
     const { service, repository } = makeService(makeRows());
     await service.getRecords({ kind: "plate", plate: "粤B12345" });
     expect(repository.readSessionsByPlate).toHaveBeenCalledWith("粤B12345", 50);
-    expect(repository.readLeasePayments).toHaveBeenCalledWith({ plate: "粤B12345" });
+    expect(repository.readLeasePayments).toHaveBeenCalledWith({
+      plate: "粤B12345",
+    });
     await service.correctSessionPlate({
-      sessionId: "00000000-0000-4000-8000-000000000001", plate: "粤b·99999",
+      sessionId: "00000000-0000-4000-8000-000000000001",
+      plate: "粤b·99999",
     });
     expect(repository.correctSessionPlate).toHaveBeenCalledWith(
-      "00000000-0000-4000-8000-000000000001", "粤B99999",
+      "00000000-0000-4000-8000-000000000001",
+      "粤B99999",
     );
   });
   it("更正金额用十进制转分并拒绝零金额", async () => {
     const { service, repository } = makeService(makeRows());
-    const value = { paymentId: "00000000-0000-4000-8000-000000000002", amountYuan: "3.01", method: "cash" };
+    const value = {
+      paymentId: "00000000-0000-4000-8000-000000000002",
+      amountYuan: "3.01",
+      method: "cash",
+    };
     await service.correctPayment(value);
-    expect(repository.correctPayment).toHaveBeenCalledWith(value.paymentId, 301, "cash");
-    await expect(service.correctPayment({ ...value, amountYuan: "0" })).rejects.toThrow();
+    expect(repository.correctPayment).toHaveBeenCalledWith(
+      value.paymentId,
+      301,
+      "cash",
+    );
+    await expect(
+      service.correctPayment({ ...value, amountYuan: "0" }),
+    ).rejects.toThrow();
   });
 });
