@@ -755,12 +755,11 @@ describe("月统计 Repository", () => {
     };
     payments.gte.mockReturnValue(payments);
     payments.lt.mockReturnValue(payments);
-    payments.order
-      .mockReturnValueOnce(payments)
-      .mockResolvedValueOnce({
-        data: failTable === "payments" ? null : paymentRows,
-        error: failTable === "payments" ? new Error("private error") : null,
-      });
+    payments.order.mockReturnValueOnce(payments);
+    payments.order.mockResolvedValueOnce({
+      data: failTable === "payments" ? null : paymentRows,
+      error: failTable === "payments" ? new Error("private error") : null,
+    });
 
     const entries = { gte: vi.fn(), lt: vi.fn() };
     entries.gte.mockReturnValue(entries);
