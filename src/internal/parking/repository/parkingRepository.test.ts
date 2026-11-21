@@ -707,7 +707,6 @@ describe("车位设置 Repository", () => {
   });
 });
 
-
 describe("月统计 Repository", () => {
   const start = "2026-10-31T16:00:00.000Z";
   const end = "2026-11-30T16:00:00.000Z";
@@ -795,10 +794,10 @@ describe("月统计 Repository", () => {
 
   it("payments 以 paid_at 半开区间查询并按 paid_at 倒序", async () => {
     const { client, payments, selects } = makeMonthlyClient();
-    const rows = await createParkingRepository(client, logger).readMonthlyPayments(
-      start,
-      end,
-    );
+    const rows = await createParkingRepository(
+      client,
+      logger,
+    ).readMonthlyPayments(start, end);
     expect(selects.payments).toHaveBeenCalledWith(
       expect.stringContaining("parking_sessions!payments_session_id_fkey"),
     );
@@ -823,7 +822,10 @@ describe("月统计 Repository", () => {
   it("parking_sessions 用 exact head 计数和 entered_at 半开区间", async () => {
     const { client, entries, selects } = makeMonthlyClient();
     expect(
-      await createParkingRepository(client, logger).countMonthlyEntries(start, end),
+      await createParkingRepository(client, logger).countMonthlyEntries(
+        start,
+        end,
+      ),
     ).toBe(4);
     expect(selects.parking_sessions).toHaveBeenCalledWith("id", {
       count: "exact",
@@ -835,9 +837,9 @@ describe("月统计 Repository", () => {
 
   it("slots 一次性读取车位名称而非当前在场事实", async () => {
     const { client, slots, selects } = makeMonthlyClient();
-    expect(await createParkingRepository(client, logger).readSlotNames()).toEqual([
-      { code: "1", name: "1号" },
-    ]);
+    expect(
+      await createParkingRepository(client, logger).readSlotNames(),
+    ).toEqual([{ code: "1", name: "1号" }]);
     expect(selects.slots).toHaveBeenCalledWith("code,name");
     expect(slots.order).toHaveBeenCalledWith("sort_order");
   });

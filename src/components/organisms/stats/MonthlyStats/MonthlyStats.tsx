@@ -9,7 +9,10 @@ import Link from "next/link";
 import { paymentMethodLabels } from "config/checkInText";
 import { monthlyStatsText } from "config/monthlyStatsText";
 import { billingTypeLabels } from "config/slotDetailText";
-import { shiftBusinessMonth, type MonthlyStats as MonthlyStatsData } from "internal/parking";
+import {
+  shiftBusinessMonth,
+  type MonthlyStats as MonthlyStatsData,
+} from "internal/parking";
 import { designTokens } from "theme/designTokens";
 
 type Props = {
@@ -36,7 +39,9 @@ function AmountRow({ label, cents }: { label: string; cents: number }) {
 }
 
 export function MonthlyStats({ month, currentMonth, stats }: Props) {
-  const methods = Object.keys(paymentMethodLabels) as (keyof typeof paymentMethodLabels)[];
+  const methods = Object.keys(
+    paymentMethodLabels,
+  ) as (keyof typeof paymentMethodLabels)[];
   const billingTypes = ["hotel_daily", "hourly", "lease"] as const;
 
   return (

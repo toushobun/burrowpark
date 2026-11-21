@@ -1164,7 +1164,6 @@ describe("车位设置业务", () => {
   });
 });
 
-
 describe("月统计 Service", () => {
   const payment = {
     id: "payment-1",
@@ -1220,9 +1219,17 @@ describe("月统计 Service", () => {
   it("缺少停车和长租关联时正常显示兜底名称", async () => {
     const { service, repository } = makeService(makeRows());
     vi.mocked(repository.readMonthlyPayments).mockResolvedValue([
-      { ...payment, slotCode: null, plate: null, tenantName: null, billingType: null },
+      {
+        ...payment,
+        slotCode: null,
+        plate: null,
+        tenantName: null,
+        billingType: null,
+      },
     ]);
-    expect((await service.getMonthlyStats("2026-11")).payments[0]).toMatchObject({
+    expect(
+      (await service.getMonthlyStats("2026-11")).payments[0],
+    ).toMatchObject({
       slotName: "未知车位",
       customer: "—",
     });

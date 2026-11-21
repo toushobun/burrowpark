@@ -488,7 +488,6 @@ describe("私人位借用和长租初始日期", () => {
   });
 });
 
-
 describe("月统计月份边界", () => {
   it("上海月初零点前后对应不同的业务月份", () => {
     expect(getBusinessMonth("2026-10-31T15:59:59.999Z")).toBe("2026-10");
@@ -555,7 +554,9 @@ describe("月收款整数聚合", () => {
 
   it("停车关联字段为空时仍计入总金额与收款方式", () => {
     expect(
-      summarizeMonthlyPayments([payment({ billingType: null, amountCents: 10 })]),
+      summarizeMonthlyPayments([
+        payment({ billingType: null, amountCents: 10 }),
+      ]),
     ).toMatchObject({ totalCents: 10, byMethod: { wechat: 10 } });
   });
 });

@@ -9,8 +9,7 @@ import { getBusinessMonth } from "../../util/parkingDomain";
 export async function loadMonthlyStats(input: unknown, now = new Date()) {
   const month = parseMonthlyStatsMonth(input, now);
   const dependencies = await createServerRequestDependencies();
-  const stats = await createRequestContainer(dependencies).parking.getMonthlyStats(
-    month,
-  );
+  const stats =
+    await createRequestContainer(dependencies).parking.getMonthlyStats(month);
   return { month, currentMonth: getBusinessMonth(now), stats };
 }

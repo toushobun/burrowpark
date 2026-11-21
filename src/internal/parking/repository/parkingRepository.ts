@@ -748,7 +748,8 @@ export function createParkingRepository(
           purpose: row.purpose,
           paidAt: row.paid_at,
           leaseId: row.lease_id,
-          slotCode: row.leases?.slot_code ?? row.parking_sessions?.slot_code ?? null,
+          slotCode:
+            row.leases?.slot_code ?? row.parking_sessions?.slot_code ?? null,
           plate: row.parking_sessions?.plate ?? null,
           tenantName: row.leases?.tenant_name ?? null,
           billingType: row.parking_sessions?.billing_type ?? null,

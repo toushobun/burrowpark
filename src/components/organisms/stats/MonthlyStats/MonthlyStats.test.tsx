@@ -8,11 +8,7 @@ import { emptyStats, populatedStats } from "./MonthlyStats.fixtures";
 function renderPhone(stats = populatedStats, currentMonth = "2026-12") {
   return render(
     <Box sx={{ width: 390 }}>
-      <MonthlyStats
-        month="2026-11"
-        currentMonth={currentMonth}
-        stats={stats}
-      />
+      <MonthlyStats month="2026-11" currentMonth={currentMonth} stats={stats} />
     </Box>,
   );
 }
@@ -46,7 +42,9 @@ describe("MonthlyStats", () => {
     expect(screen.getAllByText("0.00 元").length).toBeGreaterThan(0);
     expect(screen.getByText("这个月还没有收款")).toBeInTheDocument();
     for (const method of ["微信", "支付宝", "现金"]) {
-      expect(screen.getByText(method).parentElement).toHaveTextContent("0.00 元");
+      expect(screen.getByText(method).parentElement).toHaveTextContent(
+        "0.00 元",
+      );
     }
   });
 

@@ -13,11 +13,7 @@ export default async function MonthlyStatsPage({
 
   return (
     <PageShell title={monthlyStatsText.title}>
-      <MonthlyStats
-        month={month}
-        currentMonth={currentMonth}
-        stats={stats}
-      />
+      <MonthlyStats month={month} currentMonth={currentMonth} stats={stats} />
     </PageShell>
   );
 }
