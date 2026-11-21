@@ -4,8 +4,20 @@ import {
   formatBusinessDateTime,
   formatBusinessTime,
   formatElapsed,
+  getBusinessDate,
 } from "internal/parking";
 import { loadSlotDetail } from "internal/parking/adapter/next/loadSlotDetail";
+import {
+  reserveAction,
+  undoReservationAction,
+  cancelReservationAction,
+  undoCancelReservationAction,
+  extendBorrowAction,
+  undoExtendBorrowAction,
+  endLeaseAction,
+  undoEndLeaseAction,
+} from "internal/parking/adapter/next/slotOperationsActions";
+import { ReminderRefresh } from "organisms/slots/SlotReminders/ReminderRefresh";
 import { SlotDetail } from "organisms/slots/SlotDetail/SlotDetail";
 import { PageShell } from "templates/layout/PageShell/PageShell";
 
@@ -39,7 +51,25 @@ export default async function SlotDetailPage({
 
   return (
     <PageShell title={slotDetailText.pageTitle}>
-      <SlotDetail detail={detail} display={display} />
+      {detail?.kind === "private" && detail.presentVehicle && (
+        <ReminderRefresh />
+      )}
+      <SlotDetail
+        detail={detail}
+        display={display}
+        now={now.toISOString()}
+        today={getBusinessDate(now)}
+        operations={{
+          reserve: reserveAction,
+          undoReservation: undoReservationAction,
+          cancelReservation: cancelReservationAction,
+          undoCancelReservation: undoCancelReservationAction,
+          extendBorrow: extendBorrowAction,
+          undoExtendBorrow: undoExtendBorrowAction,
+          endLease: endLeaseAction,
+          undoEndLease: undoEndLeaseAction,
+        }}
+      />
     </PageShell>
   );
 }

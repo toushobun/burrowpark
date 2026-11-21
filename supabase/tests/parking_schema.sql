@@ -5,9 +5,10 @@ select plan(123);
 insert into public.slots (code, name, yard, kind, sort_order) values
   ('test-in-1', '测试内场1', 'inner', 'regular', 1),
   ('test-in-2', '测试内场2', 'inner', 'regular', 2),
-  ('test-out-1', '测试外场1', 'outer', 'private', 3);
+  ('test-out-1', '测试外场1', 'outer', 'private', 3),
+  ('test-res-1', '测试预留位', 'outer', 'regular', 4);
 
-select is((select count(*) from public.slots where code like 'test-%'), 3::bigint, '测试事务内生成三条车位');
+select is((select count(*) from public.slots where code like 'test-%'), 4::bigint, '测试事务内生成四条车位');
 select is((select count(*) from public.pricing_settings), 1::bigint, '收费配置只有一行');
 select results_eq(
   $$select hotel_daily_price_cents, hotel_checkout_hour, hotel_previous_day_before_hour, hourly_price_cents from public.pricing_settings$$,
@@ -56,7 +57,7 @@ select ok(not has_table_privilege('authenticated', 'public.pricing_settings', 'd
 set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-4000-8000-000000000031';
 
-select is((select count(*) from public.slots where code like 'test-%'), 3::bigint, '家庭账号能查询车位');
+select is((select count(*) from public.slots where code like 'test-%'), 4::bigint, '家庭账号能查询车位');
 select is((select hotel_daily_price_cents from public.pricing_settings), 3000, '家庭账号可查询收费设置');
 select throws_ok(
   $$insert into public.slots (code, name, yard, kind, sort_order) values ('test-denied', '不能写', 'inner', 'regular', 9)$$,
@@ -180,7 +181,7 @@ select lives_ok(
 select is((select guest_name from public.reservations where id = '00000000-0000-4000-8000-000000000071'), '赵女士', '预留修改生效');
 select lives_ok(
   $$insert into public.reservations (id, slot_code, guest_name)
-    values ('00000000-0000-4000-8000-000000000072', 'test-out-1', '临时预留')$$,
+    values ('00000000-0000-4000-8000-000000000072', 'test-res-1', '临时预留')$$,
   '家庭账号可创建第二条预留'
 );
 select lives_ok(
@@ -190,7 +191,7 @@ select lives_ok(
 select is((select count(*) from public.reservations where id = '00000000-0000-4000-8000-000000000072'), 0::bigint, '预留删除生效');
 select lives_ok(
   $$insert into public.reservations (slot_code, guest_name)
-    values ('test-out-1', '默认主键测试')$$,
+    values ('test-res-1', '默认主键测试')$$,
   '家庭账号可省略预留 id，由数据库生成 UUID'
 );
 delete from public.reservations where guest_name = '默认主键测试';
@@ -273,7 +274,7 @@ select lives_ok(
 );
 select throws_ok(
   $$insert into public.reservations (id, slot_code, outcome)
-    values ('00000000-0000-4000-8000-000000000074', 'test-out-1', 'cancelled')$$,
+    values ('00000000-0000-4000-8000-000000000074', 'test-res-1', 'cancelled')$$,
   '23514', null, '预留结束状态和关闭时间必须同时存在'
 );
 
@@ -369,10 +370,12 @@ select throws_ok(
             '00000000-0000-4000-8000-000000000053', 'prepay', 100, 'cash')$$,
   '42501', null, '非家庭账号不可新增收款'
 );
+-- 用完整有效的已关闭记录避开开放预留的业务触发器，单独验证 RLS 写入拒绝。
 select throws_ok(
-  $$insert into public.reservations (id, slot_code)
-    values ('00000000-0000-4000-8000-000000000079', 'test-out-1')$$,
-  '42501', null, '非家庭账号不可新增预留'
+  $$insert into public.reservations (id, slot_code, closed_at, outcome)
+    values ('00000000-0000-4000-8000-000000000079',
+            'test-res-1', now(), 'cancelled')$$,
+  '42501', null, '非家庭账号不可新增预留记录'
 );
 select is((select count(*) from public.leases where tenant_name = '越权'), 0::bigint, '越权写入不会留下长租');
 select is((select count(*) from public.pricing_settings), 0::bigint, '非家庭账号无法通过 update 的读取条件');

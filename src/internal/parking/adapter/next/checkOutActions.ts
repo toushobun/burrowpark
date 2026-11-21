@@ -15,7 +15,7 @@ import { parkingMessages } from "../../errors";
 import { readCheckOutFormData } from "../../schema";
 
 export type CheckOutActionState = ActionState & {
-  result?: { sessionId: string; plate: string };
+  result?: { sessionId: string };
 };
 
 export async function checkOutAction(

@@ -20,9 +20,17 @@ function renderDetail(detail: SlotDetailData | null) {
 }
 
 function expectActions(expected: string[]) {
-  const actionNames = ["登记进场", "续费", "续租", "离场", "再借一会儿"];
+  const actionNames = [
+    "登记进场",
+    "续费",
+    "续租",
+    "离场",
+    "再借 10 分钟",
+    "取消预留",
+  ];
   for (const name of actionNames) {
-    const role = name === "再借一会儿" ? "button" : "link";
+    const role =
+      name === "再借 10 分钟" || name === "取消预留" ? "button" : "link";
     if (expected.includes(name)) {
       expect(screen.getByRole(role, { name })).toBeInTheDocument();
     } else {
@@ -148,23 +156,27 @@ describe("SlotDetail", () => {
     renderDetail({
       ...emptyDetail,
       status: "reserved",
-      reservation: { guestName: "张女士", note: "夜间到达" },
+      reservation: {
+        id: "00000000-0000-4000-8000-000000000007",
+        guestName: "张女士",
+        note: "夜间到达",
+      },
     });
     expect(screen.getByText("张女士")).toBeInTheDocument();
     expect(screen.getByText("夜间到达")).toBeInTheDocument();
-    expectActions(["登记进场"]);
+    expectActions(["登记进场", "取消预留"]);
   });
 
   it("私人位借用中显示借到时间以及再借一会儿和离场", () => {
     renderDetail(privateBorrowedDetail);
     expect(screen.getByText("12:30")).toBeInTheDocument();
-    expectActions(["再借一会儿", "离场"]);
+    expectActions(["再借 10 分钟", "离场"]);
   });
 
   it("私人位借用逾期后仍保留再借一会儿和离场按钮", () => {
     renderDetail({ ...privateBorrowedDetail, status: "overdue" });
     expect(screen.getByText("已过期")).toBeInTheDocument();
-    expectActions(["再借一会儿", "离场"]);
+    expectActions(["再借 10 分钟", "离场"]);
   });
 
   it("普通酒店客逾期时不出现私人位借用按钮", () => {
@@ -172,13 +184,13 @@ describe("SlotDetail", () => {
     expectActions(["续费", "离场"]);
   });
 
-  it("预留内容为空且同位有长租时不渲染空白卡片", () => {
+  it("预留内容为空且同位有长租时仍显示长租信息", () => {
     const { container } = renderDetail({
       ...leaseAwayDetail,
       status: "reserved",
       reservation: { guestName: null, note: null },
     });
-    expect(container.querySelector(".MuiPaper-root")).toBeNull();
+    expect(container.querySelector(".MuiPaper-root")).not.toBeNull();
     expectActions(["登记进场", "续租"]);
   });
 
@@ -212,9 +224,124 @@ describe("SlotDetail", () => {
     expect(screen.queryByText("功能开发中")).toBeNull();
   });
 
-  it("私人位再借一会儿仍使用现有 Snackbar", () => {
+  it("私人位再借10分钟和再借30分钟分别位于主操作和更多操作", () => {
     renderDetail(privateBorrowedDetail);
-    fireEvent.click(screen.getByRole("button", { name: "再借一会儿" }));
-    expect(screen.getByText("功能开发中")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "再借 10 分钟" }),
+    ).toHaveAttribute("type", "submit");
+    expect(
+      screen.getByRole("button", { name: "再借 30 分钟" }),
+    ).toHaveAttribute("type", "submit");
+    expect(screen.getByText("更多操作")).toBeInTheDocument();
+  });
+
+  it("空位展示预留和设为长租的文字操作", () => {
+    renderDetail(emptyDetail);
+    expect(screen.getByRole("button", { name: "预留" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "设为长租" })).toHaveAttribute(
+      "href",
+      "/slots/7/lease/new",
+    );
+  });
+});
+
+describe("SlotDetail 预留、退租和成功结果", () => {
+  it("预留按钮展开可填写的简短表单", () => {
+    renderDetail(emptyDetail);
+    fireEvent.click(screen.getByRole("button", { name: "预留" }));
+    expect(screen.getByRole("textbox", { name: "预留人" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "确认预留" }),
+    ).toBeInTheDocument();
+  });
+
+  it("长租车不在时退租需要 Dialog 二次确认", () => {
+    renderDetail(leaseAwayDetail);
+    fireEvent.click(screen.getByRole("button", { name: "退租" }));
+    expect(screen.getByText("确定让 王先生 退租吗？")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "确定退租" }),
+    ).toBeInTheDocument();
+  });
+
+  it("取消预留必须先经过 Dialog", () => {
+    renderDetail({
+      ...emptyDetail,
+      status: "reserved",
+      reservation: {
+        id: "00000000-0000-4000-8000-000000000007",
+        guestName: "张女士",
+        note: null,
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "取消预留" }));
+    expect(screen.getByText("确定取消预留吗？")).toBeInTheDocument();
+  });
+
+  it("预留成功结果常驻展示地图、查看车位和撤销", () => {
+    render(
+      <SlotDetail
+        detail={emptyDetail}
+        display={detailDisplay}
+        initialState={{
+          reserve: {
+            success: "预留成功",
+            result: {
+              id: "00000000-0000-4000-8000-000000000007",
+            },
+          },
+        }}
+      />,
+    );
+    expect(screen.getByText("预留成功")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "回地图" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "查看车位" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "查看车位" }));
+    expect(screen.queryByText("预留成功")).not.toBeInTheDocument();
+    expect(screen.getByText("7号")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "登记进场" })).toBeInTheDocument();
+  });
+
+  it("私人位借用只根据服务端更新的时间刷新剩余分钟和超时状态", () => {
+    const { rerender } = render(
+      <SlotDetail
+        detail={privateBorrowedDetail}
+        display={detailDisplay}
+        now="2026-11-19T04:00:00.000Z"
+      />,
+    );
+    expect(screen.getByText("还剩 30 分钟")).toBeInTheDocument();
+    rerender(
+      <SlotDetail
+        detail={privateBorrowedDetail}
+        display={detailDisplay}
+        now="2026-11-19T04:31:00.000Z"
+      />,
+    );
+    expect(screen.getByText("已超时 1 分钟")).toBeInTheDocument();
+    expect(screen.getByText("已过期")).toBeInTheDocument();
+  });
+
+  it("私人借用显示剩余和已超时分钟数", () => {
+    const { unmount } = render(
+      <SlotDetail
+        detail={privateBorrowedDetail}
+        display={detailDisplay}
+        now="2026-11-19T04:00:00.000Z"
+      />,
+    );
+    expect(screen.getByText("还剩 30 分钟")).toBeInTheDocument();
+    unmount();
+    render(
+      <SlotDetail
+        detail={privateBorrowedDetail}
+        display={detailDisplay}
+        now="2026-11-19T04:32:00.000Z"
+      />,
+    );
+    expect(screen.getByText("已超时 2 分钟")).toBeInTheDocument();
   });
 });

@@ -48,6 +48,18 @@ export const leaseAwayDetail: SlotDetailData = {
   ...emptyDetail,
   status: "leaseAway",
   lease: {
+    id: "00000000-0000-4000-8000-000000000006",
+    plate: "粤B00111",
+    startsOn: "2026-11-01",
+    note: "夜市长期",
+    recentPayments: [
+      {
+        id: "payment-1",
+        paidAt: "2026-11-01T04:00:00.000Z",
+        amountCents: 10000,
+        method: "cash",
+      },
+    ],
     tenantName: "王先生",
     phone: "13800000000",
     paidUntil: "2026-11-30T04:00:00.000Z",
@@ -60,6 +72,7 @@ export const privateBorrowedDetail: SlotDetailData = {
   status: "privateBorrowed",
   presentVehicle: {
     ...hourlyDetail.presentVehicle!,
+    sessionId: "00000000-0000-4000-8000-000000000005",
     borrowUntil: "2026-11-19T04:30:00.000Z",
   },
 };

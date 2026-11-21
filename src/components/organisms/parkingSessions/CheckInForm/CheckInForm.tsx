@@ -71,7 +71,7 @@ function ChoiceButton({
 export function CheckInForm({ form, action, undoAction, initialState }: Props) {
   const [state, submit, isPending] = useActionState(action, initialState ?? {});
   const [undoState, undo, isUndoPending] = useActionState(undoAction, {});
-  const [plate, setPlate] = useState("");
+  const [plate, setPlate] = useState(form?.defaultLeasePlate ?? "");
   const [billingType, setBillingType] = useState<ParkingBillingType>(
     form?.kind === "private"
       ? "hourly"

@@ -1,0 +1,17 @@
+export const leaseText = {
+  createTitle: "设为长租",
+  editTitle: "编辑长租",
+  missing: "当前车位不能办理此操作",
+  name: "租户名",
+  phone: "联系电话",
+  plate: "常停车牌",
+  startsOn: "起租日",
+  note: "备注",
+  paidThrough: "首笔交到哪天",
+  amount: "实收金额（元）",
+  paymentMethod: "收款方式",
+  create: "确认建立长租",
+  edit: "保存长租资料",
+  createSuccess: "长租建立成功",
+  editSuccess: "长租资料已保存",
+} as const;

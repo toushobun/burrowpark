@@ -3,7 +3,10 @@ import {
   type AuthContext,
 } from "internal/shared/auth/authContext";
 import type { SlotStatus } from "theme/slotStatusTokens";
-import { ValidationError } from "internal/shared/errors/appError";
+import {
+  ConflictError,
+  ValidationError,
+} from "internal/shared/errors/appError";
 
 import { parkingMessages } from "../errors";
 import {
@@ -12,6 +15,13 @@ import {
   parseCheckOutInput,
   parseRenewInput,
   parseUndoSessionId,
+  createLeaseInputSchema,
+  editLeaseInputSchema,
+  endLeaseInputSchema,
+  reserveInputSchema,
+  borrowExtensionSchema,
+  borrowUndoSchema,
+  parseParkingOperation,
 } from "../schema";
 
 import type {
@@ -47,6 +57,7 @@ export type SlotMapSlot = {
 export type SlotDetail = SlotMapSlot & {
   kind: ParkingSlotKind;
   presentVehicle: {
+    sessionId?: string;
     plate: string;
     billingType: ParkingBillingType;
     enteredAt: string;
@@ -55,10 +66,21 @@ export type SlotDetail = SlotMapSlot & {
     photoUrl: string | null;
   } | null;
   reservation: {
+    id?: string | null;
     guestName: string | null;
     note: string | null;
   } | null;
   lease: {
+    id?: string;
+    startsOn?: string | null;
+    plate?: string | null;
+    note?: string | null;
+    recentPayments?: {
+      id: string;
+      paidAt: string;
+      amountCents: number;
+      method: "wechat" | "alipay" | "cash";
+    }[];
     tenantName: string;
     phone: string | null;
     paidUntil: string | null;
@@ -72,6 +94,7 @@ export type CheckInFormData = {
   isActive: boolean;
   occupied: boolean;
   hasLease: boolean;
+  defaultLeasePlate?: string | null;
   hasReservation: boolean;
   pricing: ParkingPricingSettings;
   now: string;
@@ -107,7 +130,7 @@ export type CheckOutFormData = {
   overstayHours: number;
 };
 export type RenewalResult = { paymentId: string; paidUntil: string };
-export type CheckOutResult = { sessionId: string; plate: string };
+export type CheckOutResult = { sessionId: string };
 export type SlotReminder = {
   code: string;
   name: string;
@@ -130,6 +153,21 @@ export interface ParkingService {
   getCheckOutForm(code: string, now: Date): Promise<CheckOutFormData | null>;
   checkOut(input: unknown): Promise<CheckOutResult>;
   undoCheckOut(sessionId: unknown): Promise<void>;
+  createLease(input: unknown): Promise<{ leaseId: string }>;
+  undoCreateLease(id: unknown): Promise<void>;
+  editLease(input: unknown): Promise<void>;
+  endLease(input: unknown): Promise<{ leaseId: string }>;
+  undoEndLease(id: unknown): Promise<void>;
+  reserve(input: unknown): Promise<{ reservationId: string }>;
+  cancelReservation(id: unknown): Promise<{ reservationId: string }>;
+  undoReservation(id: unknown): Promise<void>;
+  undoCancelReservation(id: unknown): Promise<void>;
+  extendBorrow(input: unknown): Promise<{
+    sessionId: string;
+    previous: string;
+    current: string;
+  }>;
+  undoExtendBorrow(input: unknown): Promise<void>;
 }
 
 function latestPaidUntil(
@@ -228,6 +266,7 @@ export function createParkingService(
         isActive: match.slot.is_active,
         occupied: Boolean(match.session),
         hasLease: Boolean(match.lease),
+        ...(match.lease?.plate ? { defaultLeasePlate: match.lease.plate } : {}),
         hasReservation: Boolean(match.reservation),
         pricing,
         now: now.toISOString(),
@@ -420,12 +459,190 @@ export function createParkingService(
           : null,
         paymentMethod: value.paymentMethod ?? null,
       });
-      return { sessionId: value.sessionId, plate: "" };
+      return { sessionId: value.sessionId };
     },
 
     async undoCheckOut(sessionId) {
       await requireAuthenticatedUserId(getAuth);
       await repository.undoCheckOut(parseUndoSessionId(sessionId));
+    },
+
+    async createLease(input) {
+      await requireAuthenticatedUserId(getAuth);
+      const value = parseParkingOperation(createLeaseInputSchema, input);
+      const facts = await repository.readSlotFacts();
+      const match = assembleSlotFacts(facts).find(
+        ({ slot }) => slot.code === value.slotCode,
+      );
+      if (!match?.slot.is_active || match.slot.kind !== "regular")
+        throw new ValidationError(
+          "slot_unavailable",
+          parkingMessages.slotUnavailable,
+        );
+      if (match.lease)
+        throw new ConflictError("lease_exists", parkingMessages.leaseExists);
+      if (match.session || match.reservation)
+        throw new ConflictError("slot_occupied", parkingMessages.slotOccupied);
+      let paidUntil: string;
+      try {
+        leaseDateToPaidUntil(value.startsOn);
+        paidUntil = leaseDateToPaidUntil(value.paidThrough);
+      } catch {
+        throw new ValidationError(
+          "lease_date_invalid",
+          parkingMessages.leaseDateInvalid,
+        );
+      }
+      if (value.paidThrough <= value.startsOn)
+        throw new ValidationError(
+          "lease_date_invalid",
+          parkingMessages.leaseDateInvalid,
+        );
+      const leaseId = await repository.createLease({
+        slotCode: value.slotCode,
+        tenantName: value.tenantName,
+        phone: value.phone,
+        plate: value.plate,
+        startsOn: value.startsOn,
+        note: value.note,
+        paidUntil,
+        amountCents: parseAmountCents(value.amountYuan),
+        paymentMethod: value.paymentMethod,
+      });
+      return { leaseId };
+    },
+    async undoCreateLease(id) {
+      await requireAuthenticatedUserId(getAuth);
+      await repository.undoCreateLease(parseUndoSessionId(id));
+    },
+    async editLease(input) {
+      await requireAuthenticatedUserId(getAuth);
+      const value = parseParkingOperation(editLeaseInputSchema, input);
+      const facts = await repository.readSlotFacts();
+      const lease = facts.leases.find(
+        (item) =>
+          item.id === value.leaseId && item.slot_code === value.slotCode,
+      );
+      if (!lease)
+        throw new ValidationError(
+          "lease_unavailable",
+          parkingMessages.leaseUnavailable,
+        );
+      await repository.updateLease(value.leaseId, {
+        tenant_name: value.tenantName,
+        phone: value.phone,
+        plate: value.plate,
+        note: value.note,
+      });
+    },
+    async endLease(input) {
+      await requireAuthenticatedUserId(getAuth);
+      const value = parseParkingOperation(endLeaseInputSchema, input);
+      const facts = await repository.readSlotFacts();
+      const lease = facts.leases.find((entry) => entry.id === value.leaseId);
+      if (!lease)
+        throw new ValidationError(
+          "lease_unavailable",
+          parkingMessages.leaseUnavailable,
+        );
+      try {
+        leaseDateToPaidUntil(value.endedOn);
+      } catch {
+        throw new ValidationError(
+          "lease_date_invalid",
+          parkingMessages.leaseDateInvalid,
+        );
+      }
+      if (lease.starts_on && value.endedOn < lease.starts_on)
+        throw new ValidationError(
+          "lease_date_invalid",
+          parkingMessages.leaseDateInvalid,
+        );
+      await repository.endLease(value.leaseId, value.endedOn);
+      return { leaseId: value.leaseId };
+    },
+    async undoEndLease(id) {
+      await requireAuthenticatedUserId(getAuth);
+      await repository.undoEndLease(parseUndoSessionId(id));
+    },
+    async reserve(input) {
+      await requireAuthenticatedUserId(getAuth);
+      const value = parseParkingOperation(reserveInputSchema, input);
+      const facts = await repository.readSlotFacts();
+      const match = assembleSlotFacts(facts).find(
+        ({ slot }) => slot.code === value.slotCode,
+      );
+      if (match?.reservation)
+        throw new ConflictError(
+          "reservation_exists",
+          parkingMessages.slotReserved,
+        );
+      if (
+        !match?.slot.is_active ||
+        match.slot.kind !== "regular" ||
+        match.session ||
+        match.lease
+      )
+        throw new ValidationError(
+          "slot_unavailable",
+          parkingMessages.slotUnavailable,
+        );
+      const reservationId = await repository.createReservation(
+        value.slotCode,
+        value.guestName,
+        value.note,
+      );
+      return { reservationId };
+    },
+    async cancelReservation(id) {
+      await requireAuthenticatedUserId(getAuth);
+      const reservationId = parseUndoSessionId(id);
+      const facts = await repository.readSlotFacts();
+      if (!facts.reservations.some((res) => res.id === reservationId))
+        throw new ConflictError(
+          "reservation_unavailable",
+          parkingMessages.reservationUnavailable,
+        );
+      await repository.cancelReservation(reservationId);
+      return { reservationId };
+    },
+    async undoReservation(id) {
+      await requireAuthenticatedUserId(getAuth);
+      await repository.undoReservation(parseUndoSessionId(id));
+    },
+    async undoCancelReservation(id) {
+      await requireAuthenticatedUserId(getAuth);
+      await repository.undoCancelReservation(parseUndoSessionId(id));
+    },
+    async extendBorrow(input) {
+      await requireAuthenticatedUserId(getAuth);
+      const value = parseParkingOperation(borrowExtensionSchema, input);
+      const facts = await repository.readSlotFacts();
+      const match = assembleSlotFacts(facts).find(
+        ({ slot, session }) =>
+          slot.kind === "private" &&
+          slot.is_active &&
+          session?.id === value.sessionId,
+      );
+      if (!match)
+        throw new ValidationError(
+          "borrow_unavailable",
+          parkingMessages.invalidInput,
+        );
+      const result = await repository.extendBorrow(
+        value.sessionId,
+        value.minutes,
+      );
+      return { sessionId: value.sessionId, ...result };
+    },
+    async undoExtendBorrow(input) {
+      await requireAuthenticatedUserId(getAuth);
+      const value = parseParkingOperation(borrowUndoSchema, input);
+      await repository.undoExtendBorrow(
+        value.sessionId,
+        value.previous,
+        value.expectedCurrent,
+      );
     },
 
     async getReminders(now) {
@@ -528,6 +745,7 @@ export function createParkingService(
         presentVehicle:
           slot.is_active && session
             ? {
+                sessionId: session.id,
                 plate: session.plate,
                 billingType: session.billing_type,
                 enteredAt: session.entered_at,
@@ -538,11 +756,37 @@ export function createParkingService(
             : null,
         reservation:
           slot.is_active && reservation
-            ? { guestName: reservation.guest_name, note: reservation.note }
+            ? {
+                id: reservation.id ?? null,
+                guestName: reservation.guest_name,
+                note: reservation.note,
+              }
             : null,
         lease:
           slot.is_active && lease
             ? {
+                id: lease.id,
+                startsOn: lease.starts_on ?? null,
+                plate: lease.plate ?? null,
+                note: lease.note ?? null,
+                recentPayments: lease.lease_payments
+                  .filter(
+                    (payment) =>
+                      payment.id &&
+                      payment.paid_at &&
+                      payment.amount_cents &&
+                      payment.method,
+                  )
+                  .sort((a, b) =>
+                    (b.paid_at ?? "").localeCompare(a.paid_at ?? ""),
+                  )
+                  .slice(0, 3)
+                  .map((payment) => ({
+                    id: payment.id!,
+                    paidAt: payment.paid_at!,
+                    amountCents: payment.amount_cents!,
+                    method: payment.method!,
+                  })),
                 tenantName: lease.tenant_name,
                 phone: lease.phone,
                 paidUntil: leasePaidUntil,

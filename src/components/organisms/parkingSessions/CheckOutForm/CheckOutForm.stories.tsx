@@ -61,7 +61,7 @@ export const CheckOutSuccess: Story = {
     initialState: {
       success: "离场成功",
       successKey: "done",
-      result: { sessionId: hourly.sessionId, plate: hourly.plate },
+      result: { sessionId: hourly.sessionId },
     },
   },
 };
