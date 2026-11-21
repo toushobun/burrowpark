@@ -1,5 +1,5 @@
 begin;
-select plan(60);
+select plan(63);
 
 insert into public.slots(code,name,yard,kind,sort_order,is_active) values
  ('test-lrb-1','31号','outer','regular',301,true),
@@ -21,6 +21,12 @@ select ok(not has_function_privilege('anon','public.undo_cancel_reservation(uuid
 select ok(not has_function_privilege('anon','public.extend_borrow(uuid,int)','execute'),'匿名账号不能延长借用');
 select ok(not has_function_privilege('anon',
  'public.undo_extend_borrow(uuid,timestamptz,timestamptz)','execute'),'匿名账号不能撤销延长借用');
+
+-- 迁移与 SQL Editor 以 postgres 角色写入时不依赖家庭身份。
+reset request.jwt.claim.sub;
+select lives_ok($$insert into public.reservations(slot_code)
+ values ('test-lrb-5')$$,'postgres 角色可以插入空闲车位预留');
+delete from public.reservations where slot_code='test-lrb-5';
 
 set local role authenticated;
 set local request.jwt.claim.sub='00000000-0000-4000-8000-000000000031';
@@ -73,6 +79,16 @@ select lives_ok($$select public.undo_end_lease(
  (select id from public.leases where slot_code='test-lrb-1'))$$,'十分钟内可以撤销退租');
 select ok((select ended_on is null from public.leases where slot_code='test-lrb-1'),
  '撤销退租后恢复在租');
+select public.end_lease((select id from public.leases where slot_code='test-lrb-1'),current_date);
+reset role;
+alter table public.leases disable trigger leases_updated_at;
+update public.leases set updated_at=now()-interval '11 minutes' where slot_code='test-lrb-1';
+alter table public.leases enable trigger leases_updated_at;
+set local role authenticated;
+select throws_ok($$select public.undo_end_lease(
+ (select id from public.leases where slot_code='test-lrb-1'))$$,
+ 'P0001','已经不能撤销了','退租超过十分钟不能撤销');
+update public.leases set ended_on=null where slot_code='test-lrb-1';
 
 select lives_ok($$select public.create_lease(
  'test-lrb-2','新租户',null,null,current_date,null,
@@ -174,6 +190,17 @@ select throws_ok($$select * from public.extend_borrow(
 select throws_ok($$select * from public.extend_borrow(
  (select id from public.parking_sessions where slot_code='test-lrb-1'),10)$$,
  'P0001','借用记录无效','普通车位不能再借');
+
+reset role;
+alter table public.parking_sessions disable trigger parking_sessions_updated_at;
+update public.parking_sessions set updated_at=now()-interval '11 minutes' where slot_code='test-lrb-4';
+alter table public.parking_sessions enable trigger parking_sessions_updated_at;
+set local role authenticated;
+select throws_ok($$select public.undo_extend_borrow(
+ (select id from public.parking_sessions where slot_code='test-lrb-4'),
+ (select borrow_until - interval '30 minutes' from public.parking_sessions where slot_code='test-lrb-4'),
+ (select borrow_until from public.parking_sessions where slot_code='test-lrb-4'))$$,
+ 'P0001','已经不能撤销了','再借超过十分钟不能撤销');
 
 set local request.jwt.claim.sub='00000000-0000-4000-8000-000000000099';
 select throws_ok($$select public.create_lease(

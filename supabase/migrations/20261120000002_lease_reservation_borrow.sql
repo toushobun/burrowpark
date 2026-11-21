@@ -145,9 +145,6 @@ create function public.guard_open_reservation() returns trigger
 language plpgsql security invoker set search_path = ''
 as $$
 begin
-  if not public.is_family_account() then
-    raise exception '无权操作' using errcode='42501',detail='FAMILY_REQUIRED';
-  end if;
   if new.closed_at is null then
     perform pg_catalog.pg_advisory_xact_lock(
       pg_catalog.hashtextextended('check-in-slot:' || new.slot_code,0));

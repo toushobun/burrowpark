@@ -1,5 +1,5 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import type { SlotDetail as SlotDetailData } from "internal/parking";
 
@@ -295,31 +295,32 @@ describe("SlotDetail 预留、退租和成功结果", () => {
     );
     expect(screen.getByText("预留成功")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "回地图" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "查看车位" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "查看车位" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "查看车位" }));
+    expect(screen.queryByText("预留成功")).not.toBeInTheDocument();
+    expect(screen.getByText("7号")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "登记进场" })).toBeInTheDocument();
   });
 
-  it("私人位借用每分钟刷新剩余时间并自动变为已过期", () => {
-    vi.useFakeTimers();
-    try {
-      vi.setSystemTime(new Date("2026-11-19T04:00:00.000Z"));
-      const { unmount } = render(
-        <SlotDetail
-          detail={privateBorrowedDetail}
-          display={detailDisplay}
-          now="2026-11-19T04:00:00.000Z"
-        />,
-      );
-      expect(screen.getByText("还剩 30 分钟")).toBeInTheDocument();
-      act(() => vi.advanceTimersByTime(60_000));
-      expect(screen.getByText("还剩 29 分钟")).toBeInTheDocument();
-      act(() => vi.advanceTimersByTime(30 * 60_000));
-      expect(screen.getByText("已超时 1 分钟")).toBeInTheDocument();
-      expect(screen.getByText("已过期")).toBeInTheDocument();
-      unmount();
-    } finally {
-      vi.useRealTimers();
-    }
+  it("私人位借用只根据服务端更新的时间刷新剩余分钟和超时状态", () => {
+    const { rerender } = render(
+      <SlotDetail
+        detail={privateBorrowedDetail}
+        display={detailDisplay}
+        now="2026-11-19T04:00:00.000Z"
+      />,
+    );
+    expect(screen.getByText("还剩 30 分钟")).toBeInTheDocument();
+    rerender(
+      <SlotDetail
+        detail={privateBorrowedDetail}
+        display={detailDisplay}
+        now="2026-11-19T04:31:00.000Z"
+      />,
+    );
+    expect(screen.getByText("已超时 1 分钟")).toBeInTheDocument();
+    expect(screen.getByText("已过期")).toBeInTheDocument();
   });
 
   it("私人借用显示剩余和已超时分钟数", () => {

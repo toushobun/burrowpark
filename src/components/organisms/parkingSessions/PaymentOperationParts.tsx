@@ -87,6 +87,7 @@ export function ParkingOperationResult({
   undo,
   isUndoPending,
   extraUndoFields,
+  onViewSlot,
 }: {
   code: string;
   title: string;
@@ -96,6 +97,7 @@ export function ParkingOperationResult({
   undo: (data: FormData) => void;
   isUndoPending: boolean;
   extraUndoFields?: { name: string; value: string }[];
+  onViewSlot?: () => void;
 }) {
   return (
     <Stack spacing={3}>
@@ -117,16 +119,28 @@ export function ParkingOperationResult({
       >
         {parkingOperationText.backMap}
       </Button>
-      <Button
-        component={Link}
-        fullWidth
-        href={`/slots/${code}`}
-        size="large"
-        sx={{ minHeight: designTokens.size.touchTargetMin }}
-        variant="outlined"
-      >
-        {parkingOperationText.viewSlot}
-      </Button>
+      {onViewSlot ? (
+        <Button
+          fullWidth
+          onClick={onViewSlot}
+          size="large"
+          sx={{ minHeight: designTokens.size.touchTargetMin }}
+          variant="outlined"
+        >
+          {parkingOperationText.viewSlot}
+        </Button>
+      ) : (
+        <Button
+          component={Link}
+          fullWidth
+          href={`/slots/${code}`}
+          size="large"
+          sx={{ minHeight: designTokens.size.touchTargetMin }}
+          variant="outlined"
+        >
+          {parkingOperationText.viewSlot}
+        </Button>
+      )}
       {!undoState.success && (
         <form action={undo}>
           <input type="hidden" name={idName} value={id} />

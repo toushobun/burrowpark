@@ -11,7 +11,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 
 import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
 import { paymentMethodLabels } from "config/checkInText";
@@ -89,26 +89,31 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 /** 首页详情只保留最多两个主操作；低频操作集中在「更多操作」。 */
-export function SlotDetail({
+export function SlotDetail(props: SlotDetailProps) {
+  const [resetKey, setResetKey] = useState(0);
+  return (
+    <SlotDetailContent
+      key={resetKey}
+      {...props}
+      initialState={resetKey === 0 ? props.initialState : undefined}
+      onViewSlot={() => setResetKey((key) => key + 1)}
+    />
+  );
+}
+
+function SlotDetailContent({
   detail,
   display,
   today = "",
   now = "",
   operations,
   initialState,
-}: SlotDetailProps) {
+  onViewSlot,
+}: SlotDetailProps & { onViewSlot: () => void }) {
   const [reserveOpen, setReserveOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
   const [endDate, setEndDate] = useState(today);
-  const [liveNow, setLiveNow] = useState<string | null>(null);
-  useEffect(() => {
-    if (detail?.kind !== "private" || !detail.presentVehicle || !now) return;
-    const timer = window.setInterval(() => {
-      setLiveNow(new Date().toISOString());
-    }, 60_000);
-    return () => window.clearInterval(timer);
-  }, [detail?.kind, detail?.presentVehicle, now]);
   const [reserveState, submitReserve, reservePending] = useActionState(
     operations?.reserve ?? unavailableAction,
     initialState?.reserve ?? ({} as SlotActionState),
@@ -204,6 +209,7 @@ export function SlotDetail({
           undo={submitUndo}
           undoState={undoState}
           isUndoPending={undoPending}
+          onViewSlot={onViewSlot}
         />
         <FailureFeedbackDialog state={undoState} />
       </>
@@ -213,12 +219,11 @@ export function SlotDetail({
   const vehicle = detail.presentVehicle;
   const phone = detail.lease?.phone?.trim();
   const privateBorrowed = detail.kind === "private" && Boolean(vehicle);
-  const countdownNow = liveNow ?? now;
   const borrowOverdue =
     privateBorrowed &&
     !!vehicle?.borrowUntil &&
-    !!countdownNow &&
-    Date.parse(countdownNow) >= Date.parse(vehicle.borrowUntil);
+    !!now &&
+    Date.parse(now) >= Date.parse(vehicle.borrowUntil);
   const reserved = !vehicle && Boolean(detail.reservation);
   const leaseAway = !vehicle && Boolean(detail.lease);
   const links: { label: string; href: string }[] = [];
@@ -352,10 +357,7 @@ export function SlotDetail({
                       variant="h3"
                       color={borrowOverdue ? "error" : "textPrimary"}
                     >
-                      {describeBorrowRemaining(
-                        vehicle.borrowUntil,
-                        countdownNow,
-                      )}
+                      {describeBorrowRemaining(vehicle.borrowUntil, now)}
                     </Typography>
                   )}
                   {vehicle.photoUrl && (

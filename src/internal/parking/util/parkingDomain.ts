@@ -1,3 +1,4 @@
+import { slotDetailText } from "config/slotDetailText";
 import type { SlotStatus } from "theme/slotStatusTokens";
 import type {
   ParkingPricingSettings,
@@ -322,8 +323,12 @@ export const describeBorrowRemaining = (
   const difference =
     parseTimestamp(borrowUntil).getTime() - parseTimestamp(now).getTime();
   return difference > 0
-    ? "还剩 " + Math.ceil(difference / 60000) + " 分钟"
-    : "已超时 " + Math.ceil(-difference / 60000) + " 分钟";
+    ? slotDetailText.borrowRemaining +
+        Math.ceil(difference / 60000) +
+        slotDetailText.borrowMinute
+    : slotDetailText.borrowOvertime +
+        Math.ceil(-difference / 60000) +
+        slotDetailText.borrowMinute;
 };
 
 /** 超时不足一天按一天计费；不足一小时也向上取整显示。 */

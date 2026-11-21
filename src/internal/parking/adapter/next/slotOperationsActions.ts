@@ -44,7 +44,6 @@ async function execute(
     );
     revalidatePath("/");
     revalidatePath("/slots/[code]", "page");
-    revalidatePath("/settings/slots");
     return {
       ...createSuccessState(successText),
       ...(result ? { result } : {}),
