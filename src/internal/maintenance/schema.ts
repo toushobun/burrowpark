@@ -1,10 +1,12 @@
 import { z } from "@hono/zod-openapi";
 
-export const photoCleanupResponseSchema = z.object({
-  checked: z.number().int().nonnegative(),
-  removed: z.number().int().nonnegative(),
-  failed: z.number().int().nonnegative(),
-}).openapi("PhotoCleanupResponse");
+export const photoCleanupResponseSchema = z
+  .object({
+    checked: z.number().int().nonnegative(),
+    removed: z.number().int().nonnegative(),
+    failed: z.number().int().nonnegative(),
+  })
+  .openapi("PhotoCleanupResponse");
 
 export const errorResponseSchema = z.object({
   error: z.object({

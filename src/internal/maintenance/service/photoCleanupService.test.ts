@@ -6,7 +6,10 @@ import type { PhotoCleanupRepository } from "../repository/photoCleanupRepositor
 import { createPhotoCleanupService } from "./photoCleanupService";
 
 const logger: Logger = { error: vi.fn(), warn: vi.fn(), info: vi.fn() };
-const rows = [{ id: "a", path: "one.jpg" }, { id: "b", path: "two.jpg" }];
+const rows = [
+  { id: "a", path: "one.jpg" },
+  { id: "b", path: "two.jpg" },
+];
 function makeRepo(paths: string[]): PhotoCleanupRepository {
   return {
     listExpired: vi.fn().mockResolvedValue(rows),
@@ -19,18 +22,33 @@ describe("createPhotoCleanupService", () => {
     const repository = makeRepo(["one.jpg", "two.jpg"]);
     const now = () => new Date("2026-11-21T20:00:00.000Z");
     await createPhotoCleanupService(repository, logger, now).cleanup();
-    expect(repository.listExpired).toHaveBeenCalledWith("2026-08-23T20:00:00.000Z", 200);
+    expect(repository.listExpired).toHaveBeenCalledWith(
+      "2026-08-23T20:00:00.000Z",
+      200,
+    );
   });
   it("部分删除失败时只清空成功路径", async () => {
     const repository = makeRepo(["one.jpg"]);
-    const result = await createPhotoCleanupService(repository, logger).cleanup();
-    expect(repository.clearDeletedPaths).toHaveBeenCalledWith([rows[0]], expect.any(String));
+    const result = await createPhotoCleanupService(
+      repository,
+      logger,
+    ).cleanup();
+    expect(repository.clearDeletedPaths).toHaveBeenCalledWith(
+      [rows[0]],
+      expect.any(String),
+    );
     expect(result).toEqual({ checked: 2, removed: 1, failed: 1 });
   });
   it("Storage整批失败时不清空任何路径", async () => {
     const repository = makeRepo([]);
-    const result = await createPhotoCleanupService(repository, logger).cleanup();
-    expect(repository.clearDeletedPaths).toHaveBeenCalledWith([], expect.any(String));
+    const result = await createPhotoCleanupService(
+      repository,
+      logger,
+    ).cleanup();
+    expect(repository.clearDeletedPaths).toHaveBeenCalledWith(
+      [],
+      expect.any(String),
+    );
     expect(result).toEqual({ checked: 2, removed: 0, failed: 2 });
   });
 });

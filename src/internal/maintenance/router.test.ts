@@ -8,12 +8,18 @@ import { errorHandlingMiddleware } from "internal/shared/http/errorResponse";
 import { sameOriginMiddleware } from "internal/shared/middleware/sameOriginMiddleware";
 import { maintenanceRouter } from "./router";
 
-afterEach(() => { vi.unstubAllEnvs(); });
-function createApp(cleanup = vi.fn().mockResolvedValue({ checked: 2, removed: 1, failed: 1 })) {
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+function createApp(
+  cleanup = vi.fn().mockResolvedValue({ checked: 2, removed: 1, failed: 1 }),
+) {
   const app = new OpenAPIHono<AppEnv>();
   app.use("*", async (c, next) => {
     c.set("requestId", "test-request");
-    c.set("container", { maintenance: { cleanup } } as unknown as RequestContainer);
+    c.set("container", {
+      maintenance: { cleanup },
+    } as unknown as RequestContainer);
     await next();
   });
   app.use("*", sameOriginMiddleware);
@@ -28,10 +34,14 @@ describe("photo cleanup route", () => {
     const { app, cleanup } = createApp();
     const res = await app.request("/cron/photo-cleanup");
     expect(res.status).toBe(401);
-    expect(await res.json()).toEqual({ error: {
-      code: "cron_unauthorized", message: "未授权的定时任务。",
-      status: 401, requestId: "test-request",
-    } });
+    expect(await res.json()).toEqual({
+      error: {
+        code: "cron_unauthorized",
+        message: "未授权的定时任务。",
+        status: 401,
+        requestId: "test-request",
+      },
+    });
     expect(cleanup).not.toHaveBeenCalled();
   });
   it("错误凭证和缺少环境密钥均返回401", async () => {
