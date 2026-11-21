@@ -35,7 +35,9 @@ function getWorker(): Worker {
     clearTimeout(request.timer);
     request.resolve(event.data.plate);
   };
-  instance.onerror = () => resetWorker();
+  instance.onerror = () => {
+    if (worker === instance) resetWorker();
+  };
   worker = instance;
   return instance;
 }
@@ -44,9 +46,13 @@ export function recognizePlate(blob: Blob): Promise<string | null> {
   if (typeof Worker === "undefined") return Promise.resolve(null);
   return new Promise((resolve) => {
     try {
+      // 重拍时取消旧推理，避免旧照片耗时/超时干扰新照片识别。
+      if (requests.size > 0) resetWorker();
       const id = ++serial;
       const instance = getWorker();
-      const timer = setTimeout(resetWorker, 15000);
+      const timer = setTimeout(() => {
+        if (worker === instance && requests.has(id)) resetWorker();
+      }, 15000);
       requests.set(id, { resolve, timer });
       instance.postMessage({ id, blob });
     } catch {
