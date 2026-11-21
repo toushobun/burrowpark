@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   parseAmountCents,
   parseMonthlyStatsMonth,
+  pricingSettingsInputSchema,
+  readPricingSettingsFormData,
   parseCheckInInput,
   parseCheckOutInput,
   parseRenewInput,
@@ -179,5 +181,54 @@ describe("月统计月份参数", () => {
     ]) {
       expect(parseMonthlyStatsMonth(input, now)).toBe("2026-11");
     }
+  });
+});
+
+describe("收费设置校验", () => {
+  it("钟点只允许0至23的整数", () => {
+    const base = {
+      hotelDailyYuan: "30",
+      hotelCheckoutHour: 12,
+      hotelPreviousDayBeforeHour: 6,
+      hourlyYuan: "5",
+    };
+    expect(pricingSettingsInputSchema.safeParse(base).success).toBe(true);
+    for (const value of [-1, 24, 2.5]) {
+      expect(
+        pricingSettingsInputSchema.safeParse({
+          ...base,
+          hotelCheckoutHour: value,
+        }).success,
+      ).toBe(false);
+    }
+  });
+
+  it("表单钟点缺失或为空时不能静默变成0点", () => {
+    const form = new FormData();
+    form.set("hotelDailyYuan", "30");
+    form.set("hourlyYuan", "5");
+    form.set("hotelPreviousDayBeforeHour", "6");
+    expect(
+      pricingSettingsInputSchema.safeParse(readPricingSettingsFormData(form))
+        .success,
+    ).toBe(false);
+
+    form.set("hotelCheckoutHour", "");
+    expect(
+      pricingSettingsInputSchema.safeParse(readPricingSettingsFormData(form))
+        .success,
+    ).toBe(false);
+
+    form.set("hotelCheckoutHour", "0");
+    expect(
+      pricingSettingsInputSchema.safeParse(readPricingSettingsFormData(form))
+        .success,
+    ).toBe(true);
+
+    form.set("hotelCheckoutHour", "1e1");
+    expect(
+      pricingSettingsInputSchema.safeParse(readPricingSettingsFormData(form))
+        .success,
+    ).toBe(false);
   });
 });

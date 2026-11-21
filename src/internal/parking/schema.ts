@@ -317,6 +317,37 @@ export function readSlotSettingsFormData(form: FormData): unknown {
   };
 }
 
+export const pricingSettingsInputSchema = z.object({
+  hotelDailyYuan: amountSchema,
+  hotelCheckoutHour: z
+    .number()
+    .int()
+    .min(0, parkingMessages.invalidHour)
+    .max(23, parkingMessages.invalidHour),
+  hotelPreviousDayBeforeHour: z
+    .number()
+    .int()
+    .min(0, parkingMessages.invalidHour)
+    .max(23, parkingMessages.invalidHour),
+  hourlyYuan: amountSchema,
+});
+export type PricingSettingsInput = z.infer<typeof pricingSettingsInputSchema>;
+export function readPricingSettingsFormData(form: FormData): unknown {
+  // 空字符串与缺失值不能被 Number() 静默转成合法的零点。
+  const readHour = (field: string): unknown => {
+    const value = form.get(field);
+    return typeof value === "string" && /^(?:[0-9]|1[0-9]|2[0-3])$/.test(value)
+      ? Number(value)
+      : value;
+  };
+  return {
+    hotelDailyYuan: form.get("hotelDailyYuan"),
+    hotelCheckoutHour: readHour("hotelCheckoutHour"),
+    hotelPreviousDayBeforeHour: readHour("hotelPreviousDayBeforeHour"),
+    hourlyYuan: form.get("hourlyYuan"),
+  };
+}
+
 /** URL 月份格式不合法或缺省时回退上海本月。 */
 const businessMonthSchema = z
   .string()

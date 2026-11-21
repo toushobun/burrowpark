@@ -101,6 +101,7 @@ export interface ParkingRepository {
   readSlotNames(): Promise<Pick<Tables<"slots">, "code" | "name">[]>;
   getPhotoSignedUrl(photoPath: string): Promise<string | null>;
   getPricingSettings(): Promise<ParkingPricingSettings>;
+  updatePricingSettings(input: ParkingPricingSettings): Promise<void>;
   checkInVehicle(input: CheckInRpcInput): Promise<string>;
   savePlatePhoto(sessionId: string, path: string, photo: Blob): Promise<void>;
   deletePlatePhoto(path: string): Promise<void>;
@@ -353,6 +354,20 @@ export function createParkingRepository(
   }
 
   return {
+    async updatePricingSettings(input) {
+      try {
+        const { data, error } = await supabase
+          .from("pricing_settings")
+          .update(input)
+          .eq("id", true)
+          .select("id")
+          .single();
+        if (error || !data) return fail("updatePricingSettings", error);
+      } catch (error) {
+        if (error instanceof RepositoryError) throw error;
+        return fail("updatePricingSettings", error);
+      }
+    },
     getPhotoSignedUrl: signPhotoUrl,
     getPricingSettings,
     async checkInVehicle(input) {
