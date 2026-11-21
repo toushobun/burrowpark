@@ -25,6 +25,7 @@ describe("proxy matcher", () => {
   it.each([
     "/models/hyperlpr3/v1/y5fu_320x_sim.onnx",
     "/onnxruntime/1.23.2/ort-wasm-simd-threaded.wasm",
+    "/api/cron/photo-cleanup",
   ])("公开静态资源 %s 不经过登录判定", (pathname) => {
     expect(matcher.test(pathname)).toBe(false);
   });
