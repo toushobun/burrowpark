@@ -127,7 +127,12 @@ export function RecordsView({
           formatPlateForDisplay(normalizePlate(newPlate)),
         )
       : change?.operation === "payment"
-        ? text.newAmount(money(change.amount), amount)
+        ? text.newAmount(
+            money(change.amount),
+            amount,
+            text.methods[change.method],
+            text.methods[method],
+          )
         : change?.operation === "delete"
           ? text.deletePayment(money(change.amount))
           : "";

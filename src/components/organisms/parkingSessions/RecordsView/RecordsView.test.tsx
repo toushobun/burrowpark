@@ -1,5 +1,5 @@
 import Box from "@mui/material/Box";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { RecordsView } from "./RecordsView";
 import type { ActionState } from "types/actions";
@@ -77,12 +77,18 @@ describe("RecordsView", () => {
     fireEvent.click(screen.getByRole("button", { name: "改车牌" }));
     expect(screen.getByRole("dialog")).toHaveTextContent("确定把");
   });
-  it("改金额时弹出二次确认", () => {
+  it("改金额时确认文案展示金额和收款方式", () => {
     mount();
     fireEvent.click(screen.getByRole("button", { name: "改金额" }));
-    expect(screen.getByRole("dialog")).toHaveTextContent(
-      "30.00 元改成 30.00 元",
-    );
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("30.00 元（现金）改成 30.00 元（现金）");
+    fireEvent.change(within(dialog).getByRole("textbox", { name: "金额（元）" }), {
+      target: { value: "3.00" },
+    });
+    expect(dialog).toHaveTextContent("30.00 元（现金）改成 3.00 元（现金）");
+    fireEvent.mouseDown(within(dialog).getByRole("combobox", { name: "收款方式" }));
+    fireEvent.click(screen.getByRole("option", { name: "微信" }));
+    expect(dialog).toHaveTextContent("30.00 元（现金）改成 3.00 元（微信）");
   });
   it("删除收款前明确提示不可恢复", () => {
     mount();
