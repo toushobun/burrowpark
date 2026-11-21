@@ -10,6 +10,7 @@ import {
 } from "internal/shared/errors/appError";
 
 import { parkingMessages } from "../errors";
+import type { RecordSession, RecordLeasePayment } from "../entity/records";
 import { buildPlatePhotoPath } from "../util/photoPath";
 import {
   parseAmountCents,
@@ -18,6 +19,10 @@ import {
   parseRenewInput,
   parseUndoSessionId,
   parseSlotSettingsInput,
+  recordPlateCorrectionSchema,
+  recordPaymentCorrectionSchema,
+  recordPaymentDeletionSchema,
+  type RecordsFilter,
   createLeaseInputSchema,
   editLeaseInputSchema,
   endLeaseInputSchema,
@@ -50,6 +55,8 @@ import {
   formatPlateForDisplay,
   formatBusinessDateTime,
   getBusinessMonthRange,
+  getBusinessDate,
+  getBusinessDateTime,
   summarizeMonthlyPayments,
   PRIVATE_BORROW_REMINDER_MINUTES,
 } from "../util/parkingDomain";
@@ -168,7 +175,18 @@ export type MonthlyStats = MonthlyPaymentSummary & {
   }[];
 };
 
+export type RecordResults = {
+  sessions: (RecordSession & { slotName: string })[];
+  leasePayments: (RecordLeasePayment & {
+    slotName: string;
+    tenantName: string;
+  })[];
+};
 export interface ParkingService {
+  getRecords(filter: RecordsFilter): Promise<RecordResults>;
+  correctSessionPlate(input: unknown): Promise<void>;
+  correctPayment(input: unknown): Promise<void>;
+  deletePayment(input: unknown): Promise<void>;
   getSlotMap(now: Date): Promise<SlotMapSlot[]>;
   getMonthlyStats(month: string): Promise<MonthlyStats>;
   getReminders(now: Date): Promise<SlotReminder[]>;
@@ -277,6 +295,62 @@ export function createParkingService(
   getAuth: () => Promise<AuthContext>,
 ): ParkingService {
   return {
+    async getRecords(filter) {
+      await requireAuthenticatedUserId(getAuth);
+      const byDate = filter.kind === "date";
+      const start = byDate ? getBusinessDateTime(filter.date, 0) : undefined;
+      const end = byDate
+        ? getBusinessDateTime(
+            getBusinessDate(new Date(Date.parse(start!) + 86400000)),
+            0,
+          )
+        : undefined;
+      const [sessions, leasePayments, slots] = await Promise.all([
+        byDate
+          ? repository.readSessionsByDate(start!, end!)
+          : filter.plate
+            ? repository.readSessionsByPlate(filter.plate, 50)
+            : Promise.resolve([]),
+        byDate
+          ? repository.readLeasePayments({ start, end })
+          : filter.plate
+            ? repository.readLeasePayments({ plate: filter.plate })
+            : Promise.resolve([]),
+        repository.readSlotNames(),
+      ]);
+      const slotNames = new Map(slots.map((slot) => [slot.code, slot.name]));
+      return {
+        sessions: sessions.map((session) => ({
+          ...session,
+          slotName: slotNames.get(session.slot_code) ?? session.slot_code,
+        })),
+        leasePayments: leasePayments.map((payment) => ({
+          ...payment,
+          slotName:
+            slotNames.get(payment.leases.slot_code) ?? payment.leases.slot_code,
+          tenantName: payment.leases.tenant_name,
+        })),
+      };
+    },
+    async correctSessionPlate(input) {
+      await requireAuthenticatedUserId(getAuth);
+      const value = parseParkingOperation(recordPlateCorrectionSchema, input);
+      await repository.correctSessionPlate(value.sessionId, value.plate);
+    },
+    async correctPayment(input) {
+      await requireAuthenticatedUserId(getAuth);
+      const value = parseParkingOperation(recordPaymentCorrectionSchema, input);
+      await repository.correctPayment(
+        value.paymentId,
+        parseAmountCents(value.amountYuan),
+        value.method,
+      );
+    },
+    async deletePayment(input) {
+      await requireAuthenticatedUserId(getAuth);
+      const value = parseParkingOperation(recordPaymentDeletionSchema, input);
+      await repository.deletePayment(value.paymentId);
+    },
     async getMonthlyStats(month) {
       await requireAuthenticatedUserId(getAuth);
       const { start, end } = getBusinessMonthRange(month);

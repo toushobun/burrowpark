@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { SettingsMenu } from "./SettingsMenu";
 
 describe("SettingsMenu", () => {
-  it("设置页只有车位设置和月统计两个低调入口", () => {
+  it("设置页含车位设置、月统计和记录查询入口", () => {
     render(<SettingsMenu />);
     expect(screen.getByRole("link", { name: "车位设置" })).toHaveAttribute(
       "href",
@@ -12,6 +12,10 @@ describe("SettingsMenu", () => {
     expect(screen.getByRole("link", { name: "月统计" })).toHaveAttribute(
       "href",
       "/stats",
+    );
+    expect(screen.getByRole("link", { name: "记录查询" })).toHaveAttribute(
+      "href",
+      "/records",
     );
     expect(screen.queryByText("收费设置")).toBeNull();
   });
