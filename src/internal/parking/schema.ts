@@ -23,6 +23,16 @@ export const checkInInputSchema = z
     borrowMinutes: z.union([z.literal(10), z.literal(30)]).optional(),
     paymentMethod: z.enum(["wechat", "alipay", "cash"]).optional(),
     amountYuan: amountSchema.optional(),
+    photo: z
+      .custom<Blob>(
+        (value) =>
+          typeof Blob !== "undefined" &&
+          value instanceof Blob &&
+          value.type === "image/jpeg" &&
+          value.size <= 2 * 1024 * 1024,
+      )
+      .optional()
+      .catch(undefined),
   })
   .superRefine((value, ctx) => {
     const hotel = value.billingType === "hotel_daily";
@@ -84,6 +94,7 @@ export function readCheckInFormData(formData: FormData): unknown {
         : Number(borrowMinutes),
     paymentMethod: formData.get("paymentMethod") || undefined,
     amountYuan: formData.get("amountYuan") || undefined,
+    photo: formData.get("photo") ?? undefined,
   };
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -8,7 +9,13 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   checkInBillingTypeOrder,
@@ -28,6 +35,8 @@ import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/
 import { designTokens } from "theme/designTokens";
 import type { ActionState } from "types/actions";
 
+import { compressPhoto } from "./compressPhoto";
+
 type Props = {
   form: CheckInFormData | null;
   action: (
@@ -36,6 +45,7 @@ type Props = {
   ) => Promise<CheckInActionState>;
   undoAction: (state: ActionState, data: FormData) => Promise<ActionState>;
   initialState?: CheckInActionState;
+  storyPhoto?: { previewUrl: string; status: "loading" | "filled" | "failed" };
 };
 
 const bigButtonSx = { minHeight: designTokens.size.touchTargetMin };
@@ -68,10 +78,158 @@ function ChoiceButton({
 }
 
 /** 提供给长辈的大号登记按钮；结果区不会自动消失。 */
-export function CheckInForm({ form, action, undoAction, initialState }: Props) {
+export function CheckInForm({
+  form,
+  action,
+  undoAction,
+  initialState,
+  storyPhoto,
+}: Props) {
   const [state, submit, isPending] = useActionState(action, initialState ?? {});
   const [undoState, undo, isUndoPending] = useActionState(undoAction, {});
   const [plate, setPlate] = useState(form?.defaultLeasePlate ?? "");
+  const [photo, setPhoto] = useState<Blob | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(
+    storyPhoto?.previewUrl ?? null,
+  );
+  const [recognitionStatus, setRecognitionStatus] = useState<
+    "idle" | "loading" | "recognizing" | "filled" | "suggestion" | "failed"
+  >(storyPhoto?.status ?? "idle");
+  const [recognizedPlate, setRecognizedPlate] = useState<string | null>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
+  const manualPlateEdited = useRef(false);
+  const recognitionSerial = useRef(0);
+  const photoSubmitted = useRef(false);
+  const autoFilledPlate = useRef<string | null>(null);
+  const recognitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const photoUrlRef = useRef<string | null>(null);
+
+  useEffect(
+    () => () => {
+      if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current);
+      if (recognitionTimerRef.current) {
+        clearTimeout(recognitionTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  const clearPhoto = () => {
+    recognitionSerial.current += 1;
+    // 换照或删照时不能继续使用上一张照片自动识别的车牌。
+    if (autoFilledPlate.current !== null) {
+      setPlate(form?.defaultLeasePlate ?? "");
+      autoFilledPlate.current = null;
+      manualPlateEdited.current = false;
+    }
+    if (recognitionTimerRef.current) clearTimeout(recognitionTimerRef.current);
+    recognitionTimerRef.current = null;
+    setIsCompressing(false);
+    setPhoto(null);
+    setPhotoUrl(null);
+    setRecognizedPlate(null);
+    setRecognitionStatus("idle");
+    if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current);
+    photoUrlRef.current = null;
+  };
+
+  const photoChosen = async (file: File | undefined) => {
+    if (!file) return;
+    clearPhoto();
+    photoSubmitted.current = false;
+    const serial = recognitionSerial.current;
+    setIsCompressing(true);
+    setRecognitionStatus("loading");
+
+    // 压缩卡住超过 15 秒时允许手动提交，但完成后仍保留未提交的照片。
+    const compressionTimer = setTimeout(() => {
+      if (serial === recognitionSerial.current && !photoSubmitted.current)
+        setIsCompressing(false);
+    }, 15000);
+
+    // import + 模型下载/初始化不受 15 秒识别时限限制。即便 90 秒后 UI 回退，
+    // preloadPlateModels 仍留在 Worker 运行，后续重拍复用已完成的加载。
+    let loadTimeout: ReturnType<typeof setTimeout> | null = null;
+    const loadTask = import("internal/plateRecognition")
+      .then(async (api) => {
+        if (
+          serial === recognitionSerial.current &&
+          !photoSubmitted.current &&
+          api.isPlateModelsReady()
+        )
+          setRecognitionStatus("recognizing");
+        return { api, loaded: await api.preloadPlateModels() };
+      })
+      .catch(() => null);
+    const loadDeadline = new Promise<null>((resolve) => {
+      loadTimeout = setTimeout(() => {
+        if (serial === recognitionSerial.current && !photoSubmitted.current)
+          setRecognitionStatus("failed");
+        resolve(null);
+      }, 90000);
+      recognitionTimerRef.current = loadTimeout;
+    });
+    try {
+      const compressed = await compressPhoto(file);
+      if (serial !== recognitionSerial.current || photoSubmitted.current)
+        return;
+      const preview = URL.createObjectURL(compressed);
+      photoUrlRef.current = preview;
+      setPhotoUrl(preview);
+      setPhoto(compressed.size <= 2 * 1024 * 1024 ? compressed : null);
+      setIsCompressing(false);
+      clearTimeout(compressionTimer);
+
+      const initialized = await Promise.race([loadTask, loadDeadline]);
+      if (serial !== recognitionSerial.current || photoSubmitted.current)
+        return;
+      if (!initialized?.loaded) {
+        setRecognitionStatus("failed");
+        return;
+      }
+      setRecognitionStatus("recognizing");
+      // Worker 自身亦有限时，这里额外覆盖 mock、异常及旧照片回写。
+      let recognitionTimeout: ReturnType<typeof setTimeout> | null = null;
+      const recognitionDeadline = new Promise<null>((resolve) => {
+        recognitionTimeout = setTimeout(() => resolve(null), 15000);
+        recognitionTimerRef.current = recognitionTimeout;
+      });
+      const result = await Promise.race([
+        initialized.api.recognizePlate(compressed),
+        recognitionDeadline,
+      ]);
+      if (recognitionTimeout) clearTimeout(recognitionTimeout);
+      if (serial !== recognitionSerial.current || photoSubmitted.current)
+        return;
+      if (!result) {
+        setRecognitionStatus("failed");
+        return;
+      }
+      const normalized = normalizePlate(result);
+      if (manualPlateEdited.current) {
+        setRecognizedPlate(normalized);
+        setRecognitionStatus("suggestion");
+      } else {
+        setPlate(normalized);
+        autoFilledPlate.current = normalized;
+        setRecognitionStatus("filled");
+      }
+    } catch {
+      if (serial === recognitionSerial.current && !photoSubmitted.current)
+        setRecognitionStatus("failed");
+    } finally {
+      clearTimeout(compressionTimer);
+      if (loadTimeout) clearTimeout(loadTimeout);
+      if (serial === recognitionSerial.current) {
+        if (recognitionTimerRef.current === loadTimeout)
+          recognitionTimerRef.current = null;
+        setIsCompressing(false);
+      }
+    }
+  };
   const [billingType, setBillingType] = useState<ParkingBillingType>(
     form?.kind === "private"
       ? "hourly"
@@ -159,6 +317,7 @@ export function CheckInForm({ form, action, undoAction, initialState }: Props) {
     Number(amountYuan) <= 21474836.47;
   const canSubmit =
     !isPending &&
+    !isCompressing &&
     !form.occupied &&
     form.isActive &&
     validPlate &&
@@ -179,6 +338,11 @@ export function CheckInForm({ form, action, undoAction, initialState }: Props) {
                 form.name,
               )}
             </Typography>
+            {!result.photoSaved && (photoUrl || storyPhoto) && (
+              <Typography color="error" sx={{ mt: 2 }} variant="body1">
+                {checkInText.photoUploadFailed}
+              </Typography>
+            )}
           </Paper>
           <Button
             component={Link}
@@ -227,20 +391,138 @@ export function CheckInForm({ form, action, undoAction, initialState }: Props) {
               {checkInText.unavailable}
             </Typography>
           ) : (
-            <form action={submit}>
+            <form
+              action={(data) => {
+                photoSubmitted.current = true;
+                if (photo) data.set("photo", photo, "plate.jpg");
+                startTransition(() => submit(data));
+              }}
+            >
               <Stack spacing={3}>
                 {form.hasReservation && (
                   <Typography variant="body1">
                     {checkInText.hasReservation}
                   </Typography>
                 )}
+                <input
+                  accept="image/*"
+                  capture="environment"
+                  hidden
+                  disabled={isPending}
+                  onChange={(event) => {
+                    void photoChosen(event.target.files?.[0]);
+                    event.target.value = "";
+                  }}
+                  ref={photoInput}
+                  type="file"
+                />
+                <Button
+                  disabled={isPending}
+                  fullWidth
+                  onClick={() => photoInput.current?.click()}
+                  size="large"
+                  startIcon={<CameraAltIcon />}
+                  sx={bigButtonSx}
+                  type="button"
+                  variant="outlined"
+                >
+                  {checkInText.takePhoto}
+                </Button>
+                {photoUrl && (
+                  <Stack spacing={1}>
+                    <Box
+                      alt={checkInText.photoPreview}
+                      component="img"
+                      src={photoUrl}
+                      sx={{
+                        borderRadius: 1,
+                        maxHeight: 300,
+                        objectFit: "contain",
+                        width: "100%",
+                      }}
+                    />
+                    <Stack direction="row" spacing={1}>
+                      <Button
+                        disabled={isPending}
+                        onClick={() => photoInput.current?.click()}
+                        size="large"
+                        sx={bigButtonSx}
+                        type="button"
+                        variant="text"
+                      >
+                        {checkInText.retakePhoto}
+                      </Button>
+                      <Button
+                        disabled={isPending}
+                        onClick={clearPhoto}
+                        size="large"
+                        sx={bigButtonSx}
+                        type="button"
+                        variant="text"
+                      >
+                        {checkInText.removePhoto}
+                      </Button>
+                    </Stack>
+                  </Stack>
+                )}
+                {recognitionStatus === "loading" && (
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: "center" }}
+                  >
+                    <CircularProgress size={24} />
+                    <Typography>{checkInText.loadingModels}</Typography>
+                  </Stack>
+                )}
+                {recognitionStatus === "recognizing" && (
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: "center" }}
+                  >
+                    <CircularProgress size={24} />
+                    <Typography>{checkInText.recognizing}</Typography>
+                  </Stack>
+                )}
+                {recognitionStatus === "failed" && (
+                  <Typography color="textSecondary">
+                    {checkInText.recognitionFailed}
+                  </Typography>
+                )}
+                {recognitionStatus === "filled" && (
+                  <Typography color="textSecondary">
+                    {checkInText.recognized}
+                  </Typography>
+                )}
+                {recognitionStatus === "suggestion" && recognizedPlate && (
+                  <Button
+                    fullWidth
+                    onClick={() => {
+                      setPlate(recognizedPlate);
+                      autoFilledPlate.current = recognizedPlate;
+                      setRecognitionStatus("filled");
+                    }}
+                    size="large"
+                    sx={bigButtonSx}
+                    type="button"
+                    variant="text"
+                  >
+                    {checkInText.recognitionSuggestion(
+                      formatPlateForDisplay(recognizedPlate),
+                    )}
+                  </Button>
+                )}
                 <TextField
                   fullWidth
                   label={checkInText.plate}
                   name="plate"
-                  onChange={(event) =>
-                    setPlate(event.target.value.toUpperCase())
-                  }
+                  onChange={(event) => {
+                    manualPlateEdited.current =
+                      normalizePlate(event.target.value).length > 0;
+                    autoFilledPlate.current = null;
+                    setPlate(event.target.value.toUpperCase());
+                  }}
                   slotProps={{
                     htmlInput: {
                       autoCapitalize: "characters",

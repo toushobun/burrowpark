@@ -1,5 +1,25 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import {
+  recognizePlate,
+  preloadPlateModels,
+  isPlateModelsReady,
+} from "internal/plateRecognition";
+import { compressPhoto } from "./compressPhoto";
+
+vi.mock("internal/plateRecognition", () => ({
+  recognizePlate: vi.fn(),
+  preloadPlateModels: vi.fn(),
+  isPlateModelsReady: vi.fn(),
+}));
+vi.mock("./compressPhoto", () => ({ compressPhoto: vi.fn() }));
 
 import type { CheckInFormData } from "internal/parking";
 
@@ -32,7 +52,7 @@ function renderForm(
     errorKey?: string;
     success?: string;
     successKey?: string;
-    result?: { sessionId: string; plate: string };
+    result?: { sessionId: string; plate: string; photoSaved: boolean };
   },
 ) {
   return render(
@@ -46,6 +66,35 @@ function renderForm(
 }
 
 describe("CheckInForm", () => {
+  beforeEach(() => {
+    vi.mocked(recognizePlate).mockReset();
+    vi.mocked(preloadPlateModels).mockReset();
+    vi.mocked(preloadPlateModels).mockResolvedValue(true);
+    vi.mocked(isPlateModelsReady).mockReturnValue(true);
+    vi.mocked(compressPhoto).mockReset();
+    vi.mocked(compressPhoto).mockResolvedValue(
+      new Blob(["jpeg"], { type: "image/jpeg" }),
+    );
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: vi.fn(() => "blob:test-photo"),
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: vi.fn(),
+    });
+  });
+
+  function choosePhoto(container: HTMLElement) {
+    const input = container.querySelector('input[type="file"]');
+    if (!input) throw new Error("缺少拍照输入框");
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["photo"], "photo.png", { type: "image/png" })],
+      },
+    });
+  }
+
   it("普通空车位显示酒店客、临停和免费，不显示长租", () => {
     renderForm();
     expect(screen.getByRole("button", { name: "酒店客" })).toBeInTheDocument();
@@ -148,6 +197,276 @@ describe("CheckInForm", () => {
     );
   });
 
+  it("拍照后出现缩略图、重拍删除与识别加载状态", async () => {
+    vi.mocked(recognizePlate).mockImplementation(() => new Promise(() => {}));
+    const { container } = renderForm();
+    expect(screen.getByRole("button", { name: "拍照" })).toBeInTheDocument();
+    choosePhoto(container);
+    await waitFor(() =>
+      expect(screen.getByRole("img", { name: "车头照片" })).toBeInTheDocument(),
+    );
+    expect(screen.getByText("正在识别车牌…")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "重拍" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "删除照片" }));
+    expect(screen.queryByRole("img", { name: "车头照片" })).toBeNull();
+  });
+
+  it("压缩期间禁用登记，压缩完成后允许带照片提交", async () => {
+    let resolveCompression: (blob: Blob) => void = () => {};
+    vi.mocked(compressPhoto).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCompression = resolve;
+        }),
+    );
+    vi.mocked(recognizePlate).mockResolvedValue(null);
+    const { container } = renderForm();
+    fireEvent.change(screen.getByRole("textbox", { name: "车牌号码" }), {
+      target: { value: "粤B12345" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "微信" }));
+    expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled();
+    choosePhoto(container);
+    expect(screen.getByRole("button", { name: "确认登记" })).toBeDisabled();
+    await act(async () => {
+      resolveCompression(new Blob(["jpeg"], { type: "image/jpeg" }));
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled(),
+    );
+  });
+
+  it("超出选图后总计十五秒就提示手动输入", async () => {
+    vi.mocked(recognizePlate).mockImplementation(() => new Promise(() => {}));
+    vi.useFakeTimers();
+    try {
+      const { container } = renderForm();
+      choosePhoto(container);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15000);
+      });
+      expect(screen.getByText("没认出来，请手动输入")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("首次加载超过 15 秒仍显示组件下载提示，90 秒后回退且不取消模型加载", async () => {
+    vi.mocked(isPlateModelsReady).mockReturnValue(false);
+    let finishLoad: (ready: boolean) => void = () => {};
+    vi.mocked(preloadPlateModels).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishLoad = resolve;
+        }),
+    );
+    vi.useFakeTimers();
+    try {
+      const { container } = renderForm({ defaultLeasePlate: "粤B12345" });
+      fireEvent.click(screen.getByRole("button", { name: "微信" }));
+      choosePhoto(container);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(16000);
+      });
+      expect(screen.getByText(/第一次使用要下载识别组件/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled();
+      expect(recognizePlate).not.toHaveBeenCalled();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(74000);
+      });
+      expect(screen.getByText("没认出来，请手动输入")).toBeInTheDocument();
+      await act(async () => finishLoad(true));
+      expect(recognizePlate).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("重拍识别失败时不会沿用上一张照片识别的车牌", async () => {
+    vi.mocked(recognizePlate)
+      .mockResolvedValueOnce("辽A12345")
+      .mockResolvedValueOnce(null);
+    const { container } = renderForm();
+    choosePhoto(container);
+    const plateInput = screen.getByRole("textbox", { name: "车牌号码" });
+    await waitFor(() => expect(plateInput).toHaveValue("辽A12345"));
+    choosePhoto(container);
+    expect(plateInput).toHaveValue("");
+    await waitFor(() =>
+      expect(screen.getByText("没认出来，请手动输入")).toBeInTheDocument(),
+    );
+    expect(plateInput).toHaveValue("");
+  });
+
+  it("删除照片清空自动车牌但保留手动修改的车牌", async () => {
+    vi.mocked(recognizePlate).mockResolvedValue("辽A12345");
+    const { container } = renderForm();
+    choosePhoto(container);
+    const plateInput = screen.getByRole("textbox", { name: "车牌号码" });
+    await waitFor(() => expect(plateInput).toHaveValue("辽A12345"));
+    fireEvent.click(screen.getByRole("button", { name: "删除照片" }));
+    expect(plateInput).toHaveValue("");
+
+    choosePhoto(container);
+    await waitFor(() => expect(plateInput).toHaveValue("辽A12345"));
+    fireEvent.change(plateInput, { target: { value: "粤B11111" } });
+    fireEvent.click(screen.getByRole("button", { name: "删除照片" }));
+    expect(plateInput).toHaveValue("粤B11111");
+  });
+
+  it("识别超时后压缩成功仍保留照片预览", async () => {
+    let resolveCompression: (blob: Blob) => void = () => {};
+    vi.mocked(compressPhoto).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCompression = resolve;
+        }),
+    );
+    vi.useFakeTimers();
+    try {
+      const { container } = renderForm();
+      choosePhoto(container);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15000);
+      });
+      expect(screen.getByText("正在识别车牌…")).toBeInTheDocument();
+      await act(async () => {
+        resolveCompression(new Blob(["jpeg"], { type: "image/jpeg" }));
+      });
+      expect(screen.getByRole("img", { name: "车头照片" })).toBeInTheDocument();
+      expect(recognizePlate).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("压缩超时后提交登记时忽略迟到的图片", async () => {
+    let resolveCompression: (blob: Blob) => void = () => {};
+    vi.mocked(compressPhoto).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCompression = resolve;
+        }),
+    );
+    vi.useFakeTimers();
+    try {
+      const { container } = renderForm();
+      fireEvent.change(screen.getByRole("textbox", { name: "车牌号码" }), {
+        target: { value: "粤B12345" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "微信" }));
+      choosePhoto(container);
+      expect(screen.getByRole("button", { name: "确认登记" })).toBeDisabled();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15000);
+      });
+      expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled();
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "确认登记" }));
+      });
+      await act(async () => {
+        resolveCompression(new Blob(["jpeg"], { type: "image/jpeg" }));
+      });
+      expect(screen.queryByRole("img", { name: "车头照片" })).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("识别成功自动规范化填入车牌并允许修改", async () => {
+    vi.mocked(recognizePlate).mockResolvedValue("辽a·12345");
+    const { container } = renderForm();
+    choosePhoto(container);
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue(
+        "辽A12345",
+      ),
+    );
+    expect(screen.getByText("已自动填入，请核对")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox", { name: "车牌号码" }), {
+      target: { value: "粤B11111" },
+    });
+    expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue(
+      "粤B11111",
+    );
+  });
+
+  it("手动输入过车牌时只显示可点击的识别建议而不覆盖", async () => {
+    let finish: (value: string | null) => void = () => {};
+    vi.mocked(recognizePlate).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { container } = renderForm();
+    choosePhoto(container);
+    fireEvent.change(screen.getByRole("textbox", { name: "车牌号码" }), {
+      target: { value: "京A88888" },
+    });
+    await waitFor(() => expect(recognizePlate).toHaveBeenCalledOnce());
+    finish("辽A12345");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "识别结果：辽A·12345，点这里填入" }),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue(
+      "京A88888",
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "识别结果：辽A·12345，点这里填入" }),
+    );
+    expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue(
+      "辽A12345",
+    );
+    choosePhoto(container);
+    await waitFor(() => expect(recognizePlate).toHaveBeenCalledTimes(2));
+    await act(async () => finish("京A88888"));
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue(
+        "京A88888",
+      ),
+    );
+  });
+
+  it("提交中的照片操作锁定，迟到识别不会修改已提交车牌", async () => {
+    let finishRecognition: (value: string | null) => void = () => {};
+    vi.mocked(recognizePlate).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishRecognition = resolve;
+        }),
+    );
+    action.mockImplementationOnce(() => new Promise(() => {}));
+    const { container } = renderForm({ defaultLeasePlate: "粤B12345" });
+    fireEvent.click(screen.getByRole("button", { name: "微信" }));
+    choosePhoto(container);
+    await waitFor(() => expect(recognizePlate).toHaveBeenCalledOnce());
+
+    fireEvent.click(screen.getByRole("button", { name: "确认登记" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /登记/ })).toBeDisabled(),
+    );
+    expect(screen.getByRole("button", { name: "拍照" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "重拍" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "删除照片" })).toBeDisabled();
+    expect(container.querySelector('input[type="file"]')).toBeDisabled();
+    await act(async () => finishRecognition("辽A88888"));
+    expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue(
+      "粤B12345",
+    );
+  });
+
+  it("识别失败只显示手动输入提示，不弹失败对话框", async () => {
+    vi.mocked(recognizePlate).mockResolvedValue(null);
+    const { container } = renderForm();
+    choosePhoto(container);
+    await waitFor(() =>
+      expect(screen.getByText("没认出来，请手动输入")).toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
   it("登记成功后持续展示车牌车位及三项大按钮", () => {
     renderForm(
       {},
@@ -157,6 +476,7 @@ describe("CheckInForm", () => {
         result: {
           sessionId: "00000000-0000-4000-8000-000000000001",
           plate: "粤B12345",
+          photoSaved: false,
         },
       },
     );

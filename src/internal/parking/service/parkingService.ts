@@ -10,6 +10,7 @@ import {
 } from "internal/shared/errors/appError";
 
 import { parkingMessages } from "../errors";
+import { buildPlatePhotoPath } from "../util/photoPath";
 import {
   parseAmountCents,
   parseCheckInInput,
@@ -117,6 +118,7 @@ export type CheckInFormData = {
 export type CheckInResult = {
   sessionId: string;
   plate: string;
+  photoSaved: boolean;
 };
 
 export type RenewFormData = {
@@ -396,12 +398,44 @@ export function createParkingService(
         amountCents: hotel ? parseAmountCents(value.amountYuan!) : null,
         paymentMethod: hotel ? value.paymentMethod! : null,
       });
-      return { sessionId, plate: value.plate };
+      let photoSaved = false;
+      if (value.photo) {
+        const path = buildPlatePhotoPath(now, sessionId);
+        try {
+          const header = new Uint8Array(
+            await value.photo.slice(0, 3).arrayBuffer(),
+          );
+          if (
+            header.length === 3 &&
+            header[0] === 0xff &&
+            header[1] === 0xd8 &&
+            header[2] === 0xff
+          ) {
+            await repository.savePlatePhoto(sessionId, path, value.photo);
+            photoSaved = true;
+          }
+        } catch {
+          // 照片是可选附件，上传错误已由 Repository 记录警告。
+        }
+      }
+      return { sessionId, plate: value.plate, photoSaved };
     },
 
     async undoCheckIn(sessionId) {
       await requireAuthenticatedUserId(getAuth);
-      await repository.undoCheckIn(parseUndoSessionId(sessionId));
+      const id = parseUndoSessionId(sessionId);
+      const facts = await repository.readSlotFacts();
+      const photoPath = facts.sessions.find(
+        (session) => session.id === id,
+      )?.photo_path;
+      await repository.undoCheckIn(id);
+      if (photoPath) {
+        try {
+          await repository.deletePlatePhoto(photoPath);
+        } catch {
+          // 撤销已由 RPC 完成，照片删除失败不会回滚撤销。
+        }
+      }
     },
 
     async getRenewForm(code) {

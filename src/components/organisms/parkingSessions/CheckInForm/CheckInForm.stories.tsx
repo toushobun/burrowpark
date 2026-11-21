@@ -71,6 +71,44 @@ export const CheckInSuccess: Story = {
       result: {
         sessionId: "00000000-0000-4000-8000-000000000001",
         plate: "粤B12345",
+        photoSaved: false,
+      },
+    },
+  },
+};
+
+const photoPreview =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180">' +
+      '<rect width="320" height="180" fill="#e2e8f0"/>' +
+      '<rect x="45" y="60" width="230" height="70" rx="10" fill="#94a3b8"/>' +
+      '<rect x="110" y="95" width="100" height="30" rx="3" fill="#f8fafc"/>' +
+      '<text x="125" y="116" font-size="16" fill="#334155">辽A12345</text></svg>',
+  );
+
+export const PhotoRecognizing: Story = {
+  args: { storyPhoto: { previewUrl: photoPreview, status: "loading" } },
+};
+export const PhotoRecognized: Story = {
+  args: {
+    form: { ...empty, defaultLeasePlate: "辽A12345" },
+    storyPhoto: { previewUrl: photoPreview, status: "filled" },
+  },
+};
+export const PhotoRecognitionFailed: Story = {
+  args: { storyPhoto: { previewUrl: photoPreview, status: "failed" } },
+};
+export const PhotoUploadFailed: Story = {
+  args: {
+    storyPhoto: { previewUrl: photoPreview, status: "filled" },
+    initialState: {
+      success: "登记成功",
+      successKey: "storybook-photo-failed",
+      result: {
+        sessionId: "00000000-0000-4000-8000-000000000001",
+        plate: "辽A12345",
+        photoSaved: false,
       },
     },
   },

@@ -37,3 +37,7 @@ storybook-static
 next-env.d.ts
 tsconfig.tsbuildinfo
 .vercel
+
+# 只有 WASM 构建产物需要忽略；ONNX 模型在 Git 中版本化管理
+public/onnxruntime/**/*.wasm
+public/onnxruntime/**/*.mjs

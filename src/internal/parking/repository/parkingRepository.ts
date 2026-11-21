@@ -102,6 +102,8 @@ export interface ParkingRepository {
   getPhotoSignedUrl(photoPath: string): Promise<string | null>;
   getPricingSettings(): Promise<ParkingPricingSettings>;
   checkInVehicle(input: CheckInRpcInput): Promise<string>;
+  savePlatePhoto(sessionId: string, path: string, photo: Blob): Promise<void>;
+  deletePlatePhoto(path: string): Promise<void>;
   undoCheckIn(sessionId: string): Promise<void>;
   addRenewal(input: {
     sessionId: string | null;
@@ -178,6 +180,17 @@ export function createParkingRepository(
     });
     throw new RepositoryError(
       "parking_unavailable",
+      parkingMessages.unavailable,
+    );
+  }
+
+  function photoFailure(operation: string, error: unknown): never {
+    logger.warn("[parking] plate photo operation failed", {
+      operation,
+      errorName: error instanceof Error ? error.name : "unknown",
+    });
+    throw new RepositoryError(
+      "plate_photo_failed",
       parkingMessages.unavailable,
     );
   }
@@ -399,6 +412,63 @@ export function createParkingRepository(
         )
           throw error;
         return fail("checkInVehicle", error);
+      }
+    },
+    async savePlatePhoto(sessionId, path, photo) {
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from("plate-photos")
+          .upload(path, photo, { contentType: "image/jpeg", upsert: false });
+        if (uploadError) return photoFailure("upload", uploadError);
+
+        let linked = false;
+        let linkError: unknown = null;
+        try {
+          const { data, error } = await supabase
+            .from("parking_sessions")
+            .update({ photo_path: path })
+            .eq("id", sessionId)
+            .select("id")
+            .single();
+          linked = !error && !!data;
+          linkError = error;
+        } catch (error) {
+          linkError = error;
+        }
+        if (!linked) {
+          // DB 未记录照片路径时补偿清理，避免撤销无法定位孤立文件。
+          let cleanupError: unknown = null;
+          try {
+            const { error } = await supabase.storage
+              .from("plate-photos")
+              .remove([path]);
+            cleanupError = error;
+          } catch (error) {
+            cleanupError = error;
+          }
+          if (cleanupError) {
+            logger.warn("[parking] plate photo cleanup failed", {
+              operation: "cleanup",
+              errorName:
+                cleanupError instanceof Error ? cleanupError.name : "unknown",
+            });
+          }
+          return photoFailure("updatePhotoPath", linkError);
+        }
+      } catch (error) {
+        if (error instanceof RepositoryError) throw error;
+        return photoFailure("savePlatePhoto", error);
+      }
+    },
+    async deletePlatePhoto(path) {
+      try {
+        const { error } = await supabase.storage
+          .from("plate-photos")
+          .remove([path]);
+        if (error) return photoFailure("remove", error);
+      } catch (error) {
+        if (error instanceof RepositoryError) throw error;
+        return photoFailure("deletePlatePhoto", error);
       }
     },
     async undoCheckIn(sessionId) {
