@@ -37,3 +37,8 @@ storybook-static
 next-env.d.ts
 tsconfig.tsbuildinfo
 .vercel
+
+# 由 npm postinstall 从锁定来源准备的自托管模型与 WASM
+public/models/hyperlpr3/*.onnx
+public/onnxruntime/*.wasm
+public/onnxruntime/*.mjs

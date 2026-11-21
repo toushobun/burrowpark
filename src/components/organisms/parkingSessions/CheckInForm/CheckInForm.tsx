@@ -1,5 +1,6 @@
 "use client";
 
+import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -8,7 +9,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 
 import {
   checkInBillingTypeOrder,
@@ -28,6 +29,8 @@ import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/
 import { designTokens } from "theme/designTokens";
 import type { ActionState } from "types/actions";
 
+import { compressPhoto } from "./compressPhoto";
+
 type Props = {
   form: CheckInFormData | null;
   action: (
@@ -36,6 +39,7 @@ type Props = {
   ) => Promise<CheckInActionState>;
   undoAction: (state: ActionState, data: FormData) => Promise<ActionState>;
   initialState?: CheckInActionState;
+  storyPhoto?: { previewUrl: string; status: "loading" | "filled" | "failed" };
 };
 
 const bigButtonSx = { minHeight: designTokens.size.touchTargetMin };
@@ -68,10 +72,66 @@ function ChoiceButton({
 }
 
 /** 提供给长辈的大号登记按钮；结果区不会自动消失。 */
-export function CheckInForm({ form, action, undoAction, initialState }: Props) {
+export function CheckInForm({ form, action, undoAction, initialState, storyPhoto }: Props) {
   const [state, submit, isPending] = useActionState(action, initialState ?? {});
   const [undoState, undo, isUndoPending] = useActionState(undoAction, {});
   const [plate, setPlate] = useState(form?.defaultLeasePlate ?? "");
+  const [photo, setPhoto] = useState<Blob | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(storyPhoto?.previewUrl ?? null);
+  const [recognitionStatus, setRecognitionStatus] = useState<"idle" | "loading" | "filled" | "suggestion" | "failed">(storyPhoto?.status ?? "idle");
+  const [recognizedPlate, setRecognizedPlate] = useState<string | null>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
+  const manualPlateEdited = useRef(false);
+  const recognitionSerial = useRef(0);
+  const photoUrlRef = useRef<string | null>(null);
+
+  useEffect(() => () => {
+    if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current);
+  }, []);
+
+  const clearPhoto = () => {
+    recognitionSerial.current += 1;
+    setPhoto(null);
+    setPhotoUrl(null);
+    setRecognizedPlate(null);
+    setRecognitionStatus("idle");
+    if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current);
+    photoUrlRef.current = null;
+  };
+
+  const photoChosen = async (file: File | undefined) => {
+    if (!file) return;
+    clearPhoto();
+    const serial = recognitionSerial.current;
+    setRecognitionStatus("loading");
+    // 动态 import 在拍照后触发，与压缩并行，首屏不加载推理模块。
+    const recognitionModule = import("internal/plateRecognition");
+    try {
+      const compressed = await compressPhoto(file);
+      if (serial !== recognitionSerial.current) return;
+      const preview = URL.createObjectURL(compressed);
+      photoUrlRef.current = preview;
+      setPhotoUrl(preview);
+      setPhoto(compressed.size <= 2 * 1024 * 1024 ? compressed : null);
+      const { recognizePlate } = await recognitionModule;
+      const result = await recognizePlate(compressed);
+      if (serial !== recognitionSerial.current) return;
+      if (!result) {
+        setRecognitionStatus("failed");
+        return;
+      }
+      const normalized = normalizePlate(result);
+      if (manualPlateEdited.current) {
+        setRecognizedPlate(normalized);
+        setRecognitionStatus("suggestion");
+      } else {
+        setPlate(normalized);
+        setRecognitionStatus("filled");
+      }
+    } catch {
+      if (serial === recognitionSerial.current) setRecognitionStatus("failed");
+    }
+  };
   const [billingType, setBillingType] = useState<ParkingBillingType>(
     form?.kind === "private"
       ? "hourly"
@@ -179,6 +239,11 @@ export function CheckInForm({ form, action, undoAction, initialState }: Props) {
                 form.name,
               )}
             </Typography>
+            {!result.photoSaved && (photoUrl || storyPhoto) && (
+              <Typography color="error" sx={{ mt: 2 }} variant="body1">
+                {checkInText.photoUploadFailed}
+              </Typography>
+            )}
           </Paper>
           <Button
             component={Link}
@@ -227,20 +292,91 @@ export function CheckInForm({ form, action, undoAction, initialState }: Props) {
               {checkInText.unavailable}
             </Typography>
           ) : (
-            <form action={submit}>
+            <form action={(data) => {
+              if (photo) data.set("photo", photo, "plate.jpg");
+              startTransition(() => submit(data));
+            }}>
               <Stack spacing={3}>
                 {form.hasReservation && (
                   <Typography variant="body1">
                     {checkInText.hasReservation}
                   </Typography>
                 )}
+                <input
+                  accept="image/*"
+                  capture="environment"
+                  hidden
+                  onChange={(event) => {
+                    void photoChosen(event.target.files?.[0]);
+                    event.target.value = "";
+                  }}
+                  ref={photoInput}
+                  type="file"
+                />
+                <Button
+                  fullWidth
+                  onClick={() => photoInput.current?.click()}
+                  size="large"
+                  startIcon={<CameraAltIcon />}
+                  sx={bigButtonSx}
+                  type="button"
+                  variant="outlined"
+                >
+                  {checkInText.takePhoto}
+                </Button>
+                {photoUrl && (
+                  <Stack spacing={1}>
+                    <Box
+                      alt={checkInText.photoPreview}
+                      component="img"
+                      src={photoUrl}
+                      sx={{ borderRadius: 1, maxHeight: 300, objectFit: "contain", width: "100%" }}
+                    />
+                    <Stack direction="row" spacing={1}>
+                      <Button onClick={() => photoInput.current?.click()} size="large" sx={bigButtonSx} type="button" variant="text">
+                        {checkInText.retakePhoto}
+                      </Button>
+                      <Button onClick={clearPhoto} size="large" sx={bigButtonSx} type="button" variant="text">
+                        {checkInText.removePhoto}
+                      </Button>
+                    </Stack>
+                  </Stack>
+                )}
+                {recognitionStatus === "loading" && (
+                  <Stack alignItems="center" direction="row" spacing={1}>
+                    <CircularProgress size={24} />
+                    <Typography>{checkInText.recognizing}</Typography>
+                  </Stack>
+                )}
+                {recognitionStatus === "failed" && (
+                  <Typography color="textSecondary">{checkInText.recognitionFailed}</Typography>
+                )}
+                {recognitionStatus === "filled" && (
+                  <Typography color="textSecondary">{checkInText.recognized}</Typography>
+                )}
+                {recognitionStatus === "suggestion" && recognizedPlate && (
+                  <Button
+                    fullWidth
+                    onClick={() => {
+                      setPlate(recognizedPlate);
+                      setRecognitionStatus("filled");
+                    }}
+                    size="large"
+                    sx={bigButtonSx}
+                    type="button"
+                    variant="text"
+                  >
+                    {checkInText.recognitionSuggestion(formatPlateForDisplay(recognizedPlate))}
+                  </Button>
+                )}
                 <TextField
                   fullWidth
                   label={checkInText.plate}
                   name="plate"
-                  onChange={(event) =>
-                    setPlate(event.target.value.toUpperCase())
-                  }
+                  onChange={(event) => {
+                    manualPlateEdited.current = true;
+                    setPlate(event.target.value.toUpperCase());
+                  }}
                   slotProps={{
                     htmlInput: {
                       autoCapitalize: "characters",

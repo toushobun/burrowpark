@@ -72,6 +72,8 @@ function makeService(rows: SlotFactsRows) {
       .fn()
       .mockResolvedValue("00000000-0000-4000-8000-000000000001"),
     undoCheckIn: vi.fn().mockResolvedValue(undefined),
+    savePlatePhoto: vi.fn().mockResolvedValue(undefined),
+    deletePlatePhoto: vi.fn().mockResolvedValue(undefined),
     addRenewal: vi
       .fn()
       .mockResolvedValue("00000000-0000-4000-8000-000000000002"),
@@ -476,6 +478,7 @@ describe("createParkingService", () => {
       now,
     );
     expect(result.plate).toBe("粤B12345");
+    expect(result.photoSaved).toBe(false);
     expect(repository.checkInVehicle).toHaveBeenCalledWith({
       slotCode: "1",
       plate: "粤B12345",
@@ -622,6 +625,68 @@ describe("createParkingService", () => {
     );
   });
 
+
+  it("上传照片后返回成功并供详情页签名显示", async () => {
+    const sessionId = "00000000-0000-4000-8000-000000000001";
+    const { service, repository } = makeService(makeRows());
+    const photo = new Blob(["jpeg"], { type: "image/jpeg" });
+    const result = await service.checkIn(
+      { slotCode: "1", plate: "辽A12345", billingType: "hourly", photo },
+      new Date("2026-11-30T16:30:00.000Z"),
+    );
+    expect(result).toEqual({ sessionId, plate: "辽A12345", photoSaved: true });
+    expect(repository.savePlatePhoto).toHaveBeenCalledWith(
+      sessionId, "2026/12/" + sessionId + ".jpg", photo,
+    );
+    const { service: detailService, repository: detailRepo } = makeService(
+      makeRows({ sessions: [makeSession({ id: sessionId, photo_path: "2026/12/" + sessionId + ".jpg" })] }),
+    );
+    expect((await detailService.getSlotDetail("1", now))?.presentVehicle?.photoUrl)
+      .toBe("https://example.com/photo");
+    expect(detailRepo.getPhotoSignedUrl).toHaveBeenCalledWith("2026/12/" + sessionId + ".jpg");
+  });
+
+  it("照片上传失败不会阻止登记", async () => {
+    const { service, repository } = makeService(makeRows());
+    vi.mocked(repository.savePlatePhoto).mockRejectedValueOnce(new Error("secret storage failure"));
+    const result = await service.checkIn(
+      { slotCode: "1", plate: "粤B12345", billingType: "free", photo: new Blob(["x"], { type: "image/jpeg" }) },
+      now,
+    );
+    expect(result.photoSaved).toBe(false);
+    expect(repository.checkInVehicle).toHaveBeenCalledOnce();
+  });
+
+  it("超过 2MB 的照片被丢弃而不影响进场", async () => {
+    const { service, repository } = makeService(makeRows());
+    const photo = new Blob([new Uint8Array(2 * 1024 * 1024 + 1)], { type: "image/jpeg" });
+    const result = await service.checkIn(
+      { slotCode: "1", plate: "粤B12345", billingType: "hourly", photo }, now,
+    );
+    expect(result.photoSaved).toBe(false);
+    expect(repository.savePlatePhoto).not.toHaveBeenCalled();
+  });
+
+  it("撤销成功后才删除原停车照片", async () => {
+    const id = "00000000-0000-4000-8000-000000000001";
+    const { service, repository } = makeService(
+      makeRows({ sessions: [makeSession({ id, photo_path: "2026/11/photo.jpg" })] }),
+    );
+    await service.undoCheckIn(id);
+    expect(repository.undoCheckIn).toHaveBeenCalledWith(id);
+    expect(repository.deletePlatePhoto).toHaveBeenCalledWith("2026/11/photo.jpg");
+    expect(vi.mocked(repository.undoCheckIn).mock.invocationCallOrder[0])
+      .toBeLessThan(vi.mocked(repository.deletePlatePhoto).mock.invocationCallOrder[0]);
+  });
+
+  it("撤销成功后即使照片删除失败也仍然成功", async () => {
+    const id = "00000000-0000-4000-8000-000000000001";
+    const { service, repository } = makeService(
+      makeRows({ sessions: [makeSession({ id, photo_path: "2026/11/photo.jpg" })] }),
+    );
+    vi.mocked(repository.deletePlatePhoto).mockRejectedValueOnce(new Error("secret"));
+    await expect(service.undoCheckIn(id)).resolves.toBeUndefined();
+  });
   it("未登录时登记、撤销与表单读取均不碰 Repository", async () => {
     const { repository } = makeService(makeRows());
     const service = createParkingService(repository, async () => ({

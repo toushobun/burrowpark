@@ -17,7 +17,7 @@ import { parkingMessages } from "../../errors";
 import { readCheckInFormData } from "../../schema";
 
 export type CheckInActionState = ActionState & {
-  result?: { sessionId: string; plate: string };
+  result?: { sessionId: string; plate: string; photoSaved: boolean };
 };
 
 export async function checkInAction(

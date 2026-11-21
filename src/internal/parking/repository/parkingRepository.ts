@@ -102,6 +102,8 @@ export interface ParkingRepository {
   getPhotoSignedUrl(photoPath: string): Promise<string | null>;
   getPricingSettings(): Promise<ParkingPricingSettings>;
   checkInVehicle(input: CheckInRpcInput): Promise<string>;
+  savePlatePhoto(sessionId: string, path: string, photo: Blob): Promise<void>;
+  deletePlatePhoto(path: string): Promise<void>;
   undoCheckIn(sessionId: string): Promise<void>;
   addRenewal(input: {
     sessionId: string | null;
@@ -180,6 +182,14 @@ export function createParkingRepository(
       "parking_unavailable",
       parkingMessages.unavailable,
     );
+  }
+
+  function photoFailure(operation: string, error: unknown): never {
+    logger.warn("[parking] plate photo operation failed", {
+      operation,
+      errorName: error instanceof Error ? error.name : "unknown",
+    });
+    throw new RepositoryError("plate_photo_failed", parkingMessages.unavailable);
   }
 
   async function signPhotoUrl(photoPath: string): Promise<string | null> {
@@ -399,6 +409,35 @@ export function createParkingRepository(
         )
           throw error;
         return fail("checkInVehicle", error);
+      }
+    },
+    async savePlatePhoto(sessionId, path, photo) {
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from("plate-photos")
+          .upload(path, photo, { contentType: "image/jpeg", upsert: false });
+        if (uploadError) return photoFailure("upload", uploadError);
+        const { data: updated, error: updateError } = await supabase
+          .from("parking_sessions")
+          .update({ photo_path: path })
+          .eq("id", sessionId)
+          .select("id")
+          .single();
+        if (updateError || !updated) return photoFailure("updatePhotoPath", updateError);
+      } catch (error) {
+        if (error instanceof RepositoryError) throw error;
+        return photoFailure("savePlatePhoto", error);
+      }
+    },
+    async deletePlatePhoto(path) {
+      try {
+        const { error } = await supabase.storage
+          .from("plate-photos")
+          .remove([path]);
+        if (error) return photoFailure("remove", error);
+      } catch (error) {
+        if (error instanceof RepositoryError) throw error;
+        return photoFailure("deletePlatePhoto", error);
       }
     },
     async undoCheckIn(sessionId) {
