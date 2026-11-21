@@ -356,8 +356,12 @@ export function createParkingRepository(
   return {
     async updatePricingSettings(input) {
       try {
-        const { data, error } = await supabase.from("pricing_settings")
-          .update(input).eq("id", true).select("id").single();
+        const { data, error } = await supabase
+          .from("pricing_settings")
+          .update(input)
+          .eq("id", true)
+          .select("id")
+          .single();
         if (error || !data) return fail("updatePricingSettings", error);
       } catch (error) {
         if (error instanceof RepositoryError) throw error;

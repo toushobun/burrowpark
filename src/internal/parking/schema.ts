@@ -317,11 +317,18 @@ export function readSlotSettingsFormData(form: FormData): unknown {
   };
 }
 
-
 export const pricingSettingsInputSchema = z.object({
   hotelDailyYuan: amountSchema,
-  hotelCheckoutHour: z.number().int().min(0, parkingMessages.invalidHour).max(23, parkingMessages.invalidHour),
-  hotelPreviousDayBeforeHour: z.number().int().min(0, parkingMessages.invalidHour).max(23, parkingMessages.invalidHour),
+  hotelCheckoutHour: z
+    .number()
+    .int()
+    .min(0, parkingMessages.invalidHour)
+    .max(23, parkingMessages.invalidHour),
+  hotelPreviousDayBeforeHour: z
+    .number()
+    .int()
+    .min(0, parkingMessages.invalidHour)
+    .max(23, parkingMessages.invalidHour),
   hourlyYuan: amountSchema,
 });
 export type PricingSettingsInput = z.infer<typeof pricingSettingsInputSchema>;

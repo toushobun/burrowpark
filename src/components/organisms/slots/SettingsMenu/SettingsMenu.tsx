@@ -20,8 +20,11 @@ export function SettingsMenu() {
         <ListItemText primary={slotSettingsText.slots} />
         <ChevronRightIcon />
       </ListItemButton>
-      <ListItemButton component={Link} href="/settings/pricing"
-        sx={{ minHeight: designTokens.size.touchTargetMin }}>
+      <ListItemButton
+        component={Link}
+        href="/settings/pricing"
+        sx={{ minHeight: designTokens.size.touchTargetMin }}
+      >
         <ListItemText primary={slotSettingsText.pricing} />
         <ChevronRightIcon />
       </ListItemButton>

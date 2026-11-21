@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createRequestContainer } from "internal/container";
 import { requireAuthenticatedUserId } from "internal/shared/auth/authContext";
-import { createErrorState, createSuccessState } from "internal/shared/adapter/next/actionState";
+import {
+  createErrorState,
+  createSuccessState,
+} from "internal/shared/adapter/next/actionState";
 import { createRequestDependencies } from "internal/shared/context/requestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
@@ -12,7 +15,8 @@ import { readPricingSettingsFormData } from "../../schema";
 import type { ActionState } from "types/actions";
 
 export async function updatePricingSettingsAction(
-  _previous: ActionState, formData: FormData,
+  _previous: ActionState,
+  formData: FormData,
 ): Promise<ActionState> {
   let dependencies: Awaited<ReturnType<typeof createRequestDependencies>>;
   try {

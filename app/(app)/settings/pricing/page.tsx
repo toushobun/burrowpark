@@ -8,7 +8,10 @@ export default async function PricingSettingsPage() {
   const settings = await loadPricingSettings();
   return (
     <PageShell title={pricingSettingsText.title}>
-      <PricingSettingsForm initial={settings} action={updatePricingSettingsAction} />
+      <PricingSettingsForm
+        initial={settings}
+        action={updatePricingSettingsAction}
+      />
     </PageShell>
   );
 }

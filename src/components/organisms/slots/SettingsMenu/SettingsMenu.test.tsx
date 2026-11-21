@@ -13,6 +13,9 @@ describe("SettingsMenu", () => {
       "href",
       "/stats",
     );
-    expect(screen.getByRole("link", { name: "收费设置" })).toHaveAttribute("href", "/settings/pricing");
+    expect(screen.getByRole("link", { name: "收费设置" })).toHaveAttribute(
+      "href",
+      "/settings/pricing",
+    );
   });
 });
