@@ -26,3 +26,23 @@ export interface SlotStatusFacts {
     paid_until?: ParkingTimestamp | null;
   } | null;
 }
+
+/** 一笔收款及其历史停车、长租事实。 */
+export type MonthlyPayment = {
+  id: string;
+  amountCents: number;
+  method: Enums<"payment_method">;
+  purpose: Enums<"payment_purpose">;
+  paidAt: string;
+  leaseId: string | null;
+  slotCode: string | null;
+  plate: string | null;
+  tenantName: string | null;
+  billingType: ParkingBillingType | null;
+};
+
+export type MonthlyPaymentSummary = {
+  totalCents: number;
+  byMethod: Record<Enums<"payment_method">, number>;
+  byBillingType: Record<ParkingBillingType, number>;
+};

@@ -3,11 +3,15 @@ import { describe, expect, it } from "vitest";
 import { SettingsMenu } from "./SettingsMenu";
 
 describe("SettingsMenu", () => {
-  it("只有低调的车位设置入口", () => {
+  it("设置页只有车位设置和月统计两个低调入口", () => {
     render(<SettingsMenu />);
     expect(screen.getByRole("link", { name: "车位设置" })).toHaveAttribute(
       "href",
       "/settings/slots",
+    );
+    expect(screen.getByRole("link", { name: "月统计" })).toHaveAttribute(
+      "href",
+      "/stats",
     );
     expect(screen.queryByText("收费设置")).toBeNull();
   });

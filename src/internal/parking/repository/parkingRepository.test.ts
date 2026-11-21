@@ -706,3 +706,160 @@ describe("车位设置 Repository", () => {
     ).rejects.toMatchObject({ name: "AuthorizationError" });
   });
 });
+
+
+describe("月统计 Repository", () => {
+  const start = "2026-10-31T16:00:00.000Z";
+  const end = "2026-11-30T16:00:00.000Z";
+
+  function makeMonthlyClient(failTable?: string) {
+    const paymentRows = [
+      {
+        id: "p-1",
+        amount_cents: 12345,
+        method: "wechat",
+        purpose: "prepay",
+        paid_at: "2026-11-01T04:00:00.000Z",
+        lease_id: null,
+        parking_sessions: {
+          slot_code: "1",
+          plate: "粤B12345",
+          billing_type: "hotel_daily",
+        },
+        leases: null,
+      },
+      {
+        id: "p-2",
+        amount_cents: 500,
+        method: "cash",
+        purpose: "renewal",
+        paid_at: "2026-11-02T04:00:00.000Z",
+        lease_id: "lease-1",
+        parking_sessions: null,
+        leases: { slot_code: "2", tenant_name: "张女士" },
+      },
+      {
+        id: "p-3",
+        amount_cents: 100,
+        method: "alipay",
+        purpose: "settlement",
+        paid_at: "2026-11-03T04:00:00.000Z",
+        lease_id: null,
+        parking_sessions: null,
+        leases: null,
+      },
+    ];
+    const payments = {
+      gte: vi.fn(),
+      lt: vi.fn(),
+      order: vi.fn(),
+    };
+    payments.gte.mockReturnValue(payments);
+    payments.lt.mockReturnValue(payments);
+    payments.order
+      .mockReturnValueOnce(payments)
+      .mockResolvedValueOnce({
+        data: failTable === "payments" ? null : paymentRows,
+        error: failTable === "payments" ? new Error("private error") : null,
+      });
+
+    const entries = { gte: vi.fn(), lt: vi.fn() };
+    entries.gte.mockReturnValue(entries);
+    entries.lt.mockResolvedValue({
+      count: failTable === "parking_sessions" ? null : 4,
+      error:
+        failTable === "parking_sessions" ? new Error("private error") : null,
+    });
+
+    const slots = { order: vi.fn() };
+    slots.order.mockResolvedValue({
+      data: failTable === "slots" ? null : [{ code: "1", name: "1号" }],
+      error: failTable === "slots" ? new Error("private error") : null,
+    });
+    const selects = {
+      payments: vi.fn(() => payments),
+      parking_sessions: vi.fn(() => entries),
+      slots: vi.fn(() => slots),
+    };
+    const from = vi.fn((table: keyof typeof selects) => ({
+      select: selects[table],
+    }));
+    return {
+      client: { from } as unknown as AuthenticatedSupabaseClient,
+      payments,
+      entries,
+      slots,
+      selects,
+    };
+  }
+
+  it("payments 以 paid_at 半开区间查询并按 paid_at 倒序", async () => {
+    const { client, payments, selects } = makeMonthlyClient();
+    const rows = await createParkingRepository(client, logger).readMonthlyPayments(
+      start,
+      end,
+    );
+    expect(selects.payments).toHaveBeenCalledWith(
+      expect.stringContaining("parking_sessions!payments_session_id_fkey"),
+    );
+    expect(selects.payments).toHaveBeenCalledWith(
+      expect.stringContaining("leases!payments_lease_id_fkey"),
+    );
+    expect(payments.gte).toHaveBeenCalledWith("paid_at", start);
+    expect(payments.lt).toHaveBeenCalledWith("paid_at", end);
+    expect(payments.order).toHaveBeenNthCalledWith(1, "paid_at", {
+      ascending: false,
+    });
+    expect(payments.order).toHaveBeenNthCalledWith(2, "id", {
+      ascending: false,
+    });
+    expect(rows).toMatchObject([
+      { slotCode: "1", plate: "粤B12345", billingType: "hotel_daily" },
+      { slotCode: "2", tenantName: "张女士", leaseId: "lease-1" },
+      { slotCode: null, tenantName: null, plate: null, billingType: null },
+    ]);
+  });
+
+  it("parking_sessions 用 exact head 计数和 entered_at 半开区间", async () => {
+    const { client, entries, selects } = makeMonthlyClient();
+    expect(
+      await createParkingRepository(client, logger).countMonthlyEntries(start, end),
+    ).toBe(4);
+    expect(selects.parking_sessions).toHaveBeenCalledWith("id", {
+      count: "exact",
+      head: true,
+    });
+    expect(entries.gte).toHaveBeenCalledWith("entered_at", start);
+    expect(entries.lt).toHaveBeenCalledWith("entered_at", end);
+  });
+
+  it("slots 一次性读取车位名称而非当前在场事实", async () => {
+    const { client, slots, selects } = makeMonthlyClient();
+    expect(await createParkingRepository(client, logger).readSlotNames()).toEqual([
+      { code: "1", name: "1号" },
+    ]);
+    expect(selects.slots).toHaveBeenCalledWith("code,name");
+    expect(slots.order).toHaveBeenCalledWith("sort_order");
+  });
+
+  it("数据库读取失败转换为安全 RepositoryError", async () => {
+    for (const [table, call] of [
+      ["payments", "readMonthlyPayments"],
+      ["parking_sessions", "countMonthlyEntries"],
+      ["slots", "readSlotNames"],
+    ] as const) {
+      const { client } = makeMonthlyClient(table);
+      const repository = createParkingRepository(client, logger);
+      const result =
+        call === "readMonthlyPayments"
+          ? repository.readMonthlyPayments(start, end)
+          : call === "countMonthlyEntries"
+            ? repository.countMonthlyEntries(start, end)
+            : repository.readSlotNames();
+      await expect(result).rejects.toMatchObject({
+        code: "parking_unavailable",
+        message: "车位状态暂时无法读取，请稍后重试。",
+      });
+    }
+  });
+});

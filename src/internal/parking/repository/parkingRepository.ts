@@ -18,6 +18,7 @@ import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authe
 import type { Enums, Tables } from "internal/shared/supabase/database.types";
 
 import type {
+  MonthlyPayment,
   ParkingBillingType,
   ParkingPricingSettings,
 } from "../entity/parkingDomain";
@@ -95,6 +96,9 @@ function plateOccupiedError(name: string | null | undefined): ConflictError {
 
 export interface ParkingRepository {
   readSlotFacts(): Promise<SlotFactsRows>;
+  readMonthlyPayments(start: string, end: string): Promise<MonthlyPayment[]>;
+  countMonthlyEntries(start: string, end: string): Promise<number>;
+  readSlotNames(): Promise<Pick<Tables<"slots">, "code" | "name">[]>;
   getPhotoSignedUrl(photoPath: string): Promise<string | null>;
   getPricingSettings(): Promise<ParkingPricingSettings>;
   checkInVehicle(input: CheckInRpcInput): Promise<string>;
@@ -723,6 +727,62 @@ export function createParkingRepository(
         )
           throw error;
         return fail("updateSlotSettings", error);
+      }
+    },
+    async readMonthlyPayments(start, end) {
+      try {
+        const { data, error } = await supabase
+          .from("payments")
+          .select(
+            "id,amount_cents,method,purpose,paid_at,lease_id,parking_sessions:parking_sessions!payments_session_id_fkey(slot_code,plate,billing_type),leases:leases!payments_lease_id_fkey(slot_code,tenant_name)",
+          )
+          .gte("paid_at", start)
+          .lt("paid_at", end)
+          .order("paid_at", { ascending: false })
+          .order("id", { ascending: false });
+        if (error || !data) return fail("readMonthlyPayments", error);
+        return data.map((row) => ({
+          id: row.id,
+          amountCents: row.amount_cents,
+          method: row.method,
+          purpose: row.purpose,
+          paidAt: row.paid_at,
+          leaseId: row.lease_id,
+          slotCode: row.leases?.slot_code ?? row.parking_sessions?.slot_code ?? null,
+          plate: row.parking_sessions?.plate ?? null,
+          tenantName: row.leases?.tenant_name ?? null,
+          billingType: row.parking_sessions?.billing_type ?? null,
+        }));
+      } catch (error) {
+        if (error instanceof RepositoryError) throw error;
+        return fail("readMonthlyPayments", error);
+      }
+    },
+    async countMonthlyEntries(start, end) {
+      try {
+        const { count, error } = await supabase
+          .from("parking_sessions")
+          .select("id", { count: "exact", head: true })
+          .gte("entered_at", start)
+          .lt("entered_at", end);
+        if (error || count === null) return fail("countMonthlyEntries", error);
+        return count;
+      } catch (error) {
+        if (error instanceof RepositoryError) throw error;
+        return fail("countMonthlyEntries", error);
+      }
+    },
+    async readSlotNames() {
+      try {
+        const { data, error } = await supabase
+          .from("slots")
+          .select("code,name")
+          .order("sort_order");
+        if (error || !data) return fail("readSlotNames", error);
+        return data;
+      } catch (error) {
+        if (error instanceof RepositoryError) throw error;
+        return fail("readSlotNames", error);
       }
     },
     async readSlotFacts() {

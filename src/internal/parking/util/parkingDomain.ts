@@ -1,6 +1,8 @@
 import { slotDetailText } from "config/slotDetailText";
 import type { SlotStatus } from "theme/slotStatusTokens";
 import type {
+  MonthlyPayment,
+  MonthlyPaymentSummary,
   ParkingPricingSettings,
   ParkingTimestamp,
   SlotStatusFacts,
@@ -74,6 +76,43 @@ export const getBusinessDate = (instant: ParkingTimestamp): string => {
   );
 
   return shifted.toISOString().slice(0, 10);
+};
+
+/** 当前时间点对应的上海业务月份。 */
+export const getBusinessMonth = (instant: ParkingTimestamp): string =>
+  getBusinessDate(instant).slice(0, 7);
+
+/** 使用每月第一日移动月份，正确处理跨年与短月份。 */
+export const shiftBusinessMonth = (month: string, delta: number): string => {
+  const date = parseBusinessDate(month + "-01");
+  date.setUTCMonth(date.getUTCMonth() + delta);
+  return date.toISOString().slice(0, 7);
+};
+
+/** 上海月初至下月月初的左闭右开时间范围。 */
+export const getBusinessMonthRange = (month: string) => ({
+  start: getBusinessDateTime(month + "-01", 0),
+  end: getBusinessDateTime(shiftBusinessMonth(month, 1) + "-01", 0),
+});
+
+/** 全程按整数分聚合，长租关联优先。 */
+export const summarizeMonthlyPayments = (
+  rows: readonly MonthlyPayment[],
+): MonthlyPaymentSummary => {
+  const result: MonthlyPaymentSummary = {
+    totalCents: 0,
+    byMethod: { wechat: 0, alipay: 0, cash: 0 },
+    byBillingType: { hotel_daily: 0, hourly: 0, lease: 0, free: 0 },
+  };
+
+  for (const payment of rows) {
+    result.totalCents += payment.amountCents;
+    result.byMethod[payment.method] += payment.amountCents;
+    const billingType = payment.leaseId ? "lease" : payment.billingType;
+    if (billingType) result.byBillingType[billingType] += payment.amountCents;
+  }
+
+  return result;
 };
 
 /** 将业务时间点格式化为「12:30」。 */

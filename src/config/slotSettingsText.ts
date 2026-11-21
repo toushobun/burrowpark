@@ -1,6 +1,7 @@
 export const slotSettingsText = {
   settings: "设置",
   slots: "车位设置",
+  monthlyStats: "月统计",
   blockedReasons: {
     occupied: "有车在场",
     reserved: "有预留",
