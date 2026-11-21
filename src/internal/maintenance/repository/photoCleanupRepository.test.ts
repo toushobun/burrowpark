@@ -56,10 +56,12 @@ describe("photoCleanupRepository", () => {
   });
 
   it("逐条按 ID、原路径和截止时间精确配对，不允许跨记录匹配", async () => {
-    const select = vi.fn().mockResolvedValue({ data: [{ id: "a" }], error: null });
+    const select = vi
+      .fn()
+      .mockResolvedValue({ data: [{ id: "a" }], error: null });
     const lt = vi.fn(() => ({ select }));
-    const eq = vi.fn().mockReturnThis();
-    const update = vi.fn(() => ({ eq }));
+    const query = { eq: vi.fn().mockReturnThis(), lt };
+    const update = vi.fn(() => query);
     makeSupabase.mockReturnValue({ from: vi.fn(() => ({ update })) });
     const repository = createPhotoCleanupRepository(logger);
     const cutoff = "2026-08-01T00:00:00.000Z";
@@ -72,7 +74,7 @@ describe("photoCleanupRepository", () => {
         cutoff,
       ),
     ).toBe(2);
-    expect(eq.mock.calls).toEqual([
+    expect(query.eq.mock.calls).toEqual([
       ["id", "a"],
       ["photo_path", "a.jpg"],
       ["id", "b"],
