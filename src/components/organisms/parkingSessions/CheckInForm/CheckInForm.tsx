@@ -100,6 +100,7 @@ export function CheckInForm({
   const photoInput = useRef<HTMLInputElement>(null);
   const manualPlateEdited = useRef(false);
   const recognitionSerial = useRef(0);
+  const autoFilledPlate = useRef<string | null>(null);
   const recognitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -117,6 +118,11 @@ export function CheckInForm({
 
   const clearPhoto = () => {
     recognitionSerial.current += 1;
+    // 换照或删照时不能继续使用上一张照片自动识别的车牌。
+    if (autoFilledPlate.current !== null) {
+      setPlate(form?.defaultLeasePlate ?? "");
+      autoFilledPlate.current = null;
+    }
     if (recognitionTimerRef.current) clearTimeout(recognitionTimerRef.current);
     recognitionTimerRef.current = null;
     setIsCompressing(false);
@@ -139,6 +145,8 @@ export function CheckInForm({
       timedOut = true;
       if (serial === recognitionSerial.current) {
         setRecognitionStatus("failed");
+        // 图片压缩卡住时仍需允许手动登记。
+        setIsCompressing(false);
       }
     }, 15000);
     recognitionTimerRef.current = timeout;
@@ -148,7 +156,7 @@ export function CheckInForm({
     );
     try {
       const compressed = await compressPhoto(file);
-      if (serial !== recognitionSerial.current) return;
+      if (serial !== recognitionSerial.current || timedOut) return;
       const preview = URL.createObjectURL(compressed);
       photoUrlRef.current = preview;
       setPhotoUrl(preview);
@@ -173,6 +181,7 @@ export function CheckInForm({
         setRecognitionStatus("suggestion");
       } else {
         setPlate(normalized);
+        autoFilledPlate.current = normalized;
         setRecognitionStatus("filled");
       }
     } catch {
@@ -440,6 +449,7 @@ export function CheckInForm({
                     fullWidth
                     onClick={() => {
                       setPlate(recognizedPlate);
+                      autoFilledPlate.current = recognizedPlate;
                       setRecognitionStatus("filled");
                     }}
                     size="large"
@@ -458,6 +468,7 @@ export function CheckInForm({
                   name="plate"
                   onChange={(event) => {
                     manualPlateEdited.current = true;
+                    autoFilledPlate.current = null;
                     setPlate(event.target.value.toUpperCase());
                   }}
                   slotProps={{

@@ -61,10 +61,23 @@ function pixelAt(
   x: number,
   y: number,
 ): [number, number, number] {
-  const ix = Math.max(0, Math.min(source.width - 1, Math.round(x)));
-  const iy = Math.max(0, Math.min(source.height - 1, Math.round(y)));
-  const index = (iy * source.width + ix) * 4;
-  return [source.data[index], source.data[index + 1], source.data[index + 2]];
+  // 缩放和透视展平使用双线性采样，避免小车牌的最近邻锯齿。
+  const px = Math.max(0, Math.min(source.width - 1, x));
+  const py = Math.max(0, Math.min(source.height - 1, y));
+  const x0 = Math.floor(px);
+  const y0 = Math.floor(py);
+  const x1 = Math.min(x0 + 1, source.width - 1);
+  const y1 = Math.min(y0 + 1, source.height - 1);
+  const dx = px - x0;
+  const dy = py - y0;
+  const p00 = (y0 * source.width + x0) * 4;
+  const p10 = (y0 * source.width + x1) * 4;
+  const p01 = (y1 * source.width + x0) * 4;
+  const p11 = (y1 * source.width + x1) * 4;
+  const channel = (c: number) =>
+    (source.data[p00 + c] * (1 - dx) + source.data[p10 + c] * dx) * (1 - dy) +
+    (source.data[p01 + c] * (1 - dx) + source.data[p11 + c] * dx) * dy;
+  return [channel(0), channel(1), channel(2)];
 }
 
 function detectorInput(source: PixelSource) {

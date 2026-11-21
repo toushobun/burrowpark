@@ -76,9 +76,11 @@ describe("HyperLPR3 Worker 推理", () => {
         getContext() {
           return {
             drawImage: vi.fn(),
-            getImageData: () => ({
-              data: new Uint8ClampedArray(80 * 40 * 4).fill(255),
-            }),
+            getImageData: () => {
+              const data = new Uint8ClampedArray(80 * 40 * 4).fill(255);
+              data[0] = 0;
+              return { data };
+            },
           };
         }
       },
@@ -108,6 +110,8 @@ describe("HyperLPR3 Worker 推理", () => {
       recognize.mock.invocationCallOrder[0],
     );
     expect(scope.postMessage).toHaveBeenCalledWith({ id: 9, plate: target });
+    // 检测缩放后 x=1 对应原图 x=0.25，插值结果应为 0.25。
+    expect(tensors[0][80 * 320 + 1]).toBeCloseTo(0.25);
     // 80×40 原图中检测车牌比例为 3:1，右侧最后 16 列应补零。
     expect(tensors[1][0]).toBeCloseTo(1);
     expect(tensors[1][159]).toBe(0);
