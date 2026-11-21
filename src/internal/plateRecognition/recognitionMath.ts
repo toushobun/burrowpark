@@ -172,14 +172,10 @@ export function createPlateProjection(points: readonly number[]) {
     const tx = rotated ? 1 - v : u;
     const ty = rotated ? u : v;
     const divisor = g * tx + h * ty + 1;
-    return [
-      (a * tx + b * ty + x0) / divisor,
-      (d * tx + e * ty + y0) / divisor,
-    ];
+    return [(a * tx + b * ty + x0) / divisor, (d * tx + e * ty + y0) / divisor];
   };
 
-  if (sample(0.5, 0.5).some((value) => !Number.isFinite(value)))
-    return null;
+  if (sample(0.5, 0.5).some((value) => !Number.isFinite(value))) return null;
   return { resizedWidth, sample };
 }
 
