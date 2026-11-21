@@ -113,6 +113,11 @@ export interface ParkingRepository {
     paymentMethod: Enums<"payment_method"> | null;
   }): Promise<void>;
   undoCheckOut(sessionId: string): Promise<void>;
+  updateSlotSettings(
+    code: string,
+    kind: "regular" | "private",
+    isActive: boolean,
+  ): Promise<void>;
   createLease(input: {
     slotCode: string;
     tenantName: string;
@@ -669,6 +674,57 @@ export function createParkingRepository(
         p_previous: previous,
         p_expected_current: expectedCurrent,
       }),
+    async updateSlotSettings(code, kind, isActive) {
+      try {
+        const { error } = await supabase.rpc("update_slot_settings", {
+          p_code: code,
+          p_kind: kind,
+          p_is_active: isActive,
+        });
+        if (!error) return;
+        const business = findRpcBusinessError(error, {
+          FAMILY_REQUIRED: "family_required",
+          SLOT_BUSY: "slot_busy",
+          INVALID_KIND: "invalid_kind",
+          SLOT_UNAVAILABLE: "slot_unavailable",
+        });
+        switch (business) {
+          case "family_required":
+            throw new AuthorizationError(
+              business,
+              parkingMessages.invalidInput,
+            );
+          case "slot_busy":
+            throw new ConflictError(business, parkingMessages.slotSettingsBusy);
+          case "invalid_kind":
+            throw new ValidationError(
+              business,
+              parkingMessages.slotSettingsKindInvalid,
+            );
+          case "slot_unavailable":
+            throw new ValidationError(
+              business,
+              parkingMessages.slotUnavailable,
+            );
+        }
+        const conflict = toConcurrentModificationError(
+          error,
+          logger,
+          "update_slot_settings",
+        );
+        if (conflict) throw conflict;
+        return fail("updateSlotSettings", error);
+      } catch (error) {
+        if (
+          error instanceof AuthorizationError ||
+          error instanceof ConflictError ||
+          error instanceof ValidationError ||
+          error instanceof RepositoryError
+        )
+          throw error;
+        return fail("updateSlotSettings", error);
+      }
+    },
     async readSlotFacts() {
       try {
         // 关联收款在同一次数据库请求中读取，避免按车位 N+1 查询。

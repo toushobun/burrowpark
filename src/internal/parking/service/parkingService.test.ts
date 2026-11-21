@@ -73,6 +73,7 @@ function makeService(rows: SlotFactsRows) {
     undoRenewal: vi.fn().mockResolvedValue(undefined),
     checkOutVehicle: vi.fn().mockResolvedValue(undefined),
     undoCheckOut: vi.fn().mockResolvedValue(undefined),
+    updateSlotSettings: vi.fn().mockResolvedValue(undefined),
     createLease: vi
       .fn()
       .mockResolvedValue("00000000-0000-4000-8000-000000000003"),
@@ -1051,5 +1052,109 @@ describe("车位详情扩展操作", () => {
         minutes: 20,
       }),
     ).rejects.toMatchObject({ name: "ValidationError" });
+  });
+});
+
+describe("车位设置业务", () => {
+  it("按既有 readSlotFacts 顺序列出车位及禁用原因", async () => {
+    const { service, repository } = makeService(
+      makeRows({
+        slots: [
+          { code: "1", name: "1号", kind: "regular", is_active: true },
+          { code: "2", name: "2号", kind: "private", is_active: false },
+          { code: "3", name: "3号", kind: "regular", is_active: true },
+          { code: "4", name: "4号", kind: "regular", is_active: true },
+        ],
+        sessions: [makeSession({ slot_code: "1" })],
+        reservations: [{ slot_code: "3", guest_name: null, note: null }],
+        leases: [makeLease({ slot_code: "4" })],
+      }),
+    );
+    expect(await service.getSlotSettings()).toEqual([
+      {
+        code: "1",
+        name: "1号",
+        kind: "regular",
+        isActive: true,
+        blockedReason: "occupied",
+      },
+      {
+        code: "2",
+        name: "2号",
+        kind: "private",
+        isActive: false,
+        blockedReason: null,
+      },
+      {
+        code: "3",
+        name: "3号",
+        kind: "regular",
+        isActive: true,
+        blockedReason: "reserved",
+      },
+      {
+        code: "4",
+        name: "4号",
+        kind: "regular",
+        isActive: true,
+        blockedReason: "leased",
+      },
+    ]);
+    expect(repository.readSlotFacts).toHaveBeenCalledOnce();
+  });
+
+  it("空车位允许改成私人位并停用", async () => {
+    const { service, repository } = makeService(makeRows());
+    await service.updateSlotSettings({
+      code: "1",
+      kind: "private",
+      isActive: false,
+    });
+    expect(repository.updateSlotSettings).toHaveBeenCalledWith(
+      "1",
+      "private",
+      false,
+    );
+  });
+
+  it("有车在场时服务层拒绝开关修改", async () => {
+    const { service, repository } = makeService(
+      makeRows({
+        sessions: [makeSession()],
+      }),
+    );
+    await expect(
+      service.updateSlotSettings({
+        code: "1",
+        kind: "private",
+        isActive: false,
+      }),
+    ).rejects.toMatchObject({ name: "ConflictError", code: "slot_busy" });
+    expect(repository.updateSlotSettings).not.toHaveBeenCalled();
+  });
+
+  it("不能通过服务层把类型设置成 aisle", async () => {
+    const { service, repository } = makeService(makeRows());
+    await expect(
+      service.updateSlotSettings({
+        code: "1",
+        kind: "aisle",
+        isActive: true,
+      }),
+    ).rejects.toMatchObject({ name: "ValidationError" });
+    expect(repository.updateSlotSettings).not.toHaveBeenCalled();
+  });
+
+  it("非登录账号不能读取车位开关", async () => {
+    const { repository } = makeService(makeRows());
+    const service = createParkingService(repository, async () => ({
+      isAuthenticated: false,
+      userId: null,
+      email: null,
+    }));
+    await expect(service.getSlotSettings()).rejects.toMatchObject({
+      code: "auth_required",
+    });
+    expect(repository.readSlotFacts).not.toHaveBeenCalled();
   });
 });

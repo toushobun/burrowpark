@@ -18,5 +18,7 @@ export const parkingMessages = {
   leaseVehiclePresent: "长租车还在场，请先办离场",
   reservationUnavailable: "这条预留已经关闭了",
   leaseDateInvalid: "交到哪天必须晚于起租日。",
+  slotSettingsBusy: "有车、预留或长租的车位不能修改设置。",
+  slotSettingsKindInvalid: "只允许普通车位或私人位。",
   checkoutUndoOccupied: "这个车位已经停了别的车，不能撤销",
 } as const;
