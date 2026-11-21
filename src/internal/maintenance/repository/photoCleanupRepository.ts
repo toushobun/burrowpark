@@ -82,21 +82,27 @@ export function createPhotoCleanupRepository(
     async clearDeletedPaths(rows, cutoff) {
       if (!rows.length) return 0;
       try {
-        const { data, error } = await supabase
-          .from("parking_sessions")
-          .update({ photo_path: null })
-          .in(
-            "id",
-            rows.map((row) => row.id),
-          )
-          .in(
-            "photo_path",
-            rows.map((row) => row.path),
-          )
-          .lt("left_at", cutoff)
-          .select("id");
-        if (error || !data) return fail("clearDeletedPaths", error);
-        return data.length;
+        let removed = 0;
+        // 每条记录与删除成功的原路径精确配对，避免两个独立 IN 条件交叉匹配。
+        // 分批并发，避免 200 条逐条串行请求拖慢 Hobby Cron。
+        const concurrency = 10;
+        for (let offset = 0; offset < rows.length; offset += concurrency) {
+          const results = await Promise.all(
+            rows.slice(offset, offset + concurrency).map(async (row) => {
+              const { data, error } = await supabase
+                .from("parking_sessions")
+                .update({ photo_path: null })
+                .eq("id", row.id)
+                .eq("photo_path", row.path)
+                .lt("left_at", cutoff)
+                .select("id");
+              if (error || !data) return fail("clearDeletedPaths", error);
+              return data.length;
+            }),
+          );
+          removed += results.reduce((sum, count) => sum + count, 0);
+        }
+        return removed;
       } catch (error) {
         if (error instanceof RepositoryError) throw error;
         return fail("clearDeletedPaths", error);

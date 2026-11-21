@@ -55,24 +55,53 @@ describe("photoCleanupRepository", () => {
     expect(await repository.removeFromStorage([])).toEqual([]);
   });
 
-  it("只清空符合已删ID、原路径和截止时间的记录", async () => {
-    const select = vi
-      .fn()
-      .mockResolvedValue({ data: [{ id: "a" }], error: null });
+  it("逐条按 ID、原路径和截止时间精确配对，不允许跨记录匹配", async () => {
+    const select = vi.fn().mockResolvedValue({ data: [{ id: "a" }], error: null });
     const lt = vi.fn(() => ({ select }));
-    const inFilter = vi.fn().mockReturnThis();
     const eq = vi.fn().mockReturnThis();
-    const update = vi.fn(() => ({ in: inFilter, lt, eq }));
+    const update = vi.fn(() => ({ eq }));
     makeSupabase.mockReturnValue({ from: vi.fn(() => ({ update })) });
     const repository = createPhotoCleanupRepository(logger);
+    const cutoff = "2026-08-01T00:00:00.000Z";
     expect(
       await repository.clearDeletedPaths(
+        [
+          { id: "a", path: "a.jpg" },
+          { id: "b", path: "b.jpg" },
+        ],
+        cutoff,
+      ),
+    ).toBe(2);
+    expect(eq.mock.calls).toEqual([
+      ["id", "a"],
+      ["photo_path", "a.jpg"],
+      ["id", "b"],
+      ["photo_path", "b.jpg"],
+    ]);
+    expect(lt).toHaveBeenCalledTimes(2);
+    expect(lt).toHaveBeenCalledWith("left_at", cutoff);
+    expect(update).toHaveBeenCalledWith({ photo_path: null });
+  });
+
+  it("数据库更新失败时不计为已清空", async () => {
+    const select = vi.fn().mockResolvedValue({
+      data: null,
+      error: { name: "PostgrestError" },
+    });
+    const query = {
+      eq: vi.fn().mockReturnThis(),
+      lt: vi.fn(() => ({ select })),
+    };
+    const update = vi.fn(() => query);
+    makeSupabase.mockReturnValue({
+      from: vi.fn(() => ({ update })),
+    });
+    const repository = createPhotoCleanupRepository(logger);
+    await expect(
+      repository.clearDeletedPaths(
         [{ id: "a", path: "a.jpg" }],
         "2026-08-01T00:00:00.000Z",
       ),
-    ).toBe(1);
-    expect(inFilter).toHaveBeenCalledWith("id", ["a"]);
-    expect(inFilter).toHaveBeenCalledWith("photo_path", ["a.jpg"]);
-    expect(lt).toHaveBeenCalledWith("left_at", "2026-08-01T00:00:00.000Z");
+    ).rejects.toMatchObject({ code: "photo_cleanup_unavailable" });
   });
 });
