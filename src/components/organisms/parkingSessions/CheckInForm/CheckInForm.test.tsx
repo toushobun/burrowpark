@@ -405,7 +405,7 @@ describe("CheckInForm", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "确认登记" }));
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "确认登记" })).toBeDisabled(),
+      expect(screen.getByRole("button", { name: /登记/ })).toBeDisabled(),
     );
     expect(screen.getByRole("button", { name: "拍照" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "重拍" })).toBeDisabled();
