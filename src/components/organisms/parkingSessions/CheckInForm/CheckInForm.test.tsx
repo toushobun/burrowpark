@@ -350,6 +350,14 @@ describe("CheckInForm", () => {
     expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue(
       "辽A12345",
     );
+    choosePhoto(container);
+    await waitFor(() => expect(recognizePlate).toHaveBeenCalledTimes(2));
+    await act(async () => finish("京A88888"));
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue(
+        "京A88888",
+      ),
+    );
   });
 
   it("识别失败只显示手动输入提示，不弹失败对话框", async () => {

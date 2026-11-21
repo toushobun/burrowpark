@@ -122,6 +122,7 @@ export function CheckInForm({
     if (autoFilledPlate.current !== null) {
       setPlate(form?.defaultLeasePlate ?? "");
       autoFilledPlate.current = null;
+      manualPlateEdited.current = false;
     }
     if (recognitionTimerRef.current) clearTimeout(recognitionTimerRef.current);
     recognitionTimerRef.current = null;
@@ -467,7 +468,8 @@ export function CheckInForm({
                   label={checkInText.plate}
                   name="plate"
                   onChange={(event) => {
-                    manualPlateEdited.current = true;
+                    manualPlateEdited.current =
+                      normalizePlate(event.target.value).length > 0;
                     autoFilledPlate.current = null;
                     setPlate(event.target.value.toUpperCase());
                   }}

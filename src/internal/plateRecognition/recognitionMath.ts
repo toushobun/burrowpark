@@ -79,7 +79,7 @@ export const plateTokens = [
 ] as const;
 
 const province =
-  /^[云京冀吉宁川晋桂沪津浙渝湘琼甘皖粤苏蒙藏豫贵赣辽鄂闽陕青鲁黑]/u;
+  /^[云京冀吉宁川新晋桂沪津浙渝湘琼甘皖粤苏蒙藏豫贵赣辽鄂闽陕青鲁黑]/u;
 
 /** 根据 CTC blank 和连续重复索引解码，不在删除 blank 后再合并重复字。 */
 export function decodePlate(
@@ -120,10 +120,11 @@ export function decodePlate(
     previous = bestIndex;
   }
   if (count === 0 || confidenceSum / count < minConfidence) return null;
+  const suffix = text.slice(2);
   if (
     !province.test(text) ||
     !/^[A-Z]$/.test(text[1] ?? "") ||
-    !/^[A-Z0-9]{5,6}$/.test(text.slice(2))
+    (!/^[A-Z0-9]{5,6}$/.test(suffix) && !/^[A-Z0-9]{4}[学警港澳]$/.test(suffix))
   )
     return null;
   return text;
