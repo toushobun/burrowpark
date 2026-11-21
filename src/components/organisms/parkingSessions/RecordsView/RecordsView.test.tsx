@@ -82,11 +82,14 @@ describe("RecordsView", () => {
     fireEvent.click(screen.getByRole("button", { name: "改金额" }));
     const dialog = screen.getByRole("dialog");
     expect(dialog).toHaveTextContent("30.00 元（现金）改成 30.00 元（现金）");
-    fireEvent.change(within(dialog).getByRole("textbox", { name: "金额（元）" }), {
-      target: { value: "3.00" },
-    });
+    fireEvent.change(
+      within(dialog).getByRole("textbox", { name: "金额（元）" }),
+      { target: { value: "3.00" } },
+    );
     expect(dialog).toHaveTextContent("30.00 元（现金）改成 3.00 元（现金）");
-    fireEvent.mouseDown(within(dialog).getByRole("combobox", { name: "收款方式" }));
+    fireEvent.mouseDown(
+      within(dialog).getByRole("combobox", { name: "收款方式" }),
+    );
     fireEvent.click(screen.getByRole("option", { name: "微信" }));
     expect(dialog).toHaveTextContent("30.00 元（现金）改成 3.00 元（微信）");
   });
