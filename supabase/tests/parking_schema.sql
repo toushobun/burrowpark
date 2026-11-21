@@ -372,9 +372,9 @@ select throws_ok(
 );
 -- 用完整有效的已关闭记录避开开放预留的业务触发器，单独验证 RLS 写入拒绝。
 select throws_ok(
-  $insert into public.reservations (id, slot_code, closed_at, outcome)
+  $$insert into public.reservations (id, slot_code, closed_at, outcome)
     values ('00000000-0000-4000-8000-000000000079',
-            'test-res-1', now(), 'cancelled')$,
+            'test-res-1', now(), 'cancelled')$$,
   '42501', null, '非家庭账号不可新增预留记录'
 );
 select is((select count(*) from public.leases where tenant_name = '越权'), 0::bigint, '越权写入不会留下长租');
