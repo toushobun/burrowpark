@@ -2,6 +2,9 @@ import { createAuthRepository } from "internal/auth/repository/authRepository";
 import { createAuthService } from "internal/auth/service/authService";
 import type { AuthService } from "internal/auth";
 import type { ParkingService } from "internal/parking";
+import type { PhotoCleanupService } from "internal/maintenance";
+import { createPhotoCleanupService } from "internal/maintenance/service/photoCleanupService";
+import { createPhotoCleanupRepository } from "internal/maintenance/repository/photoCleanupRepository";
 import { createParkingRepository } from "internal/parking/repository/parkingRepository";
 import { createParkingService } from "internal/parking/service/parkingService";
 import type { RequestDependencies } from "internal/shared/context/requestDependencies";
@@ -20,6 +23,7 @@ import type { RequestDependencies } from "internal/shared/context/requestDepende
 export type RequestContainer = Readonly<{
   auth: AuthService;
   parking: ParkingService;
+  maintenance: PhotoCleanupService;
 }>;
 
 export function createRequestContainer(
@@ -27,12 +31,20 @@ export function createRequestContainer(
 ): RequestContainer {
   let auth: AuthService | undefined;
   let parking: ParkingService | undefined;
+  let maintenance: PhotoCleanupService | undefined;
   return {
     get auth() {
       auth ??= createAuthService(
         createAuthRepository(dependencies.supabase, dependencies.logger),
       );
       return auth;
+    },
+    get maintenance() {
+      maintenance ??= createPhotoCleanupService(
+        createPhotoCleanupRepository(dependencies.logger),
+        dependencies.logger,
+      );
+      return maintenance;
     },
     get parking() {
       parking ??= createParkingService(

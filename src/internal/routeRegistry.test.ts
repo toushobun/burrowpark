@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import * as healthRoutes from "internal/health/router";
+import * as maintenanceRoutes from "internal/maintenance/router";
 import { internalModules } from "internal/moduleRegistry";
 import { apiRouter } from "internal/router";
 
@@ -21,6 +22,14 @@ type RouteSpec = {
 };
 
 const routeSpecs: RouteSpec[] = [
+  {
+    basePath: "/cron",
+    expectedRoutes: {
+      getPhotoCleanupRoute: { method: "get", path: "/photo-cleanup" },
+    },
+    moduleName: "maintenance",
+    namespace: maintenanceRoutes,
+  },
   {
     basePath: "/health",
     expectedRoutes: {
@@ -73,7 +82,10 @@ describe("internal route registry", () => {
   it("Module Registry 保持既有模块顺序与 basePath", () => {
     expect(
       internalModules.map(({ basePath, name }) => ({ basePath, name })),
-    ).toEqual([{ basePath: "/health", name: "health" }]);
+    ).toEqual([
+      { basePath: "/health", name: "health" },
+      { basePath: "/cron", name: "maintenance" },
+    ]);
   });
 
   it("所有 Route Contract 保持既有 Method 与相对 Path", () => {
