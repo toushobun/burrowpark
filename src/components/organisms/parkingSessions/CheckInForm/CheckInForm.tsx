@@ -89,6 +89,7 @@ export function CheckInForm({
   const [undoState, undo, isUndoPending] = useActionState(undoAction, {});
   const [plate, setPlate] = useState(form?.defaultLeasePlate ?? "");
   const [photo, setPhoto] = useState<Blob | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(
     storyPhoto?.previewUrl ?? null,
   );
@@ -99,17 +100,26 @@ export function CheckInForm({
   const photoInput = useRef<HTMLInputElement>(null);
   const manualPlateEdited = useRef(false);
   const recognitionSerial = useRef(0);
+  const recognitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const photoUrlRef = useRef<string | null>(null);
 
   useEffect(
     () => () => {
       if (photoUrlRef.current) URL.revokeObjectURL(photoUrlRef.current);
+      if (recognitionTimerRef.current) {
+        clearTimeout(recognitionTimerRef.current);
+      }
     },
     [],
   );
 
   const clearPhoto = () => {
     recognitionSerial.current += 1;
+    if (recognitionTimerRef.current) clearTimeout(recognitionTimerRef.current);
+    recognitionTimerRef.current = null;
+    setIsCompressing(false);
     setPhoto(null);
     setPhotoUrl(null);
     setRecognizedPlate(null);
@@ -122,9 +132,20 @@ export function CheckInForm({
     if (!file) return;
     clearPhoto();
     const serial = recognitionSerial.current;
+    setIsCompressing(true);
     setRecognitionStatus("loading");
-    // 动态 import 在拍照后触发，与压缩并行，首屏不加载推理模块。
-    const recognitionModule = import("internal/plateRecognition");
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      if (serial === recognitionSerial.current) {
+        setRecognitionStatus("failed");
+      }
+    }, 15000);
+    recognitionTimerRef.current = timeout;
+    // 动态 import 与压缩并行，加载失败也交给识别失败状态处理。
+    const recognitionModule = import("internal/plateRecognition").catch(
+      () => null,
+    );
     try {
       const compressed = await compressPhoto(file);
       if (serial !== recognitionSerial.current) return;
@@ -132,9 +153,16 @@ export function CheckInForm({
       photoUrlRef.current = preview;
       setPhotoUrl(preview);
       setPhoto(compressed.size <= 2 * 1024 * 1024 ? compressed : null);
-      const { recognizePlate } = await recognitionModule;
-      const result = await recognizePlate(compressed);
-      if (serial !== recognitionSerial.current) return;
+      setIsCompressing(false);
+      if (timedOut) return;
+      const module = await recognitionModule;
+      if (!module || timedOut || serial !== recognitionSerial.current) {
+        if (!timedOut && serial === recognitionSerial.current)
+          setRecognitionStatus("failed");
+        return;
+      }
+      const result = await module.recognizePlate(compressed);
+      if (timedOut || serial !== recognitionSerial.current) return;
       if (!result) {
         setRecognitionStatus("failed");
         return;
@@ -148,7 +176,13 @@ export function CheckInForm({
         setRecognitionStatus("filled");
       }
     } catch {
-      if (serial === recognitionSerial.current) setRecognitionStatus("failed");
+      if (serial === recognitionSerial.current && !timedOut)
+        setRecognitionStatus("failed");
+    } finally {
+      clearTimeout(timeout);
+      if (recognitionTimerRef.current === timeout)
+        recognitionTimerRef.current = null;
+      if (serial === recognitionSerial.current) setIsCompressing(false);
     }
   };
   const [billingType, setBillingType] = useState<ParkingBillingType>(
@@ -238,6 +272,7 @@ export function CheckInForm({
     Number(amountYuan) <= 21474836.47;
   const canSubmit =
     !isPending &&
+    !isCompressing &&
     !form.occupied &&
     form.isActive &&
     validPlate &&

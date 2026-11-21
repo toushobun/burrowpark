@@ -915,7 +915,7 @@ describe("照片 Storage 操作", () => {
   });
 
   it("上传失败只记安全警告且不会更新路径", async () => {
-    const { client, update } = makePhotoClient({
+    const { client, update, remove } = makePhotoClient({
       uploadError: new Error("secret storage failure"),
     });
     vi.mocked(logger.warn).mockClear();
@@ -927,6 +927,7 @@ describe("照片 Storage 操作", () => {
       ),
     ).rejects.toMatchObject({ code: "plate_photo_failed" });
     expect(update).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
     expect(JSON.stringify(vi.mocked(logger.warn).mock.calls)).not.toContain(
       photoPath,
     );
@@ -935,8 +936,10 @@ describe("照片 Storage 操作", () => {
     );
   });
 
-  it("路径更新失败只记警告并向 Service 报告附件失败", async () => {
-    const { client } = makePhotoClient({ updateError: new Error("secret") });
+  it("路径更新失败时补偿删除已上传文件，向 Service 报告附件失败", async () => {
+    const { client, remove, update } = makePhotoClient({
+      updateError: new Error("secret"),
+    });
     await expect(
       createParkingRepository(client, logger).savePlatePhoto(
         id,
@@ -944,6 +947,30 @@ describe("照片 Storage 操作", () => {
         new Blob(["x"], { type: "image/jpeg" }),
       ),
     ).rejects.toMatchObject({ code: "plate_photo_failed" });
+    expect(remove).toHaveBeenCalledWith([photoPath]);
+    expect(update.mock.invocationCallOrder[0]).toBeLessThan(
+      remove.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("补偿清理失败也不泄漏照片路径或数据库错误", async () => {
+    const { client, remove } = makePhotoClient({
+      updateError: new Error("secret database failure"),
+      removeError: new Error("secret storage failure"),
+    });
+    vi.mocked(logger.warn).mockClear();
+    await expect(
+      createParkingRepository(client, logger).savePlatePhoto(
+        id,
+        photoPath,
+        new Blob(["x"], { type: "image/jpeg" }),
+      ),
+    ).rejects.toMatchObject({ code: "plate_photo_failed" });
+    expect(remove).toHaveBeenCalledWith([photoPath]);
+    const log = JSON.stringify(vi.mocked(logger.warn).mock.calls);
+    expect(log).not.toContain(photoPath);
+    expect(log).not.toContain("secret database failure");
+    expect(log).not.toContain("secret storage failure");
   });
 
   it("撤销清理失败只记录警告", async () => {

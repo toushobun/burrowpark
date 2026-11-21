@@ -420,14 +420,41 @@ export function createParkingRepository(
           .from("plate-photos")
           .upload(path, photo, { contentType: "image/jpeg", upsert: false });
         if (uploadError) return photoFailure("upload", uploadError);
-        const { data: updated, error: updateError } = await supabase
-          .from("parking_sessions")
-          .update({ photo_path: path })
-          .eq("id", sessionId)
-          .select("id")
-          .single();
-        if (updateError || !updated)
-          return photoFailure("updatePhotoPath", updateError);
+
+        let linked = false;
+        let linkError: unknown = null;
+        try {
+          const { data, error } = await supabase
+            .from("parking_sessions")
+            .update({ photo_path: path })
+            .eq("id", sessionId)
+            .select("id")
+            .single();
+          linked = !error && !!data;
+          linkError = error;
+        } catch (error) {
+          linkError = error;
+        }
+        if (!linked) {
+          // DB 未记录照片路径时补偿清理，避免撤销无法定位孤立文件。
+          let cleanupError: unknown = null;
+          try {
+            const { error } = await supabase.storage
+              .from("plate-photos")
+              .remove([path]);
+            cleanupError = error;
+          } catch (error) {
+            cleanupError = error;
+          }
+          if (cleanupError) {
+            logger.warn("[parking] plate photo cleanup failed", {
+              operation: "cleanup",
+              errorName:
+                cleanupError instanceof Error ? cleanupError.name : "unknown",
+            });
+          }
+          return photoFailure("updatePhotoPath", linkError);
+        }
       } catch (error) {
         if (error instanceof RepositoryError) throw error;
         return photoFailure("savePlatePhoto", error);

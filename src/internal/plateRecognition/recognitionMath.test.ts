@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { decodePlate, plateTokens, selectDetections } from "./recognitionMath";
+import {
+  createPlateProjection,
+  decodePlate,
+  plateTokens,
+  selectDetections,
+} from "./recognitionMath";
 
 describe("车牌识别纯函数", () => {
   it("CTC 移除 blank 与重复索引后得到车牌", () => {
@@ -22,6 +27,32 @@ describe("车牌识别纯函数", () => {
     const scores = new Float32Array(plateTokens.length);
     scores[plateTokens.indexOf("辽")] = 0.1;
     expect(decodePlate(scores, 1, plateTokens.length)).toBeNull();
+  });
+
+  it("倾斜四边形透视矫正保持四角坐标并避免双线性拉伸", () => {
+    const points = [0, 0, 120, 0, 90, 40, 15, 40];
+    const projection = createPlateProjection(points);
+    expect(projection).not.toBeNull();
+    if (!projection) return;
+    expect(projection.sample(0, 0)).toEqual([0, 0]);
+    expect(projection.sample(1, 0)).toEqual([120, 0]);
+    expect(projection.sample(1, 1)).toEqual([90, 40]);
+    expect(projection.sample(0, 1)).toEqual([15, 40]);
+    const [midX, midY] = projection.sample(0.5, 0.5);
+    expect(midX).not.toBeCloseTo((0 + 120 + 90 + 15) / 4, 2);
+    expect(midY).toBeGreaterThan(0);
+    expect(midY).toBeLessThan(40);
+    expect(projection.resizedWidth).toBeLessThan(160);
+  });
+
+  it("窄车牌保留右侧补零，高牌旋转后仍可展平", () => {
+    const regular = createPlateProjection([10, 10, 70, 10, 70, 30, 10, 30]);
+    expect(regular?.resizedWidth).toBe(144);
+    const tall = createPlateProjection([10, 10, 30, 10, 30, 90, 10, 90]);
+    expect(tall?.resizedWidth).toBe(160);
+    expect(tall?.sample(0, 0)).toEqual([30, 10]);
+    expect(tall?.sample(1, 0)).toEqual([30, 90]);
+    expect(createPlateProjection([0, 0, 0, 0, 0, 0, 0, 0])).toBeNull();
   });
 
   it("检测后处理筛选低分并排除重复候选", () => {

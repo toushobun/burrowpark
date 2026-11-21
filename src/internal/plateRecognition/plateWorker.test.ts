@@ -38,15 +38,25 @@ describe("HyperLPR3 Worker 推理", () => {
         dims: [1, indices.length, plateTokens.length],
       },
     });
-    const create = vi.fn(async (path: string) => ({
-      inputNames: ["images"],
-      outputNames: ["output"],
-      run: path.includes("y5fu_") ? detect : recognize,
-    }));
+    let failFirstLoad = true;
+    const create = vi.fn(async (path: string) => {
+      if (path.includes("y5fu_") && failFirstLoad) {
+        failFirstLoad = false;
+        throw new Error("网络暂时不可用");
+      }
+      return {
+        inputNames: ["images"],
+        outputNames: ["output"],
+        run: path.includes("y5fu_") ? detect : recognize,
+      };
+    });
+    const tensors: Float32Array[] = [];
     vi.doMock("onnxruntime-web/wasm", () => ({
       env: { wasm: {} },
       Tensor: class {
-        constructor(_type: string, _data: Float32Array, _dims: number[]) {}
+        constructor(_type: string, data: Float32Array, _dims: number[]) {
+          tensors.push(data);
+        }
       },
       InferenceSession: { create },
     }));
@@ -82,15 +92,23 @@ describe("HyperLPR3 Worker 推理", () => {
     const handler = scope.onmessage;
     if (!handler) throw new Error("Worker 未注册监听");
     await handler({
+      data: { id: 8, blob: new Blob(["jpeg"], { type: "image/jpeg" }) },
+    } as MessageEvent);
+    expect(scope.postMessage).toHaveBeenCalledWith({ id: 8, plate: null });
+
+    await handler({
       data: { id: 9, blob: new Blob(["jpeg"], { type: "image/jpeg" }) },
     } as MessageEvent);
 
-    expect(create).toHaveBeenCalledTimes(2);
+    expect(create).toHaveBeenCalledTimes(4);
     expect(detect).toHaveBeenCalledOnce();
     expect(recognize).toHaveBeenCalledOnce();
     expect(detect.mock.invocationCallOrder[0]).toBeLessThan(
       recognize.mock.invocationCallOrder[0],
     );
     expect(scope.postMessage).toHaveBeenCalledWith({ id: 9, plate: target });
+    // 80×40 原图中检测车牌比例为 3:1，右侧最后 16 列应补零。
+    expect(tensors[1][0]).toBeCloseTo(1);
+    expect(tensors[1][159]).toBe(0);
   });
 });

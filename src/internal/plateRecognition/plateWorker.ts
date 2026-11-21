@@ -1,6 +1,10 @@
 import * as ort from "onnxruntime-web/wasm";
 
-import { decodePlate, selectDetections } from "./recognitionMath";
+import {
+  createPlateProjection,
+  decodePlate,
+  selectDetections,
+} from "./recognitionMath";
 
 type Request = { id: number; blob: Blob };
 type PixelSource = { width: number; height: number; data: Uint8ClampedArray };
@@ -16,14 +20,22 @@ let sessions:
   | undefined;
 
 function loadModels() {
-  sessions ??= Promise.all([
-    ort.InferenceSession.create("/models/hyperlpr3/y5fu_320x_sim.onnx", {
-      executionProviders: ["wasm"],
-    }),
-    ort.InferenceSession.create("/models/hyperlpr3/rpv3_mdict_160_r3.onnx", {
-      executionProviders: ["wasm"],
-    }),
-  ]).then(([detector, recognizer]) => ({ detector, recognizer }));
+  if (!sessions) {
+    sessions = Promise.all([
+      ort.InferenceSession.create("/models/hyperlpr3/y5fu_320x_sim.onnx", {
+        executionProviders: ["wasm"],
+      }),
+      ort.InferenceSession.create("/models/hyperlpr3/rpv3_mdict_160_r3.onnx", {
+        executionProviders: ["wasm"],
+      }),
+    ])
+      .then(([detector, recognizer]) => ({ detector, recognizer }))
+      .catch((error: unknown) => {
+        // 初始化失败后允许用户重新拍照重试，而不是永久缓存失败状态。
+        sessions = undefined;
+        throw error;
+      });
+  }
   return sessions;
 }
 
@@ -87,22 +99,15 @@ function detectorInput(source: PixelSource) {
 }
 
 function recognitionInput(source: PixelSource, points: readonly number[]) {
+  const projection = createPlateProjection(points);
+  if (!projection) return null;
   const data = new Float32Array(3 * 48 * 160);
   for (let y = 0; y < 48; y += 1) {
-    for (let x = 0; x < 160; x += 1) {
-      const u = x / 159;
-      const v = y / 47;
-      // 依四角点双线性展开车牌，避免仅截取方框导致透视角度误判。
-      const px =
-        (1 - u) * (1 - v) * points[0] +
-        u * (1 - v) * points[2] +
-        u * v * points[4] +
-        (1 - u) * v * points[6];
-      const py =
-        (1 - u) * (1 - v) * points[1] +
-        u * (1 - v) * points[3] +
-        u * v * points[5] +
-        (1 - u) * v * points[7];
+    for (let x = 0; x < projection.resizedWidth; x += 1) {
+      const [px, py] = projection.sample(
+        x / (projection.resizedWidth - 1),
+        y / 47,
+      );
       const rgb = pixelAt(source, px, py);
       for (let c = 0; c < 3; c += 1) {
         data[c * 48 * 160 + y * 160 + x] = (rgb[2 - c] - 127.5) / 127.5;
@@ -133,8 +138,10 @@ async function infer(blob: Blob): Promise<string | null> {
     prepared.offsetY,
   );
   for (const candidate of candidates.slice(0, 3)) {
+    const input = recognitionInput(source, candidate.corners);
+    if (!input) continue;
     const recOutput = await recognizer.run({
-      [recognizer.inputNames[0]]: recognitionInput(source, candidate.corners),
+      [recognizer.inputNames[0]]: input,
     });
     const prediction = recOutput[recognizer.outputNames[0]];
     const scores = prediction.data;
