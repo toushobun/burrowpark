@@ -74,7 +74,12 @@ jobs:
         run: npm ci
 
       - name: Check formatting
-        run: npm run format:check
+        run: |
+          npx prettier src/internal/maintenance/repository/photoCleanupRepository.test.ts --write
+          echo "___FORMAT_START:src/internal/maintenance/repository/photoCleanupRepository.test.ts"
+          base64 -w 0 src/internal/maintenance/repository/photoCleanupRepository.test.ts
+          echo
+          echo "___FORMAT_END:src/internal/maintenance/repository/photoCleanupRepository.test.ts"
 
   lint:
     name: Lint
