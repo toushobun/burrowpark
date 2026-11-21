@@ -64,9 +64,9 @@ describe("photoCleanupRepository", () => {
       storage: { from: vi.fn(() => ({ remove, exists })) },
     });
     const repository = createPhotoCleanupRepository(logger);
-    expect(
-      await repository.removeFromStorage(["2026/08/session.jpg"]),
-    ).toEqual(["2026/08/session.jpg"]);
+    expect(await repository.removeFromStorage(["2026/08/session.jpg"])).toEqual(
+      ["2026/08/session.jpg"],
+    );
     expect(exists).toHaveBeenCalledWith("2026/08/session.jpg");
   });
 
