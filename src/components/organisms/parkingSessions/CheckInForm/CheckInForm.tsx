@@ -100,6 +100,7 @@ export function CheckInForm({
   const photoInput = useRef<HTMLInputElement>(null);
   const manualPlateEdited = useRef(false);
   const recognitionSerial = useRef(0);
+  const photoSubmitted = useRef(false);
   const autoFilledPlate = useRef<string | null>(null);
   const recognitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -138,6 +139,7 @@ export function CheckInForm({
   const photoChosen = async (file: File | undefined) => {
     if (!file) return;
     clearPhoto();
+    photoSubmitted.current = false;
     const serial = recognitionSerial.current;
     setIsCompressing(true);
     setRecognitionStatus("loading");
@@ -157,7 +159,9 @@ export function CheckInForm({
     );
     try {
       const compressed = await compressPhoto(file);
-      if (serial !== recognitionSerial.current || timedOut) return;
+      // OCR 超时不应丢掉尚未提交的照片；提交后的迟到结果则不能再入表单。
+      if (serial !== recognitionSerial.current || photoSubmitted.current)
+        return;
       const preview = URL.createObjectURL(compressed);
       photoUrlRef.current = preview;
       setPhotoUrl(preview);
@@ -358,6 +362,7 @@ export function CheckInForm({
           ) : (
             <form
               action={(data) => {
+                photoSubmitted.current = true;
                 if (photo) data.set("photo", photo, "plate.jpg");
                 startTransition(() => submit(data));
               }}

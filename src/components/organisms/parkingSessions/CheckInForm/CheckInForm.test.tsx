@@ -272,7 +272,33 @@ describe("CheckInForm", () => {
     expect(plateInput).toHaveValue("粤B11111");
   });
 
-  it("压缩超过十五秒后允许手动登记且忽略迟到的图片", async () => {
+  it("识别超时后压缩成功仍保留照片预览", async () => {
+    let resolveCompression: (blob: Blob) => void = () => {};
+    vi.mocked(compressPhoto).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCompression = resolve;
+        }),
+    );
+    vi.useFakeTimers();
+    try {
+      const { container } = renderForm();
+      choosePhoto(container);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15000);
+      });
+      expect(screen.getByText("没认出来，请手动输入")).toBeInTheDocument();
+      await act(async () => {
+        resolveCompression(new Blob(["jpeg"], { type: "image/jpeg" }));
+      });
+      expect(screen.getByRole("img", { name: "车头照片" })).toBeInTheDocument();
+      expect(recognizePlate).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("压缩超时后提交登记时忽略迟到的图片", async () => {
     let resolveCompression: (blob: Blob) => void = () => {};
     vi.mocked(compressPhoto).mockImplementation(
       () =>
@@ -294,6 +320,9 @@ describe("CheckInForm", () => {
       });
       expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled();
       expect(screen.getByText("没认出来，请手动输入")).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "确认登记" }));
+      });
       await act(async () => {
         resolveCompression(new Blob(["jpeg"], { type: "image/jpeg" }));
       });
