@@ -370,10 +370,12 @@ select throws_ok(
             '00000000-0000-4000-8000-000000000053', 'prepay', 100, 'cash')$$,
   '42501', null, '非家庭账号不可新增收款'
 );
+-- 用完整有效的已关闭记录避开开放预留的业务触发器，单独验证 RLS 写入拒绝。
 select throws_ok(
-  $$insert into public.reservations (id, slot_code)
-    values ('00000000-0000-4000-8000-000000000079', 'test-out-1')$$,
-  'P0001', '车位不能预留', '非家庭账号看不到车位，不能新增预留'
+  $insert into public.reservations (id, slot_code, closed_at, outcome)
+    values ('00000000-0000-4000-8000-000000000079',
+            'test-res-1', now(), 'cancelled')$,
+  '42501', null, '非家庭账号不可新增预留记录'
 );
 select is((select count(*) from public.leases where tenant_name = '越权'), 0::bigint, '越权写入不会留下长租');
 select is((select count(*) from public.pricing_settings), 0::bigint, '非家庭账号无法通过 update 的读取条件');
