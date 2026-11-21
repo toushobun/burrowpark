@@ -20,6 +20,14 @@ export function SettingsMenu() {
         <ListItemText primary={slotSettingsText.slots} />
         <ChevronRightIcon />
       </ListItemButton>
+      <ListItemButton
+        component={Link}
+        href="/stats"
+        sx={{ minHeight: designTokens.size.touchTargetMin }}
+      >
+        <ListItemText primary={slotSettingsText.monthlyStats} />
+        <ChevronRightIcon />
+      </ListItemButton>
     </List>
   );
 }

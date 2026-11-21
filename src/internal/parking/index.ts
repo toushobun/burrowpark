@@ -18,6 +18,7 @@ export type {
   SlotMapSlot,
   SlotSettingsRow,
   SlotReminder,
+  MonthlyStats,
 } from "./service/parkingService";
 
 export {
@@ -37,6 +38,9 @@ export {
   formatPlateForDisplay,
   getBusinessDate,
   getBusinessDateTime,
+  getBusinessMonth,
+  getBusinessMonthRange,
+  shiftBusinessMonth,
   LEASE_EXPIRING_SOON_DAYS,
   normalizePlate,
   PRIVATE_BORROW_REMINDER_MINUTES,

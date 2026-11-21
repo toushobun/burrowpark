@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ValidationError } from "internal/shared/errors/appError";
 
 import { parkingMessages } from "./errors";
-import { normalizePlate } from "./util/parkingDomain";
+import { getBusinessMonth, normalizePlate } from "./util/parkingDomain";
 
 const amountSchema = z.string().regex(/^(?:0|[1-9]\d{0,7})(?:\.\d{1,2})?$/, {
   message: parkingMessages.invalidAmount,
@@ -304,4 +304,14 @@ export function readSlotSettingsFormData(form: FormData): unknown {
     kind: form.get("kind"),
     isActive: form.get("isActive") === "true",
   };
+}
+
+/** URL 月份格式不合法或缺省时回退上海本月。 */
+const businessMonthSchema = z
+  .string()
+  .regex(/^[1-9][0-9]{3}-(?:0[1-9]|1[0-2])$/);
+
+export function parseMonthlyStatsMonth(input: unknown, now: Date): string {
+  const result = businessMonthSchema.safeParse(input);
+  return result.success ? result.data : getBusinessMonth(now);
 }

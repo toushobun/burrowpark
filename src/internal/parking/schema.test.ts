@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   parseAmountCents,
+  parseMonthlyStatsMonth,
   parseCheckInInput,
   parseCheckOutInput,
   parseRenewInput,
@@ -160,5 +161,23 @@ describe("续费与离场校验", () => {
     expect(() =>
       parseCheckOutInput({ sessionId, paymentMethod: "cash" }),
     ).toThrow();
+  });
+});
+
+describe("月统计月份参数", () => {
+  const now = new Date("2026-10-31T16:00:00.000Z");
+
+  it("合法的 YYYY-MM 原样保留，缺省与格式非法时回退上海本月", () => {
+    expect(parseMonthlyStatsMonth("2026-10", now)).toBe("2026-10");
+    for (const input of [
+      undefined,
+      "2026-13",
+      "2026-1",
+      "2026-00",
+      ["2026-10"],
+      123,
+    ]) {
+      expect(parseMonthlyStatsMonth(input, now)).toBe("2026-11");
+    }
   });
 });

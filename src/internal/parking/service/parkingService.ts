@@ -1,3 +1,4 @@
+import { monthlyStatsText } from "config/monthlyStatsText";
 import {
   requireAuthenticatedUserId,
   type AuthContext,
@@ -26,6 +27,7 @@ import {
 } from "../schema";
 
 import type {
+  MonthlyPaymentSummary,
   ParkingBillingType,
   ParkingPricingSettings,
   ParkingSlotKind,
@@ -45,6 +47,9 @@ import {
   nextLeaseRenewDate,
   describeSlotReminder,
   formatPlateForDisplay,
+  formatBusinessDateTime,
+  getBusinessMonthRange,
+  summarizeMonthlyPayments,
   PRIVATE_BORROW_REMINDER_MINUTES,
 } from "../util/parkingDomain";
 
@@ -149,8 +154,21 @@ export type SlotReminder = {
   description: string;
 };
 
+export type MonthlyStats = MonthlyPaymentSummary & {
+  entryCount: number;
+  payments: {
+    id: string;
+    paidAtText: string;
+    slotName: string;
+    customer: string;
+    amountCents: number;
+    method: keyof MonthlyPaymentSummary["byMethod"];
+  }[];
+};
+
 export interface ParkingService {
   getSlotMap(now: Date): Promise<SlotMapSlot[]>;
+  getMonthlyStats(month: string): Promise<MonthlyStats>;
   getReminders(now: Date): Promise<SlotReminder[]>;
   getSlotDetail(code: string, now: Date): Promise<SlotDetail | null>;
   getCheckInForm(code: string, now: Date): Promise<CheckInFormData | null>;
@@ -257,6 +275,35 @@ export function createParkingService(
   getAuth: () => Promise<AuthContext>,
 ): ParkingService {
   return {
+    async getMonthlyStats(month) {
+      await requireAuthenticatedUserId(getAuth);
+      const { start, end } = getBusinessMonthRange(month);
+      const [payments, entryCount, slots] = await Promise.all([
+        repository.readMonthlyPayments(start, end),
+        repository.countMonthlyEntries(start, end),
+        repository.readSlotNames(),
+      ]);
+      const slotNames = new Map(slots.map((slot) => [slot.code, slot.name]));
+      return {
+        ...summarizeMonthlyPayments(payments),
+        entryCount,
+        payments: payments.map((payment) => ({
+          id: payment.id,
+          paidAtText: formatBusinessDateTime(payment.paidAt),
+          slotName:
+            (payment.slotCode && slotNames.get(payment.slotCode)) ||
+            payment.slotCode ||
+            monthlyStatsText.unknownSlot,
+          customer:
+            payment.tenantName ??
+            (payment.plate
+              ? formatPlateForDisplay(payment.plate)
+              : monthlyStatsText.unknownCustomer),
+          amountCents: payment.amountCents,
+          method: payment.method,
+        })),
+      };
+    },
     async getSlotSettings() {
       await requireAuthenticatedUserId(getAuth);
       const facts = await repository.readSlotFacts();

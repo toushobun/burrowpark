@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vitest";
-import type { SlotStatusFacts } from "../entity/parkingDomain";
+import type { MonthlyPayment, SlotStatusFacts } from "../entity/parkingDomain";
 import {
   calculateHourlySuggestedAmountCents,
   calculateHotelOverstay,
@@ -18,6 +18,10 @@ import {
   formatPlateForDisplay,
   getBusinessDate,
   getBusinessDateTime,
+  getBusinessMonth,
+  getBusinessMonthRange,
+  shiftBusinessMonth,
+  summarizeMonthlyPayments,
   LEASE_EXPIRING_SOON_DAYS,
   normalizePlate,
   PRIVATE_BORROW_REMINDER_MINUTES,
@@ -481,5 +485,78 @@ describe("私人位借用和长租初始日期", () => {
   it("月底起租默认交到下个月最后一日", async () => {
     const { defaultLeasePaidThrough } = await import("./parkingDomain");
     expect(defaultLeasePaidThrough("2026-01-31")).toBe("2026-02-28");
+  });
+});
+
+describe("月统计月份边界", () => {
+  it("上海月初零点前后对应不同的业务月份", () => {
+    expect(getBusinessMonth("2026-10-31T15:59:59.999Z")).toBe("2026-10");
+    expect(getBusinessMonth("2026-10-31T16:00:00.000Z")).toBe("2026-11");
+  });
+
+  it("跨年、二月及闰年都在月初准确换算", () => {
+    expect(shiftBusinessMonth("2026-12", 1)).toBe("2027-01");
+    expect(shiftBusinessMonth("2026-01", -1)).toBe("2025-12");
+    expect(shiftBusinessMonth("2026-02", 1)).toBe("2026-03");
+    expect(getBusinessMonthRange("2026-11")).toEqual({
+      start: "2026-10-31T16:00:00.000Z",
+      end: "2026-11-30T16:00:00.000Z",
+    });
+    expect(getBusinessMonthRange("2026-02")).toEqual({
+      start: "2026-01-31T16:00:00.000Z",
+      end: "2026-02-28T16:00:00.000Z",
+    });
+    expect(getBusinessMonthRange("2028-02").end).toBe(
+      "2028-02-29T16:00:00.000Z",
+    );
+  });
+});
+
+describe("月收款整数聚合", () => {
+  const payment = (
+    overrides: Partial<MonthlyPayment> = {},
+  ): MonthlyPayment => ({
+    id: "p-1",
+    amountCents: 1,
+    method: "wechat",
+    purpose: "prepay",
+    paidAt: "2026-11-19T04:00:00.000Z",
+    leaseId: null,
+    slotCode: "1",
+    plate: "粤B12345",
+    tenantName: null,
+    billingType: "hotel_daily",
+    ...overrides,
+  });
+
+  it("没有收款时全部分类显示零", () => {
+    expect(summarizeMonthlyPayments([])).toEqual({
+      totalCents: 0,
+      byMethod: { wechat: 0, alipay: 0, cash: 0 },
+      byBillingType: { hotel_daily: 0, hourly: 0, lease: 0, free: 0 },
+    });
+  });
+
+  it("长租归类优先于停车方式，金额按整数分逐笔相加", () => {
+    expect(
+      summarizeMonthlyPayments([
+        payment({ amountCents: 101, method: "wechat" }),
+        payment({ amountCents: 202, method: "alipay", billingType: "hourly" }),
+        payment({ amountCents: 303, method: "cash", leaseId: "lease-1" }),
+        payment({ amountCents: 1, method: "cash", billingType: "free" }),
+      ]),
+    ).toEqual({
+      totalCents: 607,
+      byMethod: { wechat: 101, alipay: 202, cash: 304 },
+      byBillingType: { hotel_daily: 101, hourly: 202, lease: 303, free: 1 },
+    });
+  });
+
+  it("停车关联字段为空时仍计入总金额与收款方式", () => {
+    expect(
+      summarizeMonthlyPayments([
+        payment({ billingType: null, amountCents: 10 }),
+      ]),
+    ).toMatchObject({ totalCents: 10, byMethod: { wechat: 10 } });
   });
 });

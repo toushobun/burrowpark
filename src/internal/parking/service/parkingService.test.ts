@@ -56,6 +56,11 @@ function makeLease(
 function makeService(rows: SlotFactsRows) {
   const repository: ParkingRepository = {
     readSlotFacts: vi.fn().mockResolvedValue(rows),
+    readMonthlyPayments: vi.fn().mockResolvedValue([]),
+    countMonthlyEntries: vi.fn().mockResolvedValue(0),
+    readSlotNames: vi
+      .fn()
+      .mockResolvedValue(rows.slots.map(({ code, name }) => ({ code, name }))),
     getPhotoSignedUrl: vi.fn().mockResolvedValue("https://example.com/photo"),
     getPricingSettings: vi.fn().mockResolvedValue({
       hotel_daily_price_cents: 3000,
@@ -1156,5 +1161,90 @@ describe("车位设置业务", () => {
       code: "auth_required",
     });
     expect(repository.readSlotFacts).not.toHaveBeenCalled();
+  });
+});
+
+describe("月统计 Service", () => {
+  const payment = {
+    id: "payment-1",
+    amountCents: 12345,
+    method: "wechat" as const,
+    purpose: "prepay" as const,
+    paidAt: "2026-11-18T16:30:00.000Z",
+    leaseId: null,
+    slotCode: "1",
+    plate: "粤B12345",
+    tenantName: null,
+    billingType: "hotel_daily" as const,
+  };
+
+  it("按上海业务月边界查询并格式化车位及车牌", async () => {
+    const { service, repository } = makeService(makeRows());
+    vi.mocked(repository.readMonthlyPayments).mockResolvedValue([payment]);
+    vi.mocked(repository.countMonthlyEntries).mockResolvedValue(4);
+
+    expect(await service.getMonthlyStats("2026-11")).toMatchObject({
+      totalCents: 12345,
+      entryCount: 4,
+      payments: [
+        {
+          slotName: "1号",
+          customer: "粤B·12345",
+          paidAtText: "11月19日 00:30",
+          amountCents: 12345,
+        },
+      ],
+    });
+    const boundary = [
+      "2026-10-31T16:00:00.000Z",
+      "2026-11-30T16:00:00.000Z",
+    ] as const;
+    expect(repository.readMonthlyPayments).toHaveBeenCalledWith(...boundary);
+    expect(repository.countMonthlyEntries).toHaveBeenCalledWith(...boundary);
+    expect(repository.readSlotNames).toHaveBeenCalledOnce();
+    expect(repository.readSlotFacts).not.toHaveBeenCalled();
+  });
+
+  it("空月份保留所有零元分类和零车次", async () => {
+    const { service } = makeService(makeRows());
+    expect(await service.getMonthlyStats("2026-11")).toEqual({
+      totalCents: 0,
+      entryCount: 0,
+      byMethod: { wechat: 0, alipay: 0, cash: 0 },
+      byBillingType: { hotel_daily: 0, hourly: 0, lease: 0, free: 0 },
+      payments: [],
+    });
+  });
+
+  it("缺少停车和长租关联时正常显示兜底名称", async () => {
+    const { service, repository } = makeService(makeRows());
+    vi.mocked(repository.readMonthlyPayments).mockResolvedValue([
+      {
+        ...payment,
+        slotCode: null,
+        plate: null,
+        tenantName: null,
+        billingType: null,
+      },
+    ]);
+    expect(
+      (await service.getMonthlyStats("2026-11")).payments[0],
+    ).toMatchObject({
+      slotName: "未知车位",
+      customer: "—",
+    });
+  });
+
+  it("未登录不能读取统计查询", async () => {
+    const { repository } = makeService(makeRows());
+    const service = createParkingService(repository, async () => ({
+      isAuthenticated: false,
+      userId: null,
+      email: null,
+    }));
+    await expect(service.getMonthlyStats("2026-11")).rejects.toMatchObject({
+      code: "auth_required",
+    });
+    expect(repository.readMonthlyPayments).not.toHaveBeenCalled();
   });
 });
