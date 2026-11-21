@@ -1243,7 +1243,7 @@ describe("月统计 Service", () => {
       email: null,
     }));
     await expect(service.getMonthlyStats("2026-11")).rejects.toMatchObject({
-      status: 401,
+      code: "auth_required",
     });
     expect(repository.readMonthlyPayments).not.toHaveBeenCalled();
   });
