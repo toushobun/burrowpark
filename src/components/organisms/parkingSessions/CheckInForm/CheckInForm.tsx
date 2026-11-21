@@ -155,13 +155,13 @@ export function CheckInForm({
       setPhoto(compressed.size <= 2 * 1024 * 1024 ? compressed : null);
       setIsCompressing(false);
       if (timedOut) return;
-      const module = await recognitionModule;
-      if (!module || timedOut || serial !== recognitionSerial.current) {
+      const recognitionApi = await recognitionModule;
+      if (!recognitionApi || timedOut || serial !== recognitionSerial.current) {
         if (!timedOut && serial === recognitionSerial.current)
           setRecognitionStatus("failed");
         return;
       }
-      const result = await module.recognizePlate(compressed);
+      const result = await recognitionApi.recognizePlate(compressed);
       if (timedOut || serial !== recognitionSerial.current) return;
       if (!result) {
         setRecognitionStatus("failed");

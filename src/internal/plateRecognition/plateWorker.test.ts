@@ -54,7 +54,8 @@ describe("HyperLPR3 Worker 推理", () => {
     vi.doMock("onnxruntime-web/wasm", () => ({
       env: { wasm: {} },
       Tensor: class {
-        constructor(_type: string, data: Float32Array, _dims: number[]) {
+        constructor(_type: string, data: Float32Array, dims: number[]) {
+          expect(dims[0]).toBe(1);
           tensors.push(data);
         }
       },
