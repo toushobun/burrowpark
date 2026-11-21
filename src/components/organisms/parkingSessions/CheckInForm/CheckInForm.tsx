@@ -94,7 +94,7 @@ export function CheckInForm({
     storyPhoto?.previewUrl ?? null,
   );
   const [recognitionStatus, setRecognitionStatus] = useState<
-    "idle" | "loading" | "filled" | "suggestion" | "failed"
+    "idle" | "loading" | "recognizing" | "filled" | "suggestion" | "failed"
   >(storyPhoto?.status ?? "idle");
   const [recognizedPlate, setRecognizedPlate] = useState<string | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
@@ -143,23 +143,37 @@ export function CheckInForm({
     const serial = recognitionSerial.current;
     setIsCompressing(true);
     setRecognitionStatus("loading");
-    let timedOut = false;
-    const timeout = setTimeout(() => {
-      timedOut = true;
-      if (serial === recognitionSerial.current) {
-        setRecognitionStatus("failed");
-        // 图片压缩卡住时仍需允许手动登记。
+
+    // 压缩卡住超过 15 秒时允许手动提交，但完成后仍保留未提交的照片。
+    const compressionTimer = setTimeout(() => {
+      if (serial === recognitionSerial.current && !photoSubmitted.current)
         setIsCompressing(false);
-      }
     }, 15000);
-    recognitionTimerRef.current = timeout;
-    // 动态 import 与压缩并行，加载失败也交给识别失败状态处理。
-    const recognitionModule = import("internal/plateRecognition").catch(
-      () => null,
-    );
+
+    // import + 模型下载/初始化不受 15 秒识别时限限制。即便 90 秒后 UI 回退，
+    // preloadPlateModels 仍留在 Worker 运行，后续重拍复用已完成的加载。
+    let loadTimeout: ReturnType<typeof setTimeout> | null = null;
+    const loadTask = import("internal/plateRecognition")
+      .then(async (api) => {
+        if (
+          serial === recognitionSerial.current &&
+          !photoSubmitted.current &&
+          api.isPlateModelsReady()
+        )
+          setRecognitionStatus("recognizing");
+        return { api, loaded: await api.preloadPlateModels() };
+      })
+      .catch(() => null);
+    const loadDeadline = new Promise<null>((resolve) => {
+      loadTimeout = setTimeout(() => {
+        if (serial === recognitionSerial.current && !photoSubmitted.current)
+          setRecognitionStatus("failed");
+        resolve(null);
+      }, 90000);
+      recognitionTimerRef.current = loadTimeout;
+    });
     try {
       const compressed = await compressPhoto(file);
-      // OCR 超时不应丢掉尚未提交的照片；提交后的迟到结果则不能再入表单。
       if (serial !== recognitionSerial.current || photoSubmitted.current)
         return;
       const preview = URL.createObjectURL(compressed);
@@ -167,28 +181,28 @@ export function CheckInForm({
       setPhotoUrl(preview);
       setPhoto(compressed.size <= 2 * 1024 * 1024 ? compressed : null);
       setIsCompressing(false);
-      if (timedOut) return;
-      const recognitionApi = await recognitionModule;
-      if (
-        !recognitionApi ||
-        timedOut ||
-        serial !== recognitionSerial.current ||
-        photoSubmitted.current
-      ) {
-        if (
-          !timedOut &&
-          serial === recognitionSerial.current &&
-          !photoSubmitted.current
-        )
-          setRecognitionStatus("failed");
+      clearTimeout(compressionTimer);
+
+      const initialized = await Promise.race([loadTask, loadDeadline]);
+      if (serial !== recognitionSerial.current || photoSubmitted.current)
+        return;
+      if (!initialized?.loaded) {
+        setRecognitionStatus("failed");
         return;
       }
-      const result = await recognitionApi.recognizePlate(compressed);
-      if (
-        timedOut ||
-        serial !== recognitionSerial.current ||
-        photoSubmitted.current
-      )
+      setRecognitionStatus("recognizing");
+      // Worker 自身亦有限时，这里额外覆盖 mock、异常及旧照片回写。
+      let recognitionTimeout: ReturnType<typeof setTimeout> | null = null;
+      const recognitionDeadline = new Promise<null>((resolve) => {
+        recognitionTimeout = setTimeout(() => resolve(null), 15000);
+        recognitionTimerRef.current = recognitionTimeout;
+      });
+      const result = await Promise.race([
+        initialized.api.recognizePlate(compressed),
+        recognitionDeadline,
+      ]);
+      if (recognitionTimeout) clearTimeout(recognitionTimeout);
+      if (serial !== recognitionSerial.current || photoSubmitted.current)
         return;
       if (!result) {
         setRecognitionStatus("failed");
@@ -204,17 +218,16 @@ export function CheckInForm({
         setRecognitionStatus("filled");
       }
     } catch {
-      if (
-        serial === recognitionSerial.current &&
-        !timedOut &&
-        !photoSubmitted.current
-      )
+      if (serial === recognitionSerial.current && !photoSubmitted.current)
         setRecognitionStatus("failed");
     } finally {
-      clearTimeout(timeout);
-      if (recognitionTimerRef.current === timeout)
-        recognitionTimerRef.current = null;
-      if (serial === recognitionSerial.current) setIsCompressing(false);
+      clearTimeout(compressionTimer);
+      if (loadTimeout) clearTimeout(loadTimeout);
+      if (serial === recognitionSerial.current) {
+        if (recognitionTimerRef.current === loadTimeout)
+          recognitionTimerRef.current = null;
+        setIsCompressing(false);
+      }
     }
   };
   const [billingType, setBillingType] = useState<ParkingBillingType>(
@@ -453,6 +466,16 @@ export function CheckInForm({
                   </Stack>
                 )}
                 {recognitionStatus === "loading" && (
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: "center" }}
+                  >
+                    <CircularProgress size={24} />
+                    <Typography>{checkInText.loadingModels}</Typography>
+                  </Stack>
+                )}
+                {recognitionStatus === "recognizing" && (
                   <Stack
                     direction="row"
                     spacing={1}

@@ -402,8 +402,18 @@ export function createParkingService(
       if (value.photo) {
         const path = buildPlatePhotoPath(now, sessionId);
         try {
-          await repository.savePlatePhoto(sessionId, path, value.photo);
-          photoSaved = true;
+          const header = new Uint8Array(
+            await value.photo.slice(0, 3).arrayBuffer(),
+          );
+          if (
+            header.length === 3 &&
+            header[0] === 0xff &&
+            header[1] === 0xd8 &&
+            header[2] === 0xff
+          ) {
+            await repository.savePlatePhoto(sessionId, path, value.photo);
+            photoSaved = true;
+          }
         } catch {
           // 照片是可选附件，上传错误已由 Repository 记录警告。
         }

@@ -95,21 +95,37 @@ describe("HyperLPR3 Worker 推理", () => {
     const handler = scope.onmessage;
     if (!handler) throw new Error("Worker 未注册监听");
     await handler({
-      data: { id: 8, blob: new Blob(["jpeg"], { type: "image/jpeg" }) },
+      data: { id: 8, type: "load" },
     } as MessageEvent);
-    expect(scope.postMessage).toHaveBeenCalledWith({ id: 8, plate: null });
+    expect(scope.postMessage).toHaveBeenCalledWith({
+      id: 8,
+      type: "load",
+      ready: false,
+    });
 
     await handler({
-      data: { id: 9, blob: new Blob(["jpeg"], { type: "image/jpeg" }) },
+      data: { id: 9, type: "load" },
     } as MessageEvent);
 
     expect(create).toHaveBeenCalledTimes(4);
+    expect(scope.postMessage).toHaveBeenCalledWith({
+      id: 9,
+      type: "load",
+      ready: true,
+    });
+    await handler({
+      data: {
+        id: 10,
+        type: "recognize",
+        blob: new Blob(["jpeg"], { type: "image/jpeg" }),
+      },
+    } as MessageEvent);
     expect(detect).toHaveBeenCalledOnce();
     expect(recognize).toHaveBeenCalledOnce();
     expect(detect.mock.invocationCallOrder[0]).toBeLessThan(
       recognize.mock.invocationCallOrder[0],
     );
-    expect(scope.postMessage).toHaveBeenCalledWith({ id: 9, plate: target });
+    expect(scope.postMessage).toHaveBeenCalledWith({ id: 10, plate: target });
     // 检测缩放后 x=1 对应原图 x=0.25，插值结果应为 0.25。
     expect(tensors[0][80 * 320 + 1]).toBeCloseTo(0.25);
     // 80×40 原图中检测车牌比例为 3:1，右侧最后 16 列应补零。

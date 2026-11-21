@@ -20,8 +20,7 @@
     "check": "tsc --noEmit && eslint . && prettier . --check && npm test",
     "db:types": "supabase gen types typescript --local --schema public > src/internal/shared/supabase/database.types.ts",
     "prebuild": "node scripts/prepare-plate-assets.mjs",
-    "prebuild-storybook": "node scripts/prepare-plate-assets.mjs",
-    "postinstall": "node scripts/prepare-plate-assets.mjs"
+    "prebuild-storybook": "node scripts/prepare-plate-assets.mjs"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",

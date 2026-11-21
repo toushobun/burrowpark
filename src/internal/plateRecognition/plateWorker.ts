@@ -6,11 +6,13 @@ import {
   selectDetections,
 } from "./recognitionMath";
 
-type Request = { id: number; blob: Blob };
+type Request =
+  | { id: number; type: "load" }
+  | { id: number; type: "recognize"; blob: Blob };
 type PixelSource = { width: number; height: number; data: Uint8ClampedArray };
 
 ort.env.wasm.numThreads = 1;
-ort.env.wasm.wasmPaths = "/onnxruntime/";
+ort.env.wasm.wasmPaths = "/onnxruntime/1.23.2/";
 
 let sessions:
   | Promise<{
@@ -22,12 +24,15 @@ let sessions:
 function loadModels() {
   if (!sessions) {
     sessions = Promise.all([
-      ort.InferenceSession.create("/models/hyperlpr3/y5fu_320x_sim.onnx", {
+      ort.InferenceSession.create("/models/hyperlpr3/v1/y5fu_320x_sim.onnx", {
         executionProviders: ["wasm"],
       }),
-      ort.InferenceSession.create("/models/hyperlpr3/rpv3_mdict_160_r3.onnx", {
-        executionProviders: ["wasm"],
-      }),
+      ort.InferenceSession.create(
+        "/models/hyperlpr3/v1/rpv3_mdict_160_r3.onnx",
+        {
+          executionProviders: ["wasm"],
+        },
+      ),
     ])
       .then(([detector, recognizer]) => ({ detector, recognizer }))
       .catch((error: unknown) => {
@@ -169,10 +174,19 @@ async function infer(blob: Blob): Promise<string | null> {
 }
 
 self.onmessage = async (event: MessageEvent<Request>) => {
-  const { id, blob } = event.data;
+  const request = event.data;
+  if (request.type === "load") {
+    try {
+      await loadModels();
+      self.postMessage({ id: request.id, type: "load", ready: true });
+    } catch {
+      self.postMessage({ id: request.id, type: "load", ready: false });
+    }
+    return;
+  }
   try {
-    self.postMessage({ id, plate: await infer(blob) });
+    self.postMessage({ id: request.id, plate: await infer(request.blob) });
   } catch {
-    self.postMessage({ id, plate: null });
+    self.postMessage({ id: request.id, plate: null });
   }
 };

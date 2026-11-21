@@ -628,7 +628,9 @@ describe("createParkingService", () => {
   it("上传照片后返回成功并供详情页签名显示", async () => {
     const sessionId = "00000000-0000-4000-8000-000000000001";
     const { service, repository } = makeService(makeRows());
-    const photo = new Blob(["jpeg"], { type: "image/jpeg" });
+    const photo = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0x00])], {
+      type: "image/jpeg",
+    });
     const result = await service.checkIn(
       { slotCode: "1", plate: "辽A12345", billingType: "hourly", photo },
       new Date("2026-11-30T16:30:00.000Z"),
@@ -657,6 +659,18 @@ describe("createParkingService", () => {
     );
   });
 
+  it("声明为 JPEG 却没有 FF D8 FF 文件头时忽略照片，登记仍成功", async () => {
+    const { service, repository } = makeService(makeRows());
+    const photo = new Blob(["fake jpeg"], { type: "image/jpeg" });
+    const result = await service.checkIn(
+      { slotCode: "1", plate: "粤B12345", billingType: "free", photo },
+      now,
+    );
+    expect(result.photoSaved).toBe(false);
+    expect(repository.checkInVehicle).toHaveBeenCalledOnce();
+    expect(repository.savePlatePhoto).not.toHaveBeenCalled();
+  });
+
   it("照片上传失败不会阻止登记", async () => {
     const { service, repository } = makeService(makeRows());
     vi.mocked(repository.savePlatePhoto).mockRejectedValueOnce(
@@ -667,7 +681,9 @@ describe("createParkingService", () => {
         slotCode: "1",
         plate: "粤B12345",
         billingType: "free",
-        photo: new Blob(["x"], { type: "image/jpeg" }),
+        photo: new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0x00])], {
+          type: "image/jpeg",
+        }),
       },
       now,
     );

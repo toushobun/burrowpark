@@ -9,6 +9,8 @@ export const checkInText = {
   takePhoto: "拍照",
   retakePhoto: "重拍",
   removePhoto: "删除照片",
+  loadingModels:
+    "第一次使用要下载识别组件（约 23 MB），请稍等。也可以手动输入车牌。",
   recognizing: "正在识别车牌…",
   recognized: "已自动填入，请核对",
   recognitionFailed: "没认出来，请手动输入",

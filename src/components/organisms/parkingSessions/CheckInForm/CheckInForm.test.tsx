@@ -7,10 +7,18 @@ import {
 } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { recognizePlate } from "internal/plateRecognition";
+import {
+  recognizePlate,
+  preloadPlateModels,
+  isPlateModelsReady,
+} from "internal/plateRecognition";
 import { compressPhoto } from "./compressPhoto";
 
-vi.mock("internal/plateRecognition", () => ({ recognizePlate: vi.fn() }));
+vi.mock("internal/plateRecognition", () => ({
+  recognizePlate: vi.fn(),
+  preloadPlateModels: vi.fn(),
+  isPlateModelsReady: vi.fn(),
+}));
 vi.mock("./compressPhoto", () => ({ compressPhoto: vi.fn() }));
 
 import type { CheckInFormData } from "internal/parking";
@@ -60,6 +68,9 @@ function renderForm(
 describe("CheckInForm", () => {
   beforeEach(() => {
     vi.mocked(recognizePlate).mockReset();
+    vi.mocked(preloadPlateModels).mockReset();
+    vi.mocked(preloadPlateModels).mockResolvedValue(true);
+    vi.mocked(isPlateModelsReady).mockReturnValue(true);
     vi.mocked(compressPhoto).mockReset();
     vi.mocked(compressPhoto).mockResolvedValue(
       new Blob(["jpeg"], { type: "image/jpeg" }),
@@ -240,6 +251,37 @@ describe("CheckInForm", () => {
     }
   });
 
+  it("首次加载超过 15 秒仍显示组件下载提示，90 秒后回退且不取消模型加载", async () => {
+    vi.mocked(isPlateModelsReady).mockReturnValue(false);
+    let finishLoad: (ready: boolean) => void = () => {};
+    vi.mocked(preloadPlateModels).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishLoad = resolve;
+        }),
+    );
+    vi.useFakeTimers();
+    try {
+      const { container } = renderForm({ defaultLeasePlate: "粤B12345" });
+      fireEvent.click(screen.getByRole("button", { name: "微信" }));
+      choosePhoto(container);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(16000);
+      });
+      expect(screen.getByText(/第一次使用要下载识别组件/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled();
+      expect(recognizePlate).not.toHaveBeenCalled();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(74000);
+      });
+      expect(screen.getByText("没认出来，请手动输入")).toBeInTheDocument();
+      await act(async () => finishLoad(true));
+      expect(recognizePlate).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("重拍识别失败时不会沿用上一张照片识别的车牌", async () => {
     vi.mocked(recognizePlate)
       .mockResolvedValueOnce("辽A12345")
@@ -287,12 +329,12 @@ describe("CheckInForm", () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(15000);
       });
-      expect(screen.getByText("没认出来，请手动输入")).toBeInTheDocument();
+      expect(screen.getByText("正在识别车牌…")).toBeInTheDocument();
       await act(async () => {
         resolveCompression(new Blob(["jpeg"], { type: "image/jpeg" }));
       });
       expect(screen.getByRole("img", { name: "车头照片" })).toBeInTheDocument();
-      expect(recognizePlate).not.toHaveBeenCalled();
+      expect(recognizePlate).toHaveBeenCalledOnce();
     } finally {
       vi.useRealTimers();
     }
@@ -319,7 +361,6 @@ describe("CheckInForm", () => {
         await vi.advanceTimersByTimeAsync(15000);
       });
       expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled();
-      expect(screen.getByText("没认出来，请手动输入")).toBeInTheDocument();
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: "确认登记" }));
       });

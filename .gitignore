@@ -38,7 +38,6 @@ next-env.d.ts
 tsconfig.tsbuildinfo
 .vercel
 
-# 由 npm postinstall 从锁定来源准备的自托管模型与 WASM
-public/models/hyperlpr3/*.onnx
-public/onnxruntime/*.wasm
-public/onnxruntime/*.mjs
+# 只有 WASM 构建产物需要忽略；ONNX 模型在 Git 中版本化管理
+public/onnxruntime/**/*.wasm
+public/onnxruntime/**/*.mjs
