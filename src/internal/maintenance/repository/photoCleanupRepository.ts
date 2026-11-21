@@ -56,9 +56,8 @@ export function createPhotoCleanupRepository(
     async removeFromStorage(paths) {
       if (!paths.length) return [];
       try {
-        const { data, error } = await supabase.storage
-          .from("plate-photos")
-          .remove(paths);
+        const bucket = supabase.storage.from("plate-photos");
+        const { data, error } = await bucket.remove(paths);
         if (error) {
           logger.warn("[maintenance] storage remove failed", {
             errorName: error.name,
@@ -66,12 +65,45 @@ export function createPhotoCleanupRepository(
           return [];
         }
         const requested = new Set(paths);
-        return (data ?? [])
-          .map((entry) => entry.name)
-          .filter(
-            (path): path is string =>
-              typeof path === "string" && requested.has(path),
+        const deleted = new Set(
+          (data ?? [])
+            .map((entry) => entry.name)
+            .filter(
+              (path): path is string =>
+                typeof path === "string" && requested.has(path),
+            ),
+        );
+        // Storage 已删除而数据库清空失败时，重试删除可能返回空数组。
+        // 只有 Storage 确认对象不存在，才允许清空遗留的 photo_path。
+        const unchecked = paths.filter((path) => !deleted.has(path));
+        const concurrency = 10;
+        for (let offset = 0; offset < unchecked.length; offset += concurrency) {
+          const results = await Promise.all(
+            unchecked.slice(offset, offset + concurrency).map(async (path) => {
+              try {
+                const { data: exists, error: checkError } =
+                  await bucket.exists(path);
+                if (checkError) {
+                  logger.warn("[maintenance] storage existence check failed", {
+                    errorName: checkError.name,
+                  });
+                  return null;
+                }
+                return exists === false ? path : null;
+              } catch (checkError) {
+                logger.warn("[maintenance] storage existence check failed", {
+                  errorName:
+                    checkError instanceof Error ? checkError.name : "unknown",
+                });
+                return null;
+              }
+            }),
           );
+          results.forEach((path) => {
+            if (path) deleted.add(path);
+          });
+        }
+        return [...deleted];
       } catch (error) {
         logger.warn("[maintenance] storage remove failed", {
           errorName: error instanceof Error ? error.name : "unknown",

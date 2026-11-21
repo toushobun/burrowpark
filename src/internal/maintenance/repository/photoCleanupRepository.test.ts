@@ -38,21 +38,58 @@ describe("photoCleanupRepository", () => {
     expect(limit).toHaveBeenCalledWith(200);
   });
 
-  it("Storage只返回确认删除的完整路径，失败则不记成功", async () => {
+  it("Storage删除成功后仍存在的文件不计为成功，删除失败也不清库", async () => {
     const remove = vi
       .fn()
       .mockResolvedValue({ data: [{ name: "a.jpg" }], error: null });
+    const exists = vi.fn().mockResolvedValue({ data: true, error: null });
     makeSupabase.mockReturnValue({
-      storage: { from: vi.fn(() => ({ remove })) },
+      storage: { from: vi.fn(() => ({ remove, exists })) },
     });
     const repository = createPhotoCleanupRepository(logger);
     expect(await repository.removeFromStorage(["a.jpg", "b.jpg"])).toEqual([
       "a.jpg",
     ]);
     expect(remove).toHaveBeenCalledWith(["a.jpg", "b.jpg"]);
+    expect(exists).toHaveBeenCalledWith("b.jpg");
     remove.mockResolvedValue({ data: null, error: { name: "StorageError" } });
     expect(await repository.removeFromStorage(["a.jpg", "b.jpg"])).toEqual([]);
     expect(await repository.removeFromStorage([])).toEqual([]);
+  });
+
+  it("照片已在上次任务删除时，确认文件不存在后清理遗留路径", async () => {
+    const remove = vi.fn().mockResolvedValue({ data: [], error: null });
+    const exists = vi.fn().mockResolvedValue({ data: false, error: null });
+    makeSupabase.mockReturnValue({
+      storage: { from: vi.fn(() => ({ remove, exists })) },
+    });
+    const repository = createPhotoCleanupRepository(logger);
+    expect(
+      await repository.removeFromStorage(["2026/08/session.jpg"]),
+    ).toEqual(["2026/08/session.jpg"]);
+    expect(exists).toHaveBeenCalledWith("2026/08/session.jpg");
+  });
+
+  it("Storage 存在性校验失败或抛异常时保留数据库路径", async () => {
+    const remove = vi.fn().mockResolvedValue({ data: [], error: null });
+    const exists = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: null,
+        error: { name: "StorageApiError" },
+      })
+      .mockRejectedValueOnce(new Error("private storage detail"));
+    makeSupabase.mockReturnValue({
+      storage: { from: vi.fn(() => ({ remove, exists })) },
+    });
+    const repository = createPhotoCleanupRepository(logger);
+    vi.mocked(logger.warn).mockClear();
+    expect(await repository.removeFromStorage(["a.jpg", "b.jpg"])).toEqual([]);
+    expect(exists).toHaveBeenCalledTimes(2);
+    const logs = JSON.stringify(vi.mocked(logger.warn).mock.calls);
+    expect(logs).not.toContain("a.jpg");
+    expect(logs).not.toContain("b.jpg");
+    expect(logs).not.toContain("private storage detail");
   });
 
   it("逐条按 ID、原路径和截止时间精确配对，不允许跨记录匹配", async () => {
