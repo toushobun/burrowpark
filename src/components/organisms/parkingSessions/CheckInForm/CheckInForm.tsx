@@ -169,13 +169,27 @@ export function CheckInForm({
       setIsCompressing(false);
       if (timedOut) return;
       const recognitionApi = await recognitionModule;
-      if (!recognitionApi || timedOut || serial !== recognitionSerial.current) {
-        if (!timedOut && serial === recognitionSerial.current)
+      if (
+        !recognitionApi ||
+        timedOut ||
+        serial !== recognitionSerial.current ||
+        photoSubmitted.current
+      ) {
+        if (
+          !timedOut &&
+          serial === recognitionSerial.current &&
+          !photoSubmitted.current
+        )
           setRecognitionStatus("failed");
         return;
       }
       const result = await recognitionApi.recognizePlate(compressed);
-      if (timedOut || serial !== recognitionSerial.current) return;
+      if (
+        timedOut ||
+        serial !== recognitionSerial.current ||
+        photoSubmitted.current
+      )
+        return;
       if (!result) {
         setRecognitionStatus("failed");
         return;
@@ -190,7 +204,11 @@ export function CheckInForm({
         setRecognitionStatus("filled");
       }
     } catch {
-      if (serial === recognitionSerial.current && !timedOut)
+      if (
+        serial === recognitionSerial.current &&
+        !timedOut &&
+        !photoSubmitted.current
+      )
         setRecognitionStatus("failed");
     } finally {
       clearTimeout(timeout);
@@ -377,6 +395,7 @@ export function CheckInForm({
                   accept="image/*"
                   capture="environment"
                   hidden
+                  disabled={isPending}
                   onChange={(event) => {
                     void photoChosen(event.target.files?.[0]);
                     event.target.value = "";
@@ -385,6 +404,7 @@ export function CheckInForm({
                   type="file"
                 />
                 <Button
+                  disabled={isPending}
                   fullWidth
                   onClick={() => photoInput.current?.click()}
                   size="large"
@@ -410,6 +430,7 @@ export function CheckInForm({
                     />
                     <Stack direction="row" spacing={1}>
                       <Button
+                        disabled={isPending}
                         onClick={() => photoInput.current?.click()}
                         size="large"
                         sx={bigButtonSx}
@@ -419,6 +440,7 @@ export function CheckInForm({
                         {checkInText.retakePhoto}
                       </Button>
                       <Button
+                        disabled={isPending}
                         onClick={clearPhoto}
                         size="large"
                         sx={bigButtonSx}

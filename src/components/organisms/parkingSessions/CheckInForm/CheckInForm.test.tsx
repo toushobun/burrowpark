@@ -389,6 +389,34 @@ describe("CheckInForm", () => {
     );
   });
 
+  it("提交中的照片操作锁定，迟到识别不会修改已提交车牌", async () => {
+    let finishRecognition: (value: string | null) => void = () => {};
+    vi.mocked(recognizePlate).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishRecognition = resolve;
+        }),
+    );
+    action.mockImplementationOnce(() => new Promise(() => {}));
+    const { container } = renderForm({ defaultLeasePlate: "粤B12345" });
+    fireEvent.click(screen.getByRole("button", { name: "微信" }));
+    choosePhoto(container);
+    await waitFor(() => expect(recognizePlate).toHaveBeenCalledOnce());
+
+    fireEvent.click(screen.getByRole("button", { name: "确认登记" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "确认登记" })).toBeDisabled(),
+    );
+    expect(screen.getByRole("button", { name: "拍照" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "重拍" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "删除照片" })).toBeDisabled();
+    expect(container.querySelector('input[type="file"]')).toBeDisabled();
+    await act(async () => finishRecognition("辽A88888"));
+    expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue(
+      "粤B12345",
+    );
+  });
+
   it("识别失败只显示手动输入提示，不弹失败对话框", async () => {
     vi.mocked(recognizePlate).mockResolvedValue(null);
     const { container } = renderForm();
