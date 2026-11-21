@@ -1,3 +1,5 @@
+"use client";
+
 import ButtonBase from "@mui/material/ButtonBase";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
