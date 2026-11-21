@@ -15,6 +15,7 @@ import {
   parseCheckOutInput,
   parseRenewInput,
   parseUndoSessionId,
+  parseSlotSettingsInput,
   createLeaseInputSchema,
   editLeaseInputSchema,
   endLeaseInputSchema,
@@ -46,6 +47,14 @@ import {
   formatPlateForDisplay,
   PRIVATE_BORROW_REMINDER_MINUTES,
 } from "../util/parkingDomain";
+
+export type SlotSettingsRow = {
+  code: string;
+  name: string;
+  kind: "regular" | "private";
+  isActive: boolean;
+  blockedReason: "occupied" | "reserved" | "leased" | "aisle" | null;
+};
 
 export type SlotMapSlot = {
   code: string;
@@ -168,6 +177,8 @@ export interface ParkingService {
     current: string;
   }>;
   undoExtendBorrow(input: unknown): Promise<void>;
+  getSlotSettings(): Promise<SlotSettingsRow[]>;
+  updateSlotSettings(input: unknown): Promise<void>;
 }
 
 function latestPaidUntil(
@@ -246,6 +257,53 @@ export function createParkingService(
   getAuth: () => Promise<AuthContext>,
 ): ParkingService {
   return {
+    async getSlotSettings() {
+      await requireAuthenticatedUserId(getAuth);
+      const facts = await repository.readSlotFacts();
+      return assembleSlotFacts(facts).map(
+        ({ slot, session, reservation, lease }) => ({
+          code: slot.code,
+          name: slot.name,
+          kind: slot.kind === "private" ? "private" : "regular",
+          isActive: slot.is_active,
+          blockedReason: session
+            ? "occupied"
+            : reservation
+              ? "reserved"
+              : lease
+                ? "leased"
+                : slot.kind === "aisle"
+                  ? "aisle"
+                  : null,
+        }),
+      );
+    },
+
+    async updateSlotSettings(input) {
+      await requireAuthenticatedUserId(getAuth);
+      const value = parseSlotSettingsInput(input);
+      const facts = await repository.readSlotFacts();
+      const match = assembleSlotFacts(facts).find(
+        ({ slot }) => slot.code === value.code,
+      );
+      if (!match)
+        throw new ValidationError(
+          "slot_unavailable",
+          parkingMessages.slotUnavailable,
+        );
+      if (match.slot.kind === "aisle")
+        throw new ValidationError(
+          "invalid_kind",
+          parkingMessages.slotSettingsKindInvalid,
+        );
+      if (match.session || match.reservation || match.lease)
+        throw new ConflictError("slot_busy", parkingMessages.slotSettingsBusy);
+      await repository.updateSlotSettings(
+        value.code,
+        value.kind,
+        value.isActive,
+      );
+    },
     async getCheckInForm(code, now) {
       await requireAuthenticatedUserId(getAuth);
       if (!/^\d+$/.test(code)) {

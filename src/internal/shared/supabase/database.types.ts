@@ -394,6 +394,14 @@ export type Database = {
         Args: { p_reservation_id: string };
         Returns: undefined;
       };
+      update_slot_settings: {
+        Args: {
+          p_code: string;
+          p_is_active: boolean;
+          p_kind: Database["public"]["Enums"]["slot_kind"];
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       billing_type: "hotel_daily" | "hourly" | "lease" | "free";

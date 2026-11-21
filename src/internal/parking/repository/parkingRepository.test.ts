@@ -652,3 +652,57 @@ describe("长租、预留和再借的 Repository", () => {
     });
   });
 });
+
+describe("车位设置 Repository", () => {
+  it("使用单个 update_slot_settings RPC", async () => {
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    const client = { rpc } as unknown as AuthenticatedSupabaseClient;
+    await createParkingRepository(client, logger).updateSlotSettings(
+      "7",
+      "private",
+      false,
+    );
+    expect(rpc).toHaveBeenCalledOnce();
+    expect(rpc).toHaveBeenCalledWith("update_slot_settings", {
+      p_code: "7",
+      p_kind: "private",
+      p_is_active: false,
+    });
+  });
+  it("车位正在使用时映射 ConflictError", async () => {
+    const client = {
+      rpc: vi.fn().mockResolvedValue({
+        error: {
+          code: "P0001",
+          details: "SLOT_BUSY",
+          message: "internal database details",
+        },
+      }),
+    } as unknown as AuthenticatedSupabaseClient;
+    await expect(
+      createParkingRepository(client, logger).updateSlotSettings(
+        "7",
+        "private",
+        false,
+      ),
+    ).rejects.toMatchObject({
+      name: "ConflictError",
+      code: "slot_busy",
+      message: "有车、预留或长租的车位不能修改设置。",
+    });
+  });
+  it("非家庭账号时映射 AuthorizationError", async () => {
+    const client = {
+      rpc: vi.fn().mockResolvedValue({
+        error: { code: "42501", details: "FAMILY_REQUIRED" },
+      }),
+    } as unknown as AuthenticatedSupabaseClient;
+    await expect(
+      createParkingRepository(client, logger).updateSlotSettings(
+        "7",
+        "regular",
+        true,
+      ),
+    ).rejects.toMatchObject({ name: "AuthorizationError" });
+  });
+});

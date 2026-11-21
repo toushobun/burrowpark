@@ -1,0 +1,19 @@
+export const slotSettingsText = {
+  settings: "设置",
+  slots: "车位设置",
+  blockedReasons: {
+    occupied: "有车在场",
+    reserved: "有预留",
+    leased: "有在租长租",
+    aisle: "通道车位不能修改",
+  },
+  private: "私人位",
+  active: "启用",
+  back: "返回设置",
+  confirm: "确定",
+  cancel: "取消",
+  setPrivate: (name: string) => "确定把 " + name + " 设为私人位吗？",
+  setRegular: (name: string) => "确定把 " + name + " 设为普通车位吗？",
+  disable: (name: string) => "确定停用 " + name + " 吗？",
+  enable: (name: string) => "确定启用 " + name + " 吗？",
+} as const;

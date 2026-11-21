@@ -58,6 +58,25 @@ describe("PageShell", () => {
     });
   });
 
+  it("支持首页标题右侧的设置入口", () => {
+    render(
+      <PageShell
+        title="途泊属"
+        headerAction={
+          <a href="/settings" aria-label="设置">
+            ⚙
+          </a>
+        }
+      >
+        内容
+      </PageShell>,
+    );
+    expect(screen.getByRole("link", { name: "设置" })).toHaveAttribute(
+      "href",
+      "/settings",
+    );
+  });
+
   it("未传 footer 时不渲染底部区域", () => {
     render(<PageShell title="途泊属">内容</PageShell>);
 

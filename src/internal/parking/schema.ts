@@ -282,3 +282,26 @@ export function readParkingOperationFormData(formData: FormData): unknown {
     expectedCurrent: formData.get("expectedCurrent"),
   };
 }
+
+export const slotSettingsInputSchema = z.object({
+  code: z.string().regex(/^\d+$/, parkingMessages.invalidInput),
+  kind: z.enum(["regular", "private"]),
+  isActive: z.boolean(),
+});
+export type SlotSettingsInput = z.infer<typeof slotSettingsInputSchema>;
+export function parseSlotSettingsInput(input: unknown): SlotSettingsInput {
+  const result = slotSettingsInputSchema.safeParse(input);
+  if (!result.success)
+    throw new ValidationError(
+      "slot_settings_invalid",
+      result.error.issues[0]?.message ?? parkingMessages.invalidInput,
+    );
+  return result.data;
+}
+export function readSlotSettingsFormData(form: FormData): unknown {
+  return {
+    code: form.get("code"),
+    kind: form.get("kind"),
+    isActive: form.get("isActive") === "true",
+  };
+}

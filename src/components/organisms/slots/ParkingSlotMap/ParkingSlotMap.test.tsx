@@ -88,3 +88,17 @@ describe("ParkingSlotMap", () => {
     expect(screen.getByTestId("inactive-slot-10")).toHaveTextContent("未配置");
   });
 });
+
+describe("车位设置更新后的地图", () => {
+  it("将由设置页停用的车位显示为灰色且不可点击", () => {
+    render(
+      <ParkingSlotMap
+        slots={slots.map((slot) =>
+          slot.code === "7" ? { ...slot, isActive: false } : slot,
+        )}
+      />,
+    );
+    expect(screen.queryByRole("link", { name: /^7号，/ })).toBeNull();
+    expect(screen.getByTestId("inactive-slot-7")).toHaveTextContent("停用");
+  });
+});
