@@ -51,7 +51,9 @@ export const WithPrimaryAction: Story = {
   },
 };
 
-export const SettingsWithBack: Story = { args: { title: "设置", backHref: "/" } };
+export const SettingsWithBack: Story = {
+  args: { title: "设置", backHref: "/" },
+};
 export const SlotSettingsWithBack: Story = {
   args: { title: "车位设置", backHref: "/settings" },
 };

@@ -16,10 +16,7 @@ const bounds = (
   bottom: p.y + p.fontSize / 2,
 });
 const intersects = (a: Bounds, b: Bounds) =>
-  a.left < b.right &&
-  a.right > b.left &&
-  a.top < b.bottom &&
-  a.bottom > b.top;
+  a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 
 describe("getSlotLabelLayout", () => {
   it("横向车位号码和状态左右排列，字号不超过半个高度", () => {
@@ -39,11 +36,7 @@ describe("getSlotLabelLayout", () => {
   });
 
   it("每个车位所有状态的两段字框都在格子内，且互不相交", () => {
-    const allStatuses = [
-      ...Object.values(slotStatusShortLabels),
-      "停用",
-      "未配置",
-    ];
+    const allStatuses = [...Object.values(slotStatusShortLabels), "停用", "未配置"];
     for (const shape of slotLayout.slots) {
       const box = {
         left: shape.x,

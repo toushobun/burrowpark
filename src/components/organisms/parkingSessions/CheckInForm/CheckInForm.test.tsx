@@ -183,10 +183,7 @@ describe("CheckInForm", () => {
     const { rerender } = renderForm({ isActive: false });
     expect(screen.queryByRole("button", { name: "确认登记" })).toBeNull();
     rerender(
-      <CheckInForm
-        action={action}
-        form={{ ...form, occupied: true }}
-      />,
+      <CheckInForm action={action} form={{ ...form, occupied: true }} />,
     );
     expect(screen.queryByRole("button", { name: "确认登记" })).toBeNull();
   });
