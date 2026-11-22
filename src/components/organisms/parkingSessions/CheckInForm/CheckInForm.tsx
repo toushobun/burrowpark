@@ -316,336 +316,336 @@ export function CheckInForm({
     <>
       <Stack spacing={3}>
         <Typography component="h2" variant="h2">
-            {form.name}
+          {form.name}
+        </Typography>
+        {!form.isActive || form.occupied ? (
+          <Typography color="error" variant="h3">
+            {checkInText.unavailable}
           </Typography>
-          {!form.isActive || form.occupied ? (
-            <Typography color="error" variant="h3">
-              {checkInText.unavailable}
-            </Typography>
-          ) : (
-            <form
-              action={(data) => {
-                photoSubmitted.current = true;
-                if (photo) data.set("photo", photo, "plate.jpg");
-                startTransition(() => submit(data));
-              }}
-            >
-              <Stack spacing={3}>
-                {form.hasReservation && (
-                  <Typography variant="body1">
-                    {checkInText.hasReservation}
-                  </Typography>
-                )}
-                <input
-                  accept="image/*"
-                  capture="environment"
-                  hidden
-                  disabled={isPending}
-                  onChange={(event) => {
-                    void photoChosen(event.target.files?.[0]);
-                    event.target.value = "";
-                  }}
-                  ref={photoInput}
-                  type="file"
-                />
+        ) : (
+          <form
+            action={(data) => {
+              photoSubmitted.current = true;
+              if (photo) data.set("photo", photo, "plate.jpg");
+              startTransition(() => submit(data));
+            }}
+          >
+            <Stack spacing={3}>
+              {form.hasReservation && (
+                <Typography variant="body1">
+                  {checkInText.hasReservation}
+                </Typography>
+              )}
+              <input
+                accept="image/*"
+                capture="environment"
+                hidden
+                disabled={isPending}
+                onChange={(event) => {
+                  void photoChosen(event.target.files?.[0]);
+                  event.target.value = "";
+                }}
+                ref={photoInput}
+                type="file"
+              />
+              <Button
+                disabled={isPending}
+                fullWidth
+                onClick={() => photoInput.current?.click()}
+                size="large"
+                startIcon={<CameraAltIcon />}
+                sx={bigButtonSx}
+                type="button"
+                variant="outlined"
+              >
+                {checkInText.takePhoto}
+              </Button>
+              {photoUrl && (
+                <Stack spacing={1}>
+                  <Box
+                    alt={checkInText.photoPreview}
+                    component="img"
+                    src={photoUrl}
+                    sx={{
+                      borderRadius: 1,
+                      maxHeight: 300,
+                      objectFit: "contain",
+                      width: "100%",
+                    }}
+                  />
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      disabled={isPending}
+                      onClick={() => photoInput.current?.click()}
+                      size="large"
+                      sx={bigButtonSx}
+                      type="button"
+                      variant="text"
+                    >
+                      {checkInText.retakePhoto}
+                    </Button>
+                    <Button
+                      disabled={isPending}
+                      onClick={clearPhoto}
+                      size="large"
+                      sx={bigButtonSx}
+                      type="button"
+                      variant="text"
+                    >
+                      {checkInText.removePhoto}
+                    </Button>
+                  </Stack>
+                </Stack>
+              )}
+              {recognitionStatus === "loading" && (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ alignItems: "center" }}
+                >
+                  <CircularProgress size={24} />
+                  <Typography>{checkInText.loadingModels}</Typography>
+                </Stack>
+              )}
+              {recognitionStatus === "recognizing" && (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ alignItems: "center" }}
+                >
+                  <CircularProgress size={24} />
+                  <Typography>{checkInText.recognizing}</Typography>
+                </Stack>
+              )}
+              {recognitionStatus === "failed" && (
+                <Typography color="textSecondary">
+                  {checkInText.recognitionFailed}
+                </Typography>
+              )}
+              {recognitionStatus === "filled" && (
+                <Typography color="textSecondary">
+                  {checkInText.recognized}
+                </Typography>
+              )}
+              {recognitionStatus === "suggestion" && recognizedPlate && (
                 <Button
-                  disabled={isPending}
                   fullWidth
-                  onClick={() => photoInput.current?.click()}
+                  onClick={() => {
+                    setPlate(recognizedPlate);
+                    autoFilledPlate.current = recognizedPlate;
+                    setRecognitionStatus("filled");
+                  }}
                   size="large"
-                  startIcon={<CameraAltIcon />}
                   sx={bigButtonSx}
                   type="button"
-                  variant="outlined"
+                  variant="text"
                 >
-                  {checkInText.takePhoto}
+                  {checkInText.recognitionSuggestion(
+                    formatPlateForDisplay(recognizedPlate),
+                  )}
                 </Button>
-                {photoUrl && (
-                  <Stack spacing={1}>
-                    <Box
-                      alt={checkInText.photoPreview}
-                      component="img"
-                      src={photoUrl}
-                      sx={{
-                        borderRadius: 1,
-                        maxHeight: 300,
-                        objectFit: "contain",
-                        width: "100%",
-                      }}
-                    />
-                    <Stack direction="row" spacing={1}>
-                      <Button
-                        disabled={isPending}
-                        onClick={() => photoInput.current?.click()}
-                        size="large"
-                        sx={bigButtonSx}
-                        type="button"
-                        variant="text"
-                      >
-                        {checkInText.retakePhoto}
-                      </Button>
-                      <Button
-                        disabled={isPending}
-                        onClick={clearPhoto}
-                        size="large"
-                        sx={bigButtonSx}
-                        type="button"
-                        variant="text"
-                      >
-                        {checkInText.removePhoto}
-                      </Button>
-                    </Stack>
-                  </Stack>
-                )}
-                {recognitionStatus === "loading" && (
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ alignItems: "center" }}
-                  >
-                    <CircularProgress size={24} />
-                    <Typography>{checkInText.loadingModels}</Typography>
-                  </Stack>
-                )}
-                {recognitionStatus === "recognizing" && (
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ alignItems: "center" }}
-                  >
-                    <CircularProgress size={24} />
-                    <Typography>{checkInText.recognizing}</Typography>
-                  </Stack>
-                )}
-                {recognitionStatus === "failed" && (
-                  <Typography color="textSecondary">
-                    {checkInText.recognitionFailed}
+              )}
+              <TextField
+                fullWidth
+                label={checkInText.plate}
+                name="plate"
+                onChange={(event) => {
+                  manualPlateEdited.current =
+                    normalizePlate(event.target.value).length > 0;
+                  autoFilledPlate.current = null;
+                  setPlate(event.target.value.toUpperCase());
+                }}
+                slotProps={{
+                  htmlInput: {
+                    autoCapitalize: "characters",
+                    autoComplete: "off",
+                  },
+                }}
+                sx={{
+                  "& .MuiInputBase-root": {
+                    minHeight: designTokens.size.touchTargetMin,
+                  },
+                  "& .MuiInputBase-input": {
+                    fontSize: (theme) => theme.typography.h3.fontSize,
+                  },
+                }}
+                value={plate}
+              />
+              <Typography component="h3" variant="h3">
+                {checkInText.billingType}
+              </Typography>
+              <Box
+                sx={{
+                  display: "grid",
+                  gap: 2,
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                }}
+              >
+                {allowedBilling.map((value) => (
+                  <ChoiceButton
+                    key={value}
+                    label={billingTypeLabels[value]}
+                    onClick={() => setBillingType(value)}
+                    selected={billingType === value}
+                  />
+                ))}
+              </Box>
+              {isPrivate && (
+                <Stack spacing={2}>
+                  <Typography component="h3" variant="h3">
+                    {checkInText.borrowDuration}
                   </Typography>
-                )}
-                {recognitionStatus === "filled" && (
-                  <Typography color="textSecondary">
-                    {checkInText.recognized}
-                  </Typography>
-                )}
-                {recognitionStatus === "suggestion" && recognizedPlate && (
-                  <Button
-                    fullWidth
-                    onClick={() => {
-                      setPlate(recognizedPlate);
-                      autoFilledPlate.current = recognizedPlate;
-                      setRecognitionStatus("filled");
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gap: 2,
+                      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
                     }}
-                    size="large"
-                    sx={bigButtonSx}
-                    type="button"
-                    variant="text"
                   >
-                    {checkInText.recognitionSuggestion(
-                      formatPlateForDisplay(recognizedPlate),
-                    )}
-                  </Button>
-                )}
-                <TextField
-                  fullWidth
-                  label={checkInText.plate}
-                  name="plate"
-                  onChange={(event) => {
-                    manualPlateEdited.current =
-                      normalizePlate(event.target.value).length > 0;
-                    autoFilledPlate.current = null;
-                    setPlate(event.target.value.toUpperCase());
-                  }}
-                  slotProps={{
-                    htmlInput: {
-                      autoCapitalize: "characters",
-                      autoComplete: "off",
-                    },
-                  }}
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      minHeight: designTokens.size.touchTargetMin,
-                    },
-                    "& .MuiInputBase-input": {
-                      fontSize: (theme) => theme.typography.h3.fontSize,
-                    },
-                  }}
-                  value={plate}
-                />
-                <Typography component="h3" variant="h3">
-                  {checkInText.billingType}
-                </Typography>
-                <Box
-                  sx={{
-                    display: "grid",
-                    gap: 2,
-                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                  }}
-                >
-                  {allowedBilling.map((value) => (
-                    <ChoiceButton
-                      key={value}
-                      label={billingTypeLabels[value]}
-                      onClick={() => setBillingType(value)}
-                      selected={billingType === value}
-                    />
-                  ))}
-                </Box>
-                {isPrivate && (
-                  <Stack spacing={2}>
-                    <Typography component="h3" variant="h3">
-                      {checkInText.borrowDuration}
-                    </Typography>
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gap: 2,
-                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                      }}
-                    >
-                      {([10, 30] as const).map((minutes) => (
-                        <ChoiceButton
-                          key={minutes}
-                          label={minutes + " " + checkInText.minuteUnit}
-                          onClick={() => setBorrowMinutes(minutes)}
-                          selected={borrowMinutes === minutes}
-                        />
-                      ))}
-                    </Box>
-                  </Stack>
-                )}
-                {isHotel && (
-                  <Stack spacing={2}>
-                    <Typography component="h3" variant="h3">
-                      {checkInText.days}
-                    </Typography>
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gap: 2,
-                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                      }}
-                    >
-                      {([1, 2, 3] as const).map((value) => (
-                        <ChoiceButton
-                          key={value}
-                          label={value + " " + checkInText.dayUnit}
-                          onClick={() => setHotelDays(value, false)}
-                          selected={!customDays && days === value}
-                        />
-                      ))}
+                    {([10, 30] as const).map((minutes) => (
                       <ChoiceButton
-                        label={checkInText.customDays}
-                        onClick={() => setHotelDays(days, true)}
-                        selected={customDays}
+                        key={minutes}
+                        label={minutes + " " + checkInText.minuteUnit}
+                        onClick={() => setBorrowMinutes(minutes)}
+                        selected={borrowMinutes === minutes}
                       />
-                    </Box>
-                    {customDays && (
-                      <TextField
-                        fullWidth
-                        label={checkInText.days}
-                        onChange={(event) =>
-                          setHotelDays(Number(event.target.value), true)
-                        }
-                        slotProps={{
-                          htmlInput: { min: 1, max: 30, inputMode: "numeric" },
-                        }}
-                        type="number"
-                        value={days}
+                    ))}
+                  </Box>
+                </Stack>
+              )}
+              {isHotel && (
+                <Stack spacing={2}>
+                  <Typography component="h3" variant="h3">
+                    {checkInText.days}
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gap: 2,
+                      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                    }}
+                  >
+                    {([1, 2, 3] as const).map((value) => (
+                      <ChoiceButton
+                        key={value}
+                        label={value + " " + checkInText.dayUnit}
+                        onClick={() => setHotelDays(value, false)}
+                        selected={!customDays && days === value}
                       />
-                    )}
-                    {paidUntil && (
-                      <Typography variant="h3">
-                        {checkInText.paidUntil} {paidUntil}
-                      </Typography>
-                    )}
-                    <Typography variant="body1">
-                      {checkInText.suggestedAmount}：
-                      {(suggestedCents / 100).toFixed(2)} 元
-                    </Typography>
-                    <Typography component="h3" variant="h3">
-                      {checkInText.paymentMethod}
-                    </Typography>
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gap: 2,
-                        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                      }}
-                    >
-                      {(
-                        Object.keys(
-                          paymentMethodLabels,
-                        ) as (keyof typeof paymentMethodLabels)[]
-                      ).map((value) => (
-                        <ChoiceButton
-                          key={value}
-                          label={paymentMethodLabels[value]}
-                          onClick={() => setMethod(value)}
-                          selected={method === value}
-                        />
-                      ))}
-                    </Box>
+                    ))}
+                    <ChoiceButton
+                      label={checkInText.customDays}
+                      onClick={() => setHotelDays(days, true)}
+                      selected={customDays}
+                    />
+                  </Box>
+                  {customDays && (
                     <TextField
                       fullWidth
-                      label={checkInText.receivedAmount}
-                      onChange={(event) => setAmountYuan(event.target.value)}
-                      slotProps={{ htmlInput: { inputMode: "decimal" } }}
-                      type="text"
-                      value={amountYuan}
-                    />
-                  </Stack>
-                )}
-                <input name="slotCode" type="hidden" value={form.code} />
-                <input name="billingType" type="hidden" value={billingType} />
-                {isHotel && (
-                  <>
-                    <input name="days" type="hidden" value={days} />
-                    <input
-                      name="paymentMethod"
-                      type="hidden"
-                      value={method ?? ""}
-                    />
-                    <input name="amountYuan" type="hidden" value={amountYuan} />
-                  </>
-                )}
-                {isPrivate && borrowMinutes && (
-                  <input
-                    name="borrowMinutes"
-                    type="hidden"
-                    value={borrowMinutes}
-                  />
-                )}
-                <Button
-                  disabled={!canSubmit}
-                  fullWidth
-                  size="large"
-                  sx={{ minHeight: designTokens.size.primaryActionHeight }}
-                  type="submit"
-                  variant="contained"
-                >
-                  {isPending && (
-                    <CircularProgress
-                      color="inherit"
-                      size={24}
-                      sx={{ mr: 1 }}
+                      label={checkInText.days}
+                      onChange={(event) =>
+                        setHotelDays(Number(event.target.value), true)
+                      }
+                      slotProps={{
+                        htmlInput: { min: 1, max: 30, inputMode: "numeric" },
+                      }}
+                      type="number"
+                      value={days}
                     />
                   )}
-                  {isPending ? checkInText.submitting : checkInText.submit}
-                </Button>
-              </Stack>
-            </form>
-          )}
-          <Button
-            component={Link}
-            fullWidth
-            href="/"
-            size="large"
-            sx={bigButtonSx}
-            variant="outlined"
-          >
-            {checkInText.backMap}
-          </Button>
-        </Stack>
+                  {paidUntil && (
+                    <Typography variant="h3">
+                      {checkInText.paidUntil} {paidUntil}
+                    </Typography>
+                  )}
+                  <Typography variant="body1">
+                    {checkInText.suggestedAmount}：
+                    {(suggestedCents / 100).toFixed(2)} 元
+                  </Typography>
+                  <Typography component="h3" variant="h3">
+                    {checkInText.paymentMethod}
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gap: 2,
+                      gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                    }}
+                  >
+                    {(
+                      Object.keys(
+                        paymentMethodLabels,
+                      ) as (keyof typeof paymentMethodLabels)[]
+                    ).map((value) => (
+                      <ChoiceButton
+                        key={value}
+                        label={paymentMethodLabels[value]}
+                        onClick={() => setMethod(value)}
+                        selected={method === value}
+                      />
+                    ))}
+                  </Box>
+                  <TextField
+                    fullWidth
+                    label={checkInText.receivedAmount}
+                    onChange={(event) => setAmountYuan(event.target.value)}
+                    slotProps={{ htmlInput: { inputMode: "decimal" } }}
+                    type="text"
+                    value={amountYuan}
+                  />
+                </Stack>
+              )}
+              <input name="slotCode" type="hidden" value={form.code} />
+              <input name="billingType" type="hidden" value={billingType} />
+              {isHotel && (
+                <>
+                  <input name="days" type="hidden" value={days} />
+                  <input
+                    name="paymentMethod"
+                    type="hidden"
+                    value={method ?? ""}
+                  />
+                  <input name="amountYuan" type="hidden" value={amountYuan} />
+                </>
+              )}
+              {isPrivate && borrowMinutes && (
+                <input
+                  name="borrowMinutes"
+                  type="hidden"
+                  value={borrowMinutes}
+                />
+              )}
+              <Button
+                disabled={!canSubmit}
+                fullWidth
+                size="large"
+                sx={{ minHeight: designTokens.size.primaryActionHeight }}
+                type="submit"
+                variant="contained"
+              >
+                {isPending && (
+                  <CircularProgress
+                    color="inherit"
+                    size={24}
+                    sx={{ mr: 1 }}
+                  />
+                )}
+                {isPending ? checkInText.submitting : checkInText.submit}
+              </Button>
+            </Stack>
+          </form>
+        )}
+        <Button
+          component={Link}
+          fullWidth
+          href="/"
+          size="large"
+          sx={bigButtonSx}
+          variant="outlined"
+        >
+          {checkInText.backMap}
+        </Button>
+      </Stack>
       <FailureFeedbackDialog state={state} />
     </>
   );

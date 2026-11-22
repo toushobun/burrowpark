@@ -468,6 +468,7 @@ describe("CheckInForm", () => {
     );
     expect(screen.queryByRole("dialog")).toBeNull();
   });
+
   it("登记成功后携带车位与会话跳回地图且不包含车牌", async () => {
     renderForm(
       {},
@@ -507,5 +508,4 @@ describe("CheckInForm", () => {
       ),
     );
   });
-
 });

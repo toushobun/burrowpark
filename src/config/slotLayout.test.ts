@@ -41,7 +41,10 @@ describe("slotLayout", () => {
           right > rect.x &&
           top < rect.y + rect.h &&
           bottom > rect.y;
-        expect(overlap, area.label + " 覆盖 " + ("code" in rect ? rect.code : rect.label)).toBe(false);
+        expect(
+          overlap,
+          area.label + " 覆盖 " + ("code" in rect ? rect.code : rect.label),
+        ).toBe(false);
       }
     }
   });

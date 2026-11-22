@@ -181,8 +181,6 @@ export function MonthlyStats({ month, currentMonth, stats }: Props) {
           </Paper>
         )}
       </Stack>
-
-
     </Stack>
   );
 }

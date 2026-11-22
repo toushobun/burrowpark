@@ -32,7 +32,10 @@ export function PageSkeleton({
             variant="rounded"
             sx={{
               borderRadius: designTokens.radius.md + "px",
-              height: index === 0 ? designTokens.size.primaryActionHeight : designTokens.size.touchTargetMin,
+              height:
+                index === 0
+                  ? designTokens.size.primaryActionHeight
+                  : designTokens.size.touchTargetMin,
               width: "100%",
             }}
           />

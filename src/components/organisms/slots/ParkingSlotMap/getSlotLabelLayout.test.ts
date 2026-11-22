@@ -6,7 +6,10 @@ import { slotStatusShortLabels } from "config/slotStatusText";
 import { getSlotLabelLayout } from "./getSlotLabelLayout";
 
 type Bounds = { left: number; top: number; right: number; bottom: number };
-const bounds = (text: string, p: { x: number; y: number; fontSize: number }): Bounds => ({
+const bounds = (
+  text: string,
+  p: { x: number; y: number; fontSize: number },
+): Bounds => ({
   left: p.x - (p.fontSize * text.length * 0.6) / 2,
   right: p.x + (p.fontSize * text.length * 0.6) / 2,
   top: p.y - p.fontSize / 2,

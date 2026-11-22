@@ -20,7 +20,13 @@ const meta = {
       photoSaved: true,
     },
   },
-  decorators: [(Story) => <Box sx={{ width: 390 }}><Story /></Box>],
+  decorators: [
+    (Story) => (
+      <Box sx={{ width: 390 }}>
+        <Story />
+      </Box>
+    ),
+  ],
   parameters: { layout: "fullscreen" },
   title: "Organisms/Slots/CheckInMapSection",
 } satisfies Meta<typeof CheckInMapSection>;

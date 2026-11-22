@@ -29,7 +29,11 @@ const notice: CheckInNotice = {
 describe("CheckInToast", () => {
   it("390px 提示条显示车位车牌、撤销按钮和关闭入口", () => {
     renderPhone(
-      <CheckInToast notice={notice} undoAction={async () => ({})} onUndone={vi.fn()} />,
+      <CheckInToast
+        notice={notice}
+        undoAction={async () => ({})}
+        onUndone={vi.fn()}
+      />,
     );
     expect(screen.getByText("已登记 12号 辽A·12345")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
@@ -50,7 +54,9 @@ describe("CheckInToast", () => {
   it("撤销成功后变为已撤销，并移除撤销按钮", async () => {
     const onUndone = vi.fn();
     const action = vi.fn(async () => ({ success: "已撤销", successKey: "ok" }));
-    renderPhone(<CheckInToast notice={notice} undoAction={action} onUndone={onUndone} />);
+    renderPhone(
+      <CheckInToast notice={notice} undoAction={action} onUndone={onUndone} />,
+    );
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "撤销" }));
     });
@@ -62,7 +68,13 @@ describe("CheckInToast", () => {
   });
 
   it("关闭提示条后清理首页查询参数", () => {
-    renderPhone(<CheckInToast notice={notice} undoAction={async () => ({})} onUndone={vi.fn()} />);
+    renderPhone(
+      <CheckInToast
+        notice={notice}
+        undoAction={async () => ({})}
+        onUndone={vi.fn()}
+      />,
+    );
     fireEvent.click(screen.getByRole("button", { name: "关闭提示" }));
     expect(replace).toHaveBeenCalledWith("/");
   });

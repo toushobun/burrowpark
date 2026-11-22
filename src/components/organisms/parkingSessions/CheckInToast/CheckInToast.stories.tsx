@@ -14,7 +14,13 @@ const noopAction = async () => ({});
 const meta = {
   component: CheckInToast,
   args: { notice, undoAction: noopAction, onUndone: () => {} },
-  decorators: [(Story) => <Box sx={{ width: 390, height: 844 }}><Story /></Box>],
+  decorators: [
+    (Story) => (
+      <Box sx={{ width: 390, height: 844 }}>
+        <Story />
+      </Box>
+    ),
+  ],
   parameters: { layout: "fullscreen" },
   title: "Organisms/ParkingSessions/CheckInToast",
 } satisfies Meta<typeof CheckInToast>;
@@ -27,5 +33,7 @@ export const PhotoFailed: Story = {
   args: { notice: { ...notice, photoSaved: false } },
 };
 export const Undone: Story = {
-  args: { initialState: { success: "已撤销", successKey: "storybook-undo" } },
+  args: {
+    initialState: { success: "已撤销", successKey: "storybook-undo" },
+  },
 };
