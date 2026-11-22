@@ -1010,3 +1010,141 @@ describe("收费设置 Repository", () => {
     ).rejects.toMatchObject({ code: "parking_unavailable" });
   });
 });
+
+describe("历史记录 Repository", () => {
+  it("按上海日期查询进出场和当天支付，并正确应用半开区间", async () => {
+    const order = vi.fn().mockResolvedValue({ data: [], error: null });
+    const or = vi.fn(() => ({ order }));
+    const lt = vi.fn().mockResolvedValue({ data: [], error: null });
+    const gte = vi.fn(() => ({ lt }));
+    const not = vi.fn(() => ({ gte }));
+    const from = vi.fn((table: string) => ({
+      select: vi.fn(() => (table === "payments" ? { not } : { or })),
+    }));
+    const client = { from } as unknown as AuthenticatedSupabaseClient;
+    const start = "2026-11-20T16:00:00.000Z";
+    const end = "2026-11-21T16:00:00.000Z";
+    expect(
+      await createParkingRepository(client, logger).readSessionsByDate(
+        start,
+        end,
+      ),
+    ).toEqual([]);
+    expect(or).toHaveBeenCalledWith(
+      "and(entered_at.gte.2026-11-20T16:00:00.000Z,entered_at.lt.2026-11-21T16:00:00.000Z),and(left_at.gte.2026-11-20T16:00:00.000Z,left_at.lt.2026-11-21T16:00:00.000Z)",
+    );
+    expect(not).toHaveBeenCalledWith("session_id", "is", null);
+    expect(gte).toHaveBeenCalledWith("paid_at", start);
+    expect(lt).toHaveBeenCalledWith("paid_at", end);
+  });
+
+  it("当天续费的跨日车辆会显示且不会重复，保留名下全部收款", async () => {
+    const enteredToday = {
+      id: "session-a",
+      slot_code: "1",
+      plate: "粤A11111",
+      billing_type: "hotel_daily" as const,
+      entered_at: "2026-11-21T02:00:00.000Z",
+      left_at: null,
+      session_payments: [],
+    };
+    const renewedOld = {
+      ...enteredToday,
+      id: "session-b",
+      plate: "粤B22222",
+      entered_at: "2026-11-10T02:00:00.000Z",
+      session_payments: [
+        { id: "payment-b", paid_at: "2026-11-21T04:00:00.000Z" },
+      ],
+    };
+    const baseOrder = vi.fn().mockResolvedValue({
+      data: [enteredToday],
+      error: null,
+    });
+    const or = vi.fn(() => ({ order: baseOrder }));
+    const extraOrder = vi.fn().mockResolvedValue({
+      data: [renewedOld],
+      error: null,
+    });
+    const inFilter = vi.fn(() => ({ order: extraOrder }));
+    const paymentLt = vi.fn().mockResolvedValue({
+      data: [
+        { session_id: "session-a" },
+        { session_id: "session-b" },
+        { session_id: "session-b" },
+        { session_id: null },
+      ],
+      error: null,
+    });
+    const gte = vi.fn(() => ({ lt: paymentLt }));
+    const not = vi.fn(() => ({ gte }));
+    const from = vi.fn((table: string) => ({
+      select: vi.fn(() =>
+        table === "payments" ? { not } : { or, in: inFilter },
+      ),
+    }));
+    const client = { from } as unknown as AuthenticatedSupabaseClient;
+    const result = await createParkingRepository(
+      client,
+      logger,
+    ).readSessionsByDate(
+      "2026-11-20T16:00:00.000Z",
+      "2026-11-21T16:00:00.000Z",
+    );
+    expect(inFilter).toHaveBeenCalledWith("id", ["session-b"]);
+    expect(result.map((session) => session.id)).toEqual([
+      "session-a",
+      "session-b",
+    ]);
+    expect(result[1].session_payments).toEqual(renewedOld.session_payments);
+  });
+
+  it("按车牌精确查询最多50条并按进场倒序", async () => {
+    const limit = vi.fn().mockResolvedValue({ data: [], error: null });
+    const order = vi.fn(() => ({ limit }));
+    const eq = vi.fn(() => ({ order }));
+    const client = {
+      from: vi.fn(() => ({ select: vi.fn(() => ({ eq })) })),
+    } as unknown as AuthenticatedSupabaseClient;
+    await createParkingRepository(client, logger).readSessionsByPlate(
+      "辽A12345",
+      999,
+    );
+    expect(eq).toHaveBeenCalledWith("plate", "辽A12345");
+    expect(order).toHaveBeenCalledWith("entered_at", { ascending: false });
+    expect(limit).toHaveBeenCalledWith(50);
+  });
+  it("按租户和车位检索长租收款，每次最多50条", async () => {
+    const order = vi.fn().mockResolvedValue({ data: [], error: null });
+    const limit = vi.fn().mockReturnThis();
+    const eq = vi.fn().mockReturnThis();
+    const ilike = vi.fn().mockReturnThis();
+    const not = vi.fn().mockReturnThis();
+    const select = vi.fn(() => ({ not, eq, ilike, order, limit }));
+    const client = {
+      from: vi.fn(() => ({ select })),
+    } as unknown as AuthenticatedSupabaseClient;
+    const repository = createParkingRepository(client, logger);
+    await repository.readLeasePayments({ tenant: "王_%先生" });
+    expect(ilike).toHaveBeenCalledWith("leases.tenant_name", "%王\\_\\%先生%");
+    expect(limit).toHaveBeenCalledWith(50);
+    await repository.readLeasePayments({ slotCode: "2" });
+    expect(eq).toHaveBeenCalledWith("leases.slot_code", "2");
+    expect(limit).toHaveBeenCalledTimes(2);
+  });
+  it("更正业务冲突按稳定 detail 映射且不暴露数据库异常", async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      error: {
+        code: "P0001",
+        details: "PAYMENT_LOCKED",
+        message: "secret database info",
+      },
+    });
+    const client = { rpc } as unknown as AuthenticatedSupabaseClient;
+    await expect(
+      createParkingRepository(client, logger).deletePayment(
+        "00000000-0000-4000-8000-000000000001",
+      ),
+    ).rejects.toMatchObject({ code: "payment_locked" });
+  });
+});

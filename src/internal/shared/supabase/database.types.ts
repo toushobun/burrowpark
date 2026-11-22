@@ -346,6 +346,18 @@ export type Database = {
           retry_after_seconds: number;
         }[];
       };
+      correct_payment: {
+        Args: {
+          p_amount_cents: number;
+          p_method: Database["public"]["Enums"]["payment_method"];
+          p_payment_id: string;
+        };
+        Returns: undefined;
+      };
+      correct_session_plate: {
+        Args: { p_plate: string; p_session_id: string };
+        Returns: undefined;
+      };
       create_lease: {
         Args: {
           p_amount_cents: number;
@@ -360,6 +372,7 @@ export type Database = {
         };
         Returns: string;
       };
+      delete_payment: { Args: { p_payment_id: string }; Returns: undefined };
       end_lease: {
         Args: { p_ended_on: string; p_lease_id: string };
         Returns: undefined;

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseAmountCents,
   parseMonthlyStatsMonth,
+  parseRecordsFilter,
   pricingSettingsInputSchema,
   readPricingSettingsFormData,
   parseCheckInInput,
@@ -255,5 +256,54 @@ describe("收费设置校验", () => {
       pricingSettingsInputSchema.safeParse(readPricingSettingsFormData(form))
         .success,
     ).toBe(false);
+  });
+});
+
+describe("记录查询参数", () => {
+  it("日期格式非法或未来日期回到上海今天", () => {
+    const now = new Date("2026-11-20T16:10:00.000Z");
+    expect(parseRecordsFilter({ date: "2026-02-30" }, now)).toEqual({
+      kind: "date",
+      date: "2026-11-21",
+    });
+    expect(parseRecordsFilter({ date: "2026-11-22" }, now)).toEqual({
+      kind: "date",
+      date: "2026-11-21",
+    });
+  });
+  it("长租查询只接受租户名或合法车位号，非法值不执行搜索", () => {
+    const now = new Date("2026-11-21T00:10:00.000Z");
+    expect(
+      parseRecordsFilter(
+        { mode: "lease", leaseBy: "tenant", leaseQuery: "  王先生  " },
+        now,
+      ),
+    ).toEqual({ kind: "lease", searchBy: "tenant", query: "王先生" });
+    expect(
+      parseRecordsFilter(
+        { mode: "lease", leaseBy: "slot", leaseQuery: "007" },
+        now,
+      ),
+    ).toEqual({ kind: "lease", searchBy: "slot", query: "007" });
+    expect(
+      parseRecordsFilter(
+        { mode: "lease", leaseBy: "slot", leaseQuery: "../1" },
+        now,
+      ),
+    ).toEqual({ kind: "lease", searchBy: "slot", query: "" });
+    expect(
+      parseRecordsFilter({ mode: "lease", leaseQuery: ["王"] }, now),
+    ).toEqual({ kind: "lease", searchBy: "tenant", query: "" });
+  });
+  it("车牌去空格去点并自动大写，非法输入回到今天", () => {
+    const now = new Date("2026-11-21T00:10:00.000Z");
+    expect(parseRecordsFilter({ plate: "辽a·12345" }, now)).toEqual({
+      kind: "plate",
+      plate: "辽A12345",
+    });
+    expect(parseRecordsFilter({ plate: "" }, now)).toEqual({
+      kind: "date",
+      date: "2026-11-21",
+    });
   });
 });
