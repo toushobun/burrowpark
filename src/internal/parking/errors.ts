@@ -5,6 +5,7 @@ export const parkingMessages = {
   invalidPlate: "请输入正确的车牌号码。",
   invalidDays: "住宿天数必须在 1～30 天之间。",
   invalidHour: "钟点必须是 0～23 的整数。",
+  previousDayHourAfterCheckout: "凌晨算前一天的钟点不能晚于离场钟点。",
   invalidAmount: "实收金额必须大于 0，最多保留两位小数。",
   slotUnavailable: "这个车位已停用或不存在。",
   slotOccupied: "这个车位刚刚被登记了",

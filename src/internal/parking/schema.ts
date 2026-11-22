@@ -330,7 +330,14 @@ export const pricingSettingsInputSchema = z.object({
     .min(0, parkingMessages.invalidHour)
     .max(23, parkingMessages.invalidHour),
   hourlyYuan: amountSchema,
-});
+}).refine(
+  (value) =>
+    value.hotelPreviousDayBeforeHour <= value.hotelCheckoutHour,
+  {
+    message: parkingMessages.previousDayHourAfterCheckout,
+    path: ["hotelPreviousDayBeforeHour"],
+  },
+);
 export type PricingSettingsInput = z.infer<typeof pricingSettingsInputSchema>;
 export function readPricingSettingsFormData(form: FormData): unknown {
   // 空字符串与缺失值不能被 Number() 静默转成合法的零点。

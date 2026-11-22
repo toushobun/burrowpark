@@ -43,11 +43,13 @@ export function PricingSettingsForm({ initial, action }: Props) {
     yuan(initial.hourly_price_cents),
   );
   const [confirming, setConfirming] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [state, submit, pending] = useActionState(
     async (previous: ActionState, data: FormData) => {
       const result = await action(previous, data);
       if (result.success) {
         setConfirming(false);
+        setDirty(false);
         router.refresh();
       }
       return result;
@@ -57,11 +59,14 @@ export function PricingSettingsForm({ initial, action }: Props) {
 
   return (
     <Stack spacing={3}>
-      {state.success && <Alert severity="success">{text.saved}</Alert>}
+      {state.success && !dirty && <Alert severity="success">{text.saved}</Alert>}
       <TextField
         label={text.hotelDaily}
         value={hotelDailyYuan}
-        onChange={(event) => setHotelDailyYuan(event.target.value)}
+        onChange={(event) => {
+          setHotelDailyYuan(event.target.value);
+          setDirty(true);
+        }}
         fullWidth
         slotProps={{ htmlInput: { inputMode: "decimal" } }}
       />
@@ -69,7 +74,10 @@ export function PricingSettingsForm({ initial, action }: Props) {
         select
         label={text.hotelCheckoutHour}
         value={hotelCheckoutHour}
-        onChange={(event) => setHotelCheckoutHour(Number(event.target.value))}
+        onChange={(event) => {
+          setHotelCheckoutHour(Number(event.target.value));
+          setDirty(true);
+        }}
         fullWidth
       >
         {hours.map((hour) => (
@@ -83,9 +91,10 @@ export function PricingSettingsForm({ initial, action }: Props) {
           select
           label={text.hotelPreviousDayBeforeHour}
           value={hotelPreviousDayBeforeHour}
-          onChange={(event) =>
-            setHotelPreviousDayBeforeHour(Number(event.target.value))
-          }
+          onChange={(event) => {
+            setHotelPreviousDayBeforeHour(Number(event.target.value));
+            setDirty(true);
+          }}
           fullWidth
         >
           {hours.map((hour) => (
@@ -104,7 +113,10 @@ export function PricingSettingsForm({ initial, action }: Props) {
       <TextField
         label={text.hourly}
         value={hourlyYuan}
-        onChange={(event) => setHourlyYuan(event.target.value)}
+        onChange={(event) => {
+          setHourlyYuan(event.target.value);
+          setDirty(true);
+        }}
         fullWidth
         slotProps={{ htmlInput: { inputMode: "decimal" } }}
       />

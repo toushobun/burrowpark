@@ -11,6 +11,7 @@ import {
   parseUndoSessionId,
   readCheckInFormData,
 } from "./schema";
+import { parkingMessages } from "./errors";
 
 describe("checkInSchema", () => {
   it("车牌规范化并接收合法酒店客参数", () => {
@@ -201,6 +202,29 @@ describe("收费设置校验", () => {
         }).success,
       ).toBe(false);
     }
+  });
+
+  it("凌晨算前一天的钟点不得晚于离场钟点，相等时允许", () => {
+    const base = {
+      hotelDailyYuan: "30",
+      hotelCheckoutHour: 12,
+      hotelPreviousDayBeforeHour: 14,
+      hourlyYuan: "5",
+    };
+    const rejected = pricingSettingsInputSchema.safeParse(base);
+    expect(rejected.success).toBe(false);
+    if (!rejected.success) {
+      expect(rejected.error.issues[0]).toMatchObject({
+        path: ["hotelPreviousDayBeforeHour"],
+        message: parkingMessages.previousDayHourAfterCheckout,
+      });
+    }
+    expect(
+      pricingSettingsInputSchema.safeParse({
+        ...base,
+        hotelPreviousDayBeforeHour: 12,
+      }).success,
+    ).toBe(true);
   });
 
   it("表单钟点缺失或为空时不能静默变成0点", () => {
