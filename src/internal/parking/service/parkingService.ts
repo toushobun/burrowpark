@@ -18,6 +18,7 @@ import {
   parseRenewInput,
   parseUndoSessionId,
   parseSlotSettingsInput,
+  pricingSettingsInputSchema,
   createLeaseInputSchema,
   editLeaseInputSchema,
   endLeaseInputSchema,
@@ -169,6 +170,8 @@ export type MonthlyStats = MonthlyPaymentSummary & {
 };
 
 export interface ParkingService {
+  getPricingSettings(): Promise<ParkingPricingSettings>;
+  updatePricingSettings(input: unknown): Promise<void>;
   getSlotMap(now: Date): Promise<SlotMapSlot[]>;
   getMonthlyStats(month: string): Promise<MonthlyStats>;
   getReminders(now: Date): Promise<SlotReminder[]>;
@@ -277,6 +280,20 @@ export function createParkingService(
   getAuth: () => Promise<AuthContext>,
 ): ParkingService {
   return {
+    async getPricingSettings() {
+      await requireAuthenticatedUserId(getAuth);
+      return repository.getPricingSettings();
+    },
+    async updatePricingSettings(input) {
+      await requireAuthenticatedUserId(getAuth);
+      const value = parseParkingOperation(pricingSettingsInputSchema, input);
+      await repository.updatePricingSettings({
+        hotel_daily_price_cents: parseAmountCents(value.hotelDailyYuan),
+        hotel_checkout_hour: value.hotelCheckoutHour,
+        hotel_previous_day_before_hour: value.hotelPreviousDayBeforeHour,
+        hourly_price_cents: parseAmountCents(value.hourlyYuan),
+      });
+    },
     async getMonthlyStats(month) {
       await requireAuthenticatedUserId(getAuth);
       const { start, end } = getBusinessMonthRange(month);

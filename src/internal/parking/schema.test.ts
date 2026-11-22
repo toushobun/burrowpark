@@ -3,12 +3,15 @@ import { describe, expect, it } from "vitest";
 import {
   parseAmountCents,
   parseMonthlyStatsMonth,
+  pricingSettingsInputSchema,
+  readPricingSettingsFormData,
   parseCheckInInput,
   parseCheckOutInput,
   parseRenewInput,
   parseUndoSessionId,
   readCheckInFormData,
 } from "./schema";
+import { parkingMessages } from "./errors";
 
 describe("checkInSchema", () => {
   it("车牌规范化并接收合法酒店客参数", () => {
@@ -179,5 +182,78 @@ describe("月统计月份参数", () => {
     ]) {
       expect(parseMonthlyStatsMonth(input, now)).toBe("2026-11");
     }
+  });
+});
+
+describe("收费设置校验", () => {
+  it("钟点只允许0至23的整数", () => {
+    const base = {
+      hotelDailyYuan: "30",
+      hotelCheckoutHour: 12,
+      hotelPreviousDayBeforeHour: 6,
+      hourlyYuan: "5",
+    };
+    expect(pricingSettingsInputSchema.safeParse(base).success).toBe(true);
+    for (const value of [-1, 24, 2.5]) {
+      expect(
+        pricingSettingsInputSchema.safeParse({
+          ...base,
+          hotelCheckoutHour: value,
+        }).success,
+      ).toBe(false);
+    }
+  });
+
+  it("凌晨算前一天的钟点不得晚于离场钟点，相等时允许", () => {
+    const base = {
+      hotelDailyYuan: "30",
+      hotelCheckoutHour: 12,
+      hotelPreviousDayBeforeHour: 14,
+      hourlyYuan: "5",
+    };
+    const rejected = pricingSettingsInputSchema.safeParse(base);
+    expect(rejected.success).toBe(false);
+    if (!rejected.success) {
+      expect(rejected.error.issues[0]).toMatchObject({
+        path: ["hotelPreviousDayBeforeHour"],
+        message: parkingMessages.previousDayHourAfterCheckout,
+      });
+    }
+    expect(
+      pricingSettingsInputSchema.safeParse({
+        ...base,
+        hotelPreviousDayBeforeHour: 12,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("表单钟点缺失或为空时不能静默变成0点", () => {
+    const form = new FormData();
+    form.set("hotelDailyYuan", "30");
+    form.set("hourlyYuan", "5");
+    form.set("hotelPreviousDayBeforeHour", "6");
+    expect(
+      pricingSettingsInputSchema.safeParse(readPricingSettingsFormData(form))
+        .success,
+    ).toBe(false);
+
+    form.set("hotelCheckoutHour", "");
+    expect(
+      pricingSettingsInputSchema.safeParse(readPricingSettingsFormData(form))
+        .success,
+    ).toBe(false);
+
+    form.set("hotelPreviousDayBeforeHour", "0");
+    form.set("hotelCheckoutHour", "0");
+    expect(
+      pricingSettingsInputSchema.safeParse(readPricingSettingsFormData(form))
+        .success,
+    ).toBe(true);
+
+    form.set("hotelCheckoutHour", "1e1");
+    expect(
+      pricingSettingsInputSchema.safeParse(readPricingSettingsFormData(form))
+        .success,
+    ).toBe(false);
   });
 });
