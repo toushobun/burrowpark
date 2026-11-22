@@ -624,11 +624,7 @@ export function CheckInForm({
                 variant="contained"
               >
                 {isPending && (
-                  <CircularProgress
-                    color="inherit"
-                    size={24}
-                    sx={{ mr: 1 }}
-                  />
+                  <CircularProgress color="inherit" size={24} sx={{ mr: 1 }} />
                 )}
                 {isPending ? checkInText.submitting : checkInText.submit}
               </Button>

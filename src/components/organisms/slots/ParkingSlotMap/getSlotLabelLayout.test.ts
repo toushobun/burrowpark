@@ -6,20 +6,22 @@ import { slotStatusShortLabels } from "config/slotStatusText";
 import { getSlotLabelLayout } from "./getSlotLabelLayout";
 
 type Bounds = { left: number; top: number; right: number; bottom: number };
-const bounds = (
-  text: string,
-  p: { x: number; y: number; fontSize: number },
-): Bounds => ({
-  left: p.x - (p.fontSize * text.length * 0.6) / 2,
-  right: p.x + (p.fontSize * text.length * 0.6) / 2,
-  top: p.y - p.fontSize / 2,
-  bottom: p.y + p.fontSize / 2,
-});
-const intersects = (a: Bounds, b: Bounds) =>
-  a.left < b.right &&
-  a.right > b.left &&
-  a.top < b.bottom &&
-  a.bottom > b.top;
+type Position = { x: number; y: number; fontSize: number };
+
+function bounds(text: string, p: Position): Bounds {
+  return {
+    left: p.x - (p.fontSize * text.length * 0.6) / 2,
+    right: p.x + (p.fontSize * text.length * 0.6) / 2,
+    top: p.y - p.fontSize / 2,
+    bottom: p.y + p.fontSize / 2,
+  };
+}
+
+function intersects(a: Bounds, b: Bounds) {
+  const horizontal = a.left < b.right && a.right > b.left;
+  const vertical = a.top < b.bottom && a.bottom > b.top;
+  return horizontal && vertical;
+}
 
 describe("getSlotLabelLayout", () => {
   it("横向车位号码和状态左右排列，字号不超过半个高度", () => {
@@ -39,7 +41,10 @@ describe("getSlotLabelLayout", () => {
   });
 
   it("每个车位所有状态的两段字框都在格子内，且互不相交", () => {
-    const allStatuses = [...Object.values(slotStatusShortLabels), "停用", "未配置"];
+    const allStatuses = new Set<string>(Object.values(slotStatusShortLabels));
+    allStatuses.add("停用");
+    allStatuses.add("未配置");
+
     for (const shape of slotLayout.slots) {
       const box = {
         left: shape.x,

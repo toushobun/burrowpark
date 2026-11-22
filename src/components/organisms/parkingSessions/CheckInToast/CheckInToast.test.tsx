@@ -24,9 +24,9 @@ const notice: CheckInNotice = {
 const undoAction = async () => ({});
 const baseProps = { notice, undoAction, onUndone: () => {} };
 
-function renderToast(
-  overrides: Partial<ComponentProps<typeof CheckInToast>> = {},
-) {
+type ToastProps = ComponentProps<typeof CheckInToast>;
+
+function renderToast(overrides: Partial<ToastProps> = {}) {
   return render(
     <Box sx={{ width: 390 }}>
       <CheckInToast {...baseProps} {...overrides} />
