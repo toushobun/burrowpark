@@ -55,6 +55,7 @@ export default async function HomePage({
         <SlotReminders reminders={reminders} />
         <CheckInMapSection
           notice={notice}
+          querySessionId={parsed?.sessionId}
           slots={slots}
           undoAction={undoCheckInAction}
         />

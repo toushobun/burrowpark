@@ -29,6 +29,8 @@ type Props = {
   notice: CheckInNotice;
   undoAction: (state: ActionState, data: FormData) => Promise<ActionState>;
   onUndone: () => void;
+  onUndoStart?: () => void;
+  onDismiss?: () => void;
   initialState?: ActionState;
 };
 
@@ -36,6 +38,8 @@ export function CheckInToast({
   notice,
   undoAction,
   onUndone,
+  onUndoStart,
+  onDismiss,
   initialState,
 }: Props) {
   const router = useRouter();
@@ -45,12 +49,16 @@ export function CheckInToast({
   useEffect(() => {
     if (!state.success) return;
     onUndone();
-    const timer = setTimeout(() => router.replace("/"), 3000);
+    const timer = setTimeout(() => {
+      onDismiss?.();
+      router.replace("/");
+    }, 3000);
     return () => clearTimeout(timer);
-  }, [onUndone, router, state.success]);
+  }, [onDismiss, onUndone, router, state.success]);
 
   const close = () => {
     setClosed(true);
+    onDismiss?.();
     router.replace("/");
   };
 
@@ -80,7 +88,7 @@ export function CheckInToast({
           action={
             <Stack direction="row" sx={{ alignItems: "center" }}>
               {!state.success && (
-                <form action={undo}>
+                <form action={undo} onSubmit={onUndoStart}>
                   <input
                     name="sessionId"
                     type="hidden"

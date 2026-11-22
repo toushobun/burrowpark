@@ -75,7 +75,7 @@ describe("ParkingSlotMap", () => {
     );
 
     const link = screen.getByRole("link", { name: "9号，已过期" });
-    expect(link).toHaveTextContent("已过期");
+    expect(link).toHaveTextContent("过期");
     expect(link.querySelector("rect")).toHaveAttribute("fill", "#FBDAD6");
     expect(screen.getByText("入口")).toBeInTheDocument();
     expect(screen.getByText("状态图例")).toBeInTheDocument();

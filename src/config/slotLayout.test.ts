@@ -31,8 +31,8 @@ describe("slotLayout", () => {
   it("区域标签的估算字框不覆盖任何车位或障碍物", () => {
     const fontSize = 70;
     for (const area of slotLayout.areas) {
-      const left = area.x - (area.label.length * fontSize * 0.6) / 2;
-      const right = area.x + (area.label.length * fontSize * 0.6) / 2;
+      const left = area.x - (area.label.length * fontSize) / 2;
+      const right = area.x + (area.label.length * fontSize) / 2;
       const top = area.y - fontSize;
       const bottom = area.y;
       for (const rect of [...slotLayout.slots, ...slotLayout.obstacles]) {
