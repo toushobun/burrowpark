@@ -243,6 +243,7 @@ describe("收费设置校验", () => {
         .success,
     ).toBe(false);
 
+    form.set("hotelPreviousDayBeforeHour", "0");
     form.set("hotelCheckoutHour", "0");
     expect(
       pricingSettingsInputSchema.safeParse(readPricingSettingsFormData(form))
