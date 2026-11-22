@@ -28,22 +28,10 @@ const scale =
 /** 布局坐标完全由定稿 JSON 决定；SVG 统一按 viewBox 等比缩放。 */
 export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
   const router = useRouter();
-  const viewportRef = useRef<HTMLDivElement>(null);
   const highlightedRef = useRef<SVGGElement>(null);
   const [pressedCode, setPressedCode] = useState<string | null>(null);
   const slotsByCode = new Map(slots.map((slot) => [slot.code, slot]));
   const grey = theme.palette.grey;
-
-  useEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-    const entranceCenter =
-      (slotLayout.entrance.x + slotLayout.entrance.w / 2) * scale;
-    viewport.scrollLeft = Math.max(
-      0,
-      entranceCenter - viewport.clientWidth / 2,
-    );
-  }, []);
 
   useEffect(() => {
     if (highlightCode) {
@@ -61,7 +49,6 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
       <Box
         aria-label={slotMapText.mapTitle}
         data-testid="slot-map-viewport"
-        ref={viewportRef}
         role="region"
         tabIndex={0}
         sx={{
@@ -82,7 +69,6 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
           sx={{
             display: "block",
             height: "auto",
-            marginLeft: `max(0px, calc(50% - ${(slotLayout.entrance.x + slotLayout.entrance.w / 2) * scale}px))`,
             width: slotLayout.width * scale + "px",
             "@keyframes slot-highlight-pulse": {
               "0%, 100%": { strokeOpacity: 1 },
