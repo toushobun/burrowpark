@@ -44,7 +44,9 @@ describe("CheckInToast", () => {
     renderToast();
     expect(screen.getByText("已登记 12号 辽A·12345")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "关闭提示" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "关闭提示" }),
+    ).toBeInTheDocument();
   });
 
   it("照片上传失败时增加说明行", () => {

@@ -76,12 +76,7 @@ function ChoiceButton({
 }
 
 /** 提供给长辈的大号登记按钮；成功后直接回地图。 */
-export function CheckInForm({
-  form,
-  action,
-  initialState,
-  storyPhoto,
-}: Props) {
+export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
   const router = useRouter();
   const [state, submit, isPending] = useActionState(action, initialState ?? {});
   const [plate, setPlate] = useState(form?.defaultLeasePlate ?? "");
@@ -118,7 +113,6 @@ export function CheckInForm({
     if (!result.photoSaved) params.set("photo", "0");
     router.push("/?" + params.toString());
   }, [state.result, form, router]);
-
 
   useEffect(
     () => () => {

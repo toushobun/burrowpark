@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier . --write",
-    "format:check": "prettier . --check || (prettier src/components/organisms/parkingSessions/CheckInForm/CheckInForm.tsx src/components/organisms/parkingSessions/CheckInToast/CheckInToast.test.tsx --write && git diff -- src/components/organisms/parkingSessions/CheckInForm/CheckInForm.tsx src/components/organisms/parkingSessions/CheckInToast/CheckInToast.test.tsx; exit 1)",
+    "format:check": "prettier . --check",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "type-check": "tsc --noEmit",
