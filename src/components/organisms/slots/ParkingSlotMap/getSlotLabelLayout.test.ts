@@ -16,7 +16,10 @@ const bounds = (
   bottom: p.y + p.fontSize / 2,
 });
 const intersects = (a: Bounds, b: Bounds) =>
-  a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+  a.left < b.right &&
+  a.right > b.left &&
+  a.top < b.bottom &&
+  a.bottom > b.top;
 
 describe("getSlotLabelLayout", () => {
   it("横向车位号码和状态左右排列，字号不超过半个高度", () => {

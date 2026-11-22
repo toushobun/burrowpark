@@ -83,10 +83,7 @@ export function CheckInForm({
   storyPhoto,
 }: Props) {
   const router = useRouter();
-  const [state, submit, isPending] = useActionState(
-    action,
-    initialState ?? {},
-  );
+  const [state, submit, isPending] = useActionState(action, initialState ?? {});
   const [plate, setPlate] = useState(form?.defaultLeasePlate ?? "");
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
