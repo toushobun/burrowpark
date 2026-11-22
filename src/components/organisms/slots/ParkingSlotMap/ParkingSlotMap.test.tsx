@@ -65,6 +65,18 @@ describe("ParkingSlotMap", () => {
     expect(link.querySelector("g")).toHaveAttribute("opacity", "1");
   });
 
+  it("Ctrl 或 Cmd 点击保留浏览器原生新标签页操作", () => {
+    render(<ParkingSlotMap slots={slots} />);
+    const link = screen.getByRole("link", { name: "7号，空" });
+    push.mockClear();
+
+    fireEvent.click(link, { ctrlKey: true });
+    fireEvent.click(link, { metaKey: true });
+
+    expect(push).not.toHaveBeenCalled();
+    expect(link).toHaveAttribute("href", "/slots/7");
+  });
+
   it("状态同时显示颜色、文字与可访问名称", () => {
     render(
       <ParkingSlotMap

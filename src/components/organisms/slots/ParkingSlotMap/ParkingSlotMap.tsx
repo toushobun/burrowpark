@@ -262,7 +262,8 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                 key={shape.code}
                 aria-label={slot.name + "，" + slotStatusLabels[slot.status]}
                 href={"/slots/" + encodeURIComponent(shape.code)}
-                onPointerDown={() => {
+                onPointerDown={(event) => {
+                  if (event.button !== 0) return;
                   setPressedCode(shape.code);
                   router.prefetch("/slots/" + encodeURIComponent(shape.code));
                 }}
@@ -270,6 +271,15 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                 onPointerLeave={() => setPressedCode(null)}
                 onPointerCancel={() => setPressedCode(null)}
                 onClick={(event) => {
+                  if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  ) {
+                    return;
+                  }
                   event.preventDefault();
                   setPressedCode(null);
                   router.push("/slots/" + encodeURIComponent(shape.code));
