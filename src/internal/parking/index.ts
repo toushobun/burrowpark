@@ -1,3 +1,5 @@
+export type { RecordsFilter } from "./schema";
+
 export type {
   ParkingBillingType,
   ParkingPricingSettings,
@@ -19,6 +21,7 @@ export type {
   SlotSettingsRow,
   SlotReminder,
   MonthlyStats,
+  RecordResults,
 } from "./service/parkingService";
 
 export {

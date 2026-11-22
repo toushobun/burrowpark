@@ -3,6 +3,7 @@ export const slotSettingsText = {
   slots: "车位设置",
   pricing: "收费设置",
   monthlyStats: "月统计",
+  records: "记录查询",
   blockedReasons: {
     occupied: "有车在场",
     reserved: "有预留",

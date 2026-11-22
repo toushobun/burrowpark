@@ -24,6 +24,7 @@ import type {
 } from "../entity/parkingDomain";
 
 import { parkingMessages } from "../errors";
+import type { RecordSession, RecordLeasePayment } from "../entity/records";
 
 export type SlotFactsRows = {
   slots: Pick<Tables<"slots">, "code" | "name" | "kind" | "is_active">[];
@@ -76,6 +77,9 @@ export type CheckInRpcInput = {
   paymentMethod: Enums<"payment_method"> | null;
 };
 
+const recordSessionColumns =
+  "id,slot_code,plate,billing_type,entered_at,left_at,session_payments:payments!payments_session_id_fkey(id,amount_cents,method,purpose,paid_at,paid_until)" as const;
+
 const checkInBusinessCodes = {
   SLOT_OCCUPIED: "slot_occupied",
   PLATE_PRESENT: "plate_present",
@@ -96,6 +100,22 @@ function plateOccupiedError(name: string | null | undefined): ConflictError {
 
 export interface ParkingRepository {
   readSlotFacts(): Promise<SlotFactsRows>;
+  readSessionsByDate(start: string, end: string): Promise<RecordSession[]>;
+  readSessionsByPlate(plate: string, limit: number): Promise<RecordSession[]>;
+  readLeasePayments(input: {
+    start?: string;
+    end?: string;
+    plate?: string;
+    tenant?: string;
+    slotCode?: string;
+  }): Promise<RecordLeasePayment[]>;
+  correctSessionPlate(id: string, plate: string): Promise<void>;
+  correctPayment(
+    id: string,
+    cents: number,
+    method: Enums<"payment_method">,
+  ): Promise<void>;
+  deletePayment(id: string): Promise<void>;
   readMonthlyPayments(start: string, end: string): Promise<MonthlyPayment[]>;
   countMonthlyEntries(start: string, end: string): Promise<number>;
   readSlotNames(): Promise<Pick<Tables<"slots">, "code" | "name">[]>;
@@ -277,6 +297,13 @@ export function createParkingRepository(
         "family_required",
         parkingMessages.invalidInput,
       );
+    if (code === "PAYMENT_LOCKED")
+      throw new ConflictError("payment_locked", parkingMessages.paymentLocked);
+    if (code === "PAYMENT_UNAVAILABLE")
+      throw new ValidationError(
+        "payment_unavailable",
+        parkingMessages.invalidInput,
+      );
     if (code === "UNDO_UNAVAILABLE")
       throw new ConflictError("undo_unavailable", parkingMessages.cannotUndo);
     if (code === "LEASE_EXISTS")
@@ -354,6 +381,163 @@ export function createParkingRepository(
   }
 
   return {
+    async readSessionsByDate(start, end) {
+      try {
+        // 当天续费的车可能在前几天进场且尚未离场，不能只按进出场时间筛选。
+        const [sessions, payments] = await Promise.all([
+          supabase
+            .from("parking_sessions")
+            .select(recordSessionColumns)
+            .or(
+              `and(entered_at.gte.${start},entered_at.lt.${end}),and(left_at.gte.${start},left_at.lt.${end})`,
+            )
+            .order("entered_at", { ascending: false }),
+          supabase
+            .from("payments")
+            .select("session_id")
+            .not("session_id", "is", null)
+            .gte("paid_at", start)
+            .lt("paid_at", end),
+        ]);
+        if (sessions.error || !sessions.data)
+          return fail("readSessionsByDate", sessions.error);
+        if (payments.error || !payments.data)
+          return fail("readSessionPaymentsByDate", payments.error);
+        const seen = new Set(sessions.data.map((session) => session.id));
+        const additionalIds = [
+          ...new Set(
+            payments.data
+              .map((payment) => payment.session_id)
+              .filter((id): id is string => id !== null),
+          ),
+        ].filter((id) => !seen.has(id));
+        if (additionalIds.length === 0) return sessions.data;
+        const { data, error } = await supabase
+          .from("parking_sessions")
+          .select(recordSessionColumns)
+          .in("id", additionalIds)
+          .order("entered_at", { ascending: false });
+        if (error || !data) return fail("readPaidSessionsByDate", error);
+        return [...sessions.data, ...data].sort(
+          (a, b) => Date.parse(b.entered_at) - Date.parse(a.entered_at),
+        );
+      } catch (error) {
+        if (error instanceof RepositoryError) throw error;
+        return fail("readSessionsByDate", error);
+      }
+    },
+    async readSessionsByPlate(plate, limit) {
+      try {
+        const { data, error } = await supabase
+          .from("parking_sessions")
+          .select(recordSessionColumns)
+          .eq("plate", plate)
+          .order("entered_at", { ascending: false })
+          .limit(Math.min(limit, 50));
+        if (error || !data) return fail("readSessionsByPlate", error);
+        return data;
+      } catch (error) {
+        if (error instanceof RepositoryError) throw error;
+        return fail("readSessionsByPlate", error);
+      }
+    },
+    async readLeasePayments(input) {
+      try {
+        let query = supabase
+          .from("payments")
+          .select(
+            "id,amount_cents,method,purpose,paid_at,paid_until,leases:leases!inner(slot_code,tenant_name,plate)",
+          )
+          .not("lease_id", "is", null);
+        if (input.start) query = query.gte("paid_at", input.start);
+        if (input.end) query = query.lt("paid_at", input.end);
+        if (input.plate) query = query.eq("leases.plate", input.plate);
+        if (input.tenant) {
+          // 转义用户输入中的 ILIKE 通配符，避免扩大查询范围。
+          const escaped = input.tenant.replace(
+            /[%_\\]/g,
+            (value) => "\\" + value,
+          );
+          query = query.ilike("leases.tenant_name", "%" + escaped + "%");
+        }
+        if (input.slotCode)
+          query = query.eq("leases.slot_code", input.slotCode);
+        if (input.tenant || input.slotCode) query = query.limit(50);
+        const { data, error } = await query.order("paid_at", {
+          ascending: false,
+        });
+        if (error || !data) return fail("readLeasePayments", error);
+        return data
+          .filter((row) => row.leases !== null)
+          .map((row) => ({
+            id: row.id,
+            amount_cents: row.amount_cents,
+            method: row.method,
+            purpose: row.purpose,
+            paid_at: row.paid_at,
+            paid_until: row.paid_until,
+            leases: row.leases,
+          }));
+      } catch (error) {
+        if (error instanceof RepositoryError) throw error;
+        return fail("readLeasePayments", error);
+      }
+    },
+    async correctSessionPlate(id, plate) {
+      try {
+        const { error } = await supabase.rpc("correct_session_plate", {
+          p_session_id: id,
+          p_plate: plate,
+        });
+        if (!error) return;
+        const code = findRpcBusinessError(error, {
+          PLATE_PRESENT: "plate_present",
+          SESSION_UNAVAILABLE: "session_unavailable",
+          INVALID_INPUT: "invalid_input",
+          FAMILY_REQUIRED: "family_required",
+        });
+        if (code === "plate_present" || isRpcUniqueViolation(error))
+          throw plateOccupiedError(error.hint);
+        if (code === "family_required")
+          throw new AuthorizationError(code, parkingMessages.invalidInput);
+        if (code === "session_unavailable" || code === "invalid_input")
+          throw new ValidationError(code, parkingMessages.invalidInput);
+        const conflict = toConcurrentModificationError(
+          error,
+          logger,
+          "correctSessionPlate",
+        );
+        if (conflict) throw conflict;
+        return fail("correctSessionPlate", error);
+      } catch (error) {
+        if (error instanceof AppError) throw error;
+        return fail("correctSessionPlate", error);
+      }
+    },
+    async correctPayment(id, cents, method) {
+      try {
+        const { error } = await supabase.rpc("correct_payment", {
+          p_payment_id: id,
+          p_amount_cents: cents,
+          p_method: method,
+        });
+        if (error) throwMutationError("correctPayment", error);
+      } catch (error) {
+        if (error instanceof AppError) throw error;
+        return fail("correctPayment", error);
+      }
+    },
+    async deletePayment(id) {
+      try {
+        const { error } = await supabase.rpc("delete_payment", {
+          p_payment_id: id,
+        });
+        if (error) throwMutationError("deletePayment", error);
+      } catch (error) {
+        if (error instanceof AppError) throw error;
+        return fail("deletePayment", error);
+      }
+    },
     async updatePricingSettings(input) {
       try {
         const { data, error } = await supabase
