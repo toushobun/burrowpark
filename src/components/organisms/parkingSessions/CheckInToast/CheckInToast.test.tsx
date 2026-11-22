@@ -20,18 +20,19 @@ const notice: CheckInNotice = {
   slotName: "12号",
   photoSaved: true,
 };
-const undoAction = async () => ({});
+
+const noopAction = async () => ({});
 
 function renderToast(
-  currentNotice: CheckInNotice = notice,
-  currentUndoAction = undoAction,
+  photoSaved = true,
+  undoAction = noopAction,
   onUndone = () => {},
 ) {
   return render(
     <Box sx={{ width: 390 }}>
       <CheckInToast
-        notice={currentNotice}
-        undoAction={currentUndoAction}
+        notice={{ ...notice, photoSaved }}
+        undoAction={undoAction}
         onUndone={onUndone}
       />
     </Box>,
@@ -47,14 +48,17 @@ describe("CheckInToast", () => {
   });
 
   it("照片上传失败时增加说明行", () => {
-    renderToast({ ...notice, photoSaved: false });
+    renderToast(false);
     expect(screen.getByText("照片没传上去，车已登记")).toBeInTheDocument();
   });
 
   it("撤销成功后变为已撤销，并移除撤销按钮", async () => {
     const onUndone = vi.fn();
-    const action = vi.fn(async () => ({ success: "已撤销", successKey: "ok" }));
-    renderToast(notice, action, onUndone);
+    const undoAction = vi.fn(async () => ({
+      success: "已撤销",
+      successKey: "ok",
+    }));
+    renderToast(true, undoAction, onUndone);
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "撤销" }));
     });
