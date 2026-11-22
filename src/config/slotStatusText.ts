@@ -16,10 +16,10 @@ export const slotStatusLabels: Record<SlotStatus, string> = {
 export const slotStatusShortLabels: Record<SlotStatus, string> = {
   empty: "空",
   occupied: "有车",
-  expiringSoon: "快到期",
-  overdue: "已过期",
+  expiringSoon: "临期",
+  overdue: "过期",
   reserved: "预留",
-  leaseAway: "长租不在",
-  privateIdle: "私人位",
-  privateBorrowed: "借用中",
+  leaseAway: "外出",
+  privateIdle: "私位",
+  privateBorrowed: "借用",
 };

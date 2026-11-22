@@ -181,17 +181,6 @@ export function MonthlyStats({ month, currentMonth, stats }: Props) {
           </Paper>
         )}
       </Stack>
-
-      <Button
-        component={Link}
-        href="/settings"
-        fullWidth
-        size="large"
-        variant="outlined"
-        sx={{ minHeight: designTokens.size.touchTargetMin }}
-      >
-        {monthlyStatsText.back}
-      </Button>
     </Stack>
   );
 }

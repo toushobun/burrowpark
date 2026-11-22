@@ -12,7 +12,7 @@ export default async function MonthlyStatsPage({
   const { month, currentMonth, stats } = await loadMonthlyStats(params.month);
 
   return (
-    <PageShell title={monthlyStatsText.title}>
+    <PageShell backHref="/settings" title={monthlyStatsText.title}>
       <MonthlyStats month={month} currentMonth={currentMonth} stats={stats} />
     </PageShell>
   );

@@ -8,7 +8,6 @@ export const monthlyStatsText = {
   byBillingType: "按计费方式",
   details: "收款明细",
   empty: "这个月还没有收款",
-  back: "返回设置",
   yuan: "元",
   unknownSlot: "未知车位",
   unknownCustomer: "—",

@@ -1,6 +1,5 @@
 import Box from "@mui/material/Box";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { userEvent, within } from "storybook/test";
 
 import { slotStatuses } from "theme/slotStatusTokens";
 
@@ -45,16 +44,11 @@ export const Mixed: Story = {
   },
 };
 
-// 模拟 390px 手机，在交互步骤中切换到可手指滑动的放大视图。
-export const Zoomed: Story = {
+export const Highlighted: Story = {
   args: {
-    slots: emptySlots.map((slot, index) => ({
-      ...slot,
-      status: slotStatuses[index % slotStatuses.length],
-    })),
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "放大查看" }));
+    highlightCode: "12",
+    slots: emptySlots.map((slot) =>
+      slot.code === "12" ? { ...slot, status: "occupied" } : slot,
+    ),
   },
 };

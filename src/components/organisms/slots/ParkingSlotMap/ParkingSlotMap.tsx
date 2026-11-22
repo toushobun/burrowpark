@@ -1,10 +1,10 @@
 "use client";
 
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
 import { slotLayout } from "config/slotLayout";
@@ -15,44 +15,49 @@ import { designTokens } from "theme/designTokens";
 import { slotStatusColors, slotStatuses } from "theme/slotStatusTokens";
 import { theme } from "theme/theme";
 
+import { getSlotLabelLayout } from "./getSlotLabelLayout";
+
 type ParkingSlotMapProps = {
   slots: SlotMapSlot[];
+  highlightCode?: string;
 };
 
+const scale =
+  44 / Math.min(...slotLayout.slots.flatMap((shape) => [shape.w, shape.h]));
+
 /** 布局坐标完全由定稿 JSON 决定；SVG 统一按 viewBox 等比缩放。 */
-export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
+export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
+  const router = useRouter();
+  const highlightedRef = useRef<SVGGElement>(null);
+  const [pressedCode, setPressedCode] = useState<string | null>(null);
   const slotsByCode = new Map(slots.map((slot) => [slot.code, slot]));
   const grey = theme.palette.grey;
-  const [zoomed, setZoomed] = useState(false);
+
+  useEffect(() => {
+    if (highlightCode) {
+      highlightedRef.current?.scrollIntoView?.({
+        block: "center",
+        inline: "center",
+      });
+    }
+  }, [highlightCode]);
   return (
     <Stack component="section" spacing={2} sx={{ minWidth: 0 }}>
       <Typography component="h2" variant="h2">
         {slotMapText.mapTitle}
       </Typography>
-      <Button
-        onClick={() => setZoomed((current) => !current)}
-        size="large"
-        sx={{
-          alignSelf: "flex-start",
-          minHeight: designTokens.size.touchTargetMin,
-        }}
-        variant="outlined"
-      >
-        {zoomed ? slotMapText.overview : slotMapText.zoom}
-      </Button>
       <Box
-        aria-label={zoomed ? slotMapText.mapTitle : undefined}
+        aria-label={slotMapText.mapTitle}
         data-testid="slot-map-viewport"
-        role={zoomed ? "region" : undefined}
-        tabIndex={zoomed ? 0 : undefined}
+        role="region"
+        tabIndex={0}
         sx={{
-          aspectRatio: slotLayout.width / slotLayout.height,
           bgcolor: "background.paper",
           border: 1,
           borderColor: "divider",
           borderRadius: theme.shape.borderRadius,
           minWidth: 0,
-          overflow: zoomed ? "auto" : "hidden",
+          overflowX: "auto",
           width: "100%",
         }}
       >
@@ -64,7 +69,16 @@ export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
           sx={{
             display: "block",
             height: "auto",
-            width: zoomed ? "250%" : "100%",
+            width: slotLayout.width * scale + "px",
+            "@keyframes slot-highlight-pulse": {
+              "0%, 100%": { strokeOpacity: 1 },
+              "50%": { strokeOpacity: 0.35 },
+            },
+            "@media (prefers-reduced-motion: no-preference)": {
+              "& [data-slot-highlight='true'] > rect": {
+                animation: "slot-highlight-pulse 1s ease-in-out infinite",
+              },
+            },
           }}
           viewBox={"0 0 " + slotLayout.width + " " + slotLayout.height}
         >
@@ -174,47 +188,55 @@ export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
                 : slot
                   ? slotMapText.inactive
                   : slotMapText.unavailable;
+            const labelLayout = getSlotLabelLayout(shape, statusText);
+            const highlighted = highlightCode === shape.code && active;
             const fill = colors?.background ?? grey[300];
             const border = colors?.border ?? grey[600];
             const ink = colors?.text ?? grey[800];
             const drawing = (
-              <g>
+              <g
+                data-slot-highlight={highlighted ? "true" : undefined}
+                ref={highlighted ? highlightedRef : undefined}
+                opacity={pressedCode === shape.code ? 0.8 : 1}
+              >
                 <rect
                   fill={fill}
                   height={shape.h}
                   rx={designTokens.radius.sm}
-                  stroke={border}
+                  stroke={highlighted ? theme.palette.error.main : border}
                   strokeDasharray={
                     colors?.borderStyle === "dashed" ? "12 8" : undefined
                   }
-                  strokeWidth={5}
+                  strokeWidth={
+                    highlighted ? 12 : pressedCode === shape.code ? 9 : 5
+                  }
                   width={shape.w}
                   x={shape.x}
                   y={shape.y}
                 />
                 <text
+                  dominantBaseline="central"
                   fill={ink}
                   fontFamily={designTokens.typography.fontFamily}
-                  fontSize={Math.min(66, shape.w * 0.7)}
+                  fontSize={labelLayout.number.fontSize}
                   fontWeight={900}
                   pointerEvents="none"
                   textAnchor="middle"
-                  x={shape.x + shape.w / 2}
-                  y={shape.y + shape.h * 0.44}
+                  x={labelLayout.number.x}
+                  y={labelLayout.number.y}
                 >
                   {shape.code}
                 </text>
                 <text
+                  dominantBaseline="central"
                   fill={ink}
                   fontFamily={designTokens.typography.fontFamily}
-                  fontSize={42}
+                  fontSize={labelLayout.status.fontSize}
                   fontWeight={700}
-                  lengthAdjust="spacingAndGlyphs"
                   pointerEvents="none"
                   textAnchor="middle"
-                  textLength={Math.min(shape.w - 10, statusText.length * 42)}
-                  x={shape.x + shape.w / 2}
-                  y={shape.y + shape.h * 0.76}
+                  x={labelLayout.status.x}
+                  y={labelLayout.status.y}
                 >
                   {statusText}
                 </text>
@@ -226,6 +248,28 @@ export function ParkingSlotMap({ slots }: ParkingSlotMapProps) {
                 key={shape.code}
                 aria-label={slot.name + "，" + slotStatusLabels[slot.status]}
                 href={"/slots/" + encodeURIComponent(shape.code)}
+                onPointerDown={(event) => {
+                  if (event.button !== 0) return;
+                  setPressedCode(shape.code);
+                  router.prefetch("/slots/" + encodeURIComponent(shape.code));
+                }}
+                onPointerUp={() => setPressedCode(null)}
+                onPointerLeave={() => setPressedCode(null)}
+                onPointerCancel={() => setPressedCode(null)}
+                onClick={(event) => {
+                  if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  ) {
+                    return;
+                  }
+                  event.preventDefault();
+                  setPressedCode(null);
+                  router.push("/slots/" + encodeURIComponent(shape.code));
+                }}
               >
                 {drawing}
               </a>

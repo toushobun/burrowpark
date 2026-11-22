@@ -1,4 +1,5 @@
 import PhotoCameraOutlined from "@mui/icons-material/PhotoCameraOutlined";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
@@ -12,6 +13,13 @@ const meta = {
     title: "途泊属",
   },
   component: PageShell,
+  decorators: [
+    (Story) => (
+      <Box sx={{ width: 390 }}>
+        <Story />
+      </Box>
+    ),
+  ],
   parameters: { layout: "fullscreen" },
   title: "Templates/Layout/PageShell",
 } satisfies Meta<typeof PageShell>;
@@ -41,4 +49,20 @@ export const WithPrimaryAction: Story = {
       </Button>
     ),
   },
+};
+
+export const SettingsWithBack: Story = {
+  args: { title: "设置", backHref: "/" },
+};
+export const SlotSettingsWithBack: Story = {
+  args: { title: "车位设置", backHref: "/settings" },
+};
+export const PricingWithBack: Story = {
+  args: { title: "收费设置", backHref: "/settings" },
+};
+export const StatsWithBack: Story = {
+  args: { title: "月统计", backHref: "/settings" },
+};
+export const RecordsWithBack: Story = {
+  args: { title: "记录查询", backHref: "/settings" },
 };

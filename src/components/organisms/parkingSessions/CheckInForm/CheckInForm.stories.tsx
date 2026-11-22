@@ -29,7 +29,6 @@ const meta = {
   args: {
     form: empty,
     action: noopAction,
-    undoAction: noopAction,
   },
   decorators: [
     (Story) => (
@@ -63,20 +62,6 @@ export const ConflictFailure: Story = {
     },
   },
 };
-export const CheckInSuccess: Story = {
-  args: {
-    initialState: {
-      success: "登记成功",
-      successKey: "storybook-success",
-      result: {
-        sessionId: "00000000-0000-4000-8000-000000000001",
-        plate: "粤B12345",
-        photoSaved: false,
-      },
-    },
-  },
-};
-
 const photoPreview =
   "data:image/svg+xml," +
   encodeURIComponent(
@@ -98,18 +83,4 @@ export const PhotoRecognized: Story = {
 };
 export const PhotoRecognitionFailed: Story = {
   args: { storyPhoto: { previewUrl: photoPreview, status: "failed" } },
-};
-export const PhotoUploadFailed: Story = {
-  args: {
-    storyPhoto: { previewUrl: photoPreview, status: "filled" },
-    initialState: {
-      success: "登记成功",
-      successKey: "storybook-photo-failed",
-      result: {
-        sessionId: "00000000-0000-4000-8000-000000000001",
-        plate: "辽A12345",
-        photoSaved: false,
-      },
-    },
-  },
 };

@@ -4,11 +4,11 @@ import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   startTransition,
   useActionState,
@@ -33,7 +33,6 @@ import {
 import type { CheckInActionState } from "internal/parking/adapter/next/checkInActions";
 import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/FailureFeedbackDialog";
 import { designTokens } from "theme/designTokens";
-import type { ActionState } from "types/actions";
 
 import { compressPhoto } from "./compressPhoto";
 
@@ -43,7 +42,6 @@ type Props = {
     state: CheckInActionState,
     data: FormData,
   ) => Promise<CheckInActionState>;
-  undoAction: (state: ActionState, data: FormData) => Promise<ActionState>;
   initialState?: CheckInActionState;
   storyPhoto?: { previewUrl: string; status: "loading" | "filled" | "failed" };
 };
@@ -77,16 +75,10 @@ function ChoiceButton({
   );
 }
 
-/** 提供给长辈的大号登记按钮；结果区不会自动消失。 */
-export function CheckInForm({
-  form,
-  action,
-  undoAction,
-  initialState,
-  storyPhoto,
-}: Props) {
+/** 提供给长辈的大号登记按钮；成功后直接回地图。 */
+export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
+  const router = useRouter();
   const [state, submit, isPending] = useActionState(action, initialState ?? {});
-  const [undoState, undo, isUndoPending] = useActionState(undoAction, {});
   const [plate, setPlate] = useState(form?.defaultLeasePlate ?? "");
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
@@ -106,6 +98,21 @@ export function CheckInForm({
     null,
   );
   const photoUrlRef = useRef<string | null>(null);
+  const redirectedSession = useRef<string | null>(null);
+
+  useEffect(() => {
+    const result = state.result;
+    if (!result || !form || redirectedSession.current === result.sessionId) {
+      return;
+    }
+    redirectedSession.current = result.sessionId;
+    const params = new URLSearchParams({
+      checkedIn: form.code,
+      session: result.sessionId,
+    });
+    if (!result.photoSaved) params.set("photo", "0");
+    router.push("/?" + params.toString());
+  }, [state.result, form, router]);
 
   useEffect(
     () => () => {
@@ -265,27 +272,6 @@ export function CheckInForm({
     );
   }
 
-  if (undoState.success) {
-    return (
-      <Stack spacing={3}>
-        <Typography component="h2" variant="h2">
-          {checkInText.undone}
-        </Typography>
-        <Button
-          component={Link}
-          fullWidth
-          href="/"
-          size="large"
-          sx={bigButtonSx}
-          variant="contained"
-        >
-          {checkInText.backMap}
-        </Button>
-      </Stack>
-    );
-  }
-
-  const result = state.result;
   const isHotel = billingType === "hotel_daily";
   const isPrivate = form.kind === "private";
   const allowedBilling = checkInBillingTypeOrder.filter((value) =>
@@ -326,62 +312,7 @@ export function CheckInForm({
 
   return (
     <>
-      {result ? (
-        <Stack spacing={3}>
-          <Paper
-            variant="outlined"
-            sx={{ borderRadius: String(designTokens.radius.lg) + "px", p: 3 }}
-          >
-            <Typography component="h2" variant="h2">
-              {checkInText.success(
-                formatPlateForDisplay(result.plate),
-                form.name,
-              )}
-            </Typography>
-            {!result.photoSaved && (photoUrl || storyPhoto) && (
-              <Typography color="error" sx={{ mt: 2 }} variant="body1">
-                {checkInText.photoUploadFailed}
-              </Typography>
-            )}
-          </Paper>
-          <Button
-            component={Link}
-            fullWidth
-            href="/"
-            size="large"
-            sx={bigButtonSx}
-            variant="contained"
-          >
-            {checkInText.backMap}
-          </Button>
-          <Button
-            component={Link}
-            fullWidth
-            href={`/slots/${form.code}`}
-            size="large"
-            sx={bigButtonSx}
-            variant="outlined"
-          >
-            {checkInText.viewSlot}
-          </Button>
-          <form action={undo}>
-            <input name="sessionId" type="hidden" value={result.sessionId} />
-            <Button
-              disabled={isUndoPending}
-              fullWidth
-              size="large"
-              sx={bigButtonSx}
-              type="submit"
-              variant="outlined"
-            >
-              {isUndoPending && (
-                <CircularProgress color="inherit" size={24} sx={{ mr: 1 }} />
-              )}
-              {isUndoPending ? checkInText.undoing : checkInText.undo}
-            </Button>
-          </form>
-        </Stack>
-      ) : (
+      {state.result ? null : (
         <Stack spacing={3}>
           <Typography component="h2" variant="h2">
             {form.name}
@@ -715,7 +646,7 @@ export function CheckInForm({
           </Button>
         </Stack>
       )}
-      <FailureFeedbackDialog state={undoState.error ? undoState : state} />
+      <FailureFeedbackDialog state={state} />
     </>
   );
 }

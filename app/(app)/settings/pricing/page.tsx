@@ -7,7 +7,7 @@ import { PageShell } from "templates/layout/PageShell/PageShell";
 export default async function PricingSettingsPage() {
   const settings = await loadPricingSettings();
   return (
-    <PageShell title={pricingSettingsText.title}>
+    <PageShell backHref="/settings" title={pricingSettingsText.title}>
       <PricingSettingsForm
         initial={settings}
         action={updatePricingSettingsAction}
