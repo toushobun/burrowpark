@@ -103,17 +103,20 @@ export function CheckInForm({
     null,
   );
   const photoUrlRef = useRef<string | null>(null);
+  const redirectedSession = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!state.result || !form) return;
-    const { sessionId, photoSaved } = state.result;
-    router.push(
-      "/?checkedIn=" +
-        encodeURIComponent(form.code) +
-        "&session=" +
-        encodeURIComponent(sessionId) +
-        (photoSaved ? "" : "&photo=0"),
-    );
+    const result = state.result;
+    if (!result || !form || redirectedSession.current === result.sessionId) {
+      return;
+    }
+    redirectedSession.current = result.sessionId;
+    const params = new URLSearchParams({
+      checkedIn: form.code,
+      session: result.sessionId,
+    });
+    if (!result.photoSaved) params.set("photo", "0");
+    router.push("/?" + params.toString());
   }, [state.result, form, router]);
 
   useEffect(

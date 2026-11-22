@@ -6,7 +6,6 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { CheckInToast, type CheckInNotice } from "./CheckInToast";
@@ -22,14 +21,19 @@ const notice: CheckInNotice = {
   photoSaved: true,
 };
 const undoAction = async () => ({});
-const baseProps = { notice, undoAction, onUndone: () => {} };
 
-type ToastProps = ComponentProps<typeof CheckInToast>;
-
-function renderToast(overrides: Partial<ToastProps> = {}) {
+function renderToast(
+  currentNotice: CheckInNotice = notice,
+  currentUndoAction = undoAction,
+  onUndone = () => {},
+) {
   return render(
     <Box sx={{ width: 390 }}>
-      <CheckInToast {...baseProps} {...overrides} />
+      <CheckInToast
+        notice={currentNotice}
+        undoAction={currentUndoAction}
+        onUndone={onUndone}
+      />
     </Box>,
   );
 }
@@ -43,14 +47,14 @@ describe("CheckInToast", () => {
   });
 
   it("照片上传失败时增加说明行", () => {
-    renderToast({ notice: { ...notice, photoSaved: false } });
+    renderToast({ ...notice, photoSaved: false });
     expect(screen.getByText("照片没传上去，车已登记")).toBeInTheDocument();
   });
 
   it("撤销成功后变为已撤销，并移除撤销按钮", async () => {
     const onUndone = vi.fn();
     const action = vi.fn(async () => ({ success: "已撤销", successKey: "ok" }));
-    renderToast({ undoAction: action, onUndone });
+    renderToast(notice, action, onUndone);
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "撤销" }));
     });

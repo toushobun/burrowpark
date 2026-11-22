@@ -19,17 +19,22 @@ type Props = {
 };
 
 export function CheckInMapSection({ slots, notice, undoAction }: Props) {
-  const [undone, setUndone] = useState(false);
-  const onUndone = useCallback(() => setUndone(true), []);
+  const [undoneSessionId, setUndoneSessionId] = useState<string | null>(null);
+  const onUndone = useCallback(() => {
+    setUndoneSessionId(notice?.sessionId ?? null);
+  }, [notice?.sessionId]);
 
   return (
     <Box sx={{ pb: notice ? 24 : 0 }}>
       <ParkingSlotMap
-        highlightCode={!undone ? notice?.code : undefined}
+        highlightCode={
+          undoneSessionId !== notice?.sessionId ? notice?.code : undefined
+        }
         slots={slots}
       />
       {notice && (
         <CheckInToast
+          key={notice.sessionId}
           notice={notice}
           onUndone={onUndone}
           undoAction={undoAction}
