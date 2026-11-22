@@ -14,6 +14,9 @@ import {
 } from "internal/plateRecognition";
 import { compressPhoto } from "./compressPhoto";
 
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+
 vi.mock("internal/plateRecognition", () => ({
   recognizePlate: vi.fn(),
   preloadPlateModels: vi.fn(),
@@ -43,7 +46,6 @@ const form: CheckInFormData = {
 };
 
 const action = vi.fn(async () => ({}));
-const undoAction = vi.fn(async () => ({}));
 
 function renderForm(
   overrides: Partial<CheckInFormData> = {},
@@ -60,13 +62,13 @@ function renderForm(
       action={action}
       form={{ ...form, ...overrides }}
       initialState={initialState}
-      undoAction={undoAction}
     />,
   );
 }
 
 describe("CheckInForm", () => {
   beforeEach(() => {
+    push.mockReset();
     vi.mocked(recognizePlate).mockReset();
     vi.mocked(preloadPlateModels).mockReset();
     vi.mocked(preloadPlateModels).mockResolvedValue(true);
@@ -184,7 +186,6 @@ describe("CheckInForm", () => {
       <CheckInForm
         action={action}
         form={{ ...form, occupied: true }}
-        undoAction={undoAction}
       />,
     );
     expect(screen.queryByRole("button", { name: "确认登记" })).toBeNull();
@@ -467,7 +468,7 @@ describe("CheckInForm", () => {
     );
     expect(screen.queryByRole("dialog")).toBeNull();
   });
-  it("登记成功后持续展示车牌车位及三项大按钮", () => {
+  it("登记成功后携带车位与会话跳回地图且不包含车牌", async () => {
     renderForm(
       {},
       {
@@ -480,15 +481,31 @@ describe("CheckInForm", () => {
         },
       },
     );
-    expect(screen.getByText("已登记：粤B·12345 停在 3号")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "回地图" })).toHaveAttribute(
-      "href",
-      "/",
+    await waitFor(() =>
+      expect(push).toHaveBeenCalledWith(
+        "/?checkedIn=3&session=00000000-0000-4000-8000-000000000001&photo=0",
+      ),
     );
-    expect(screen.getByRole("link", { name: "查看车位" })).toHaveAttribute(
-      "href",
-      "/slots/3",
-    );
-    expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
+    expect(push.mock.calls[0][0]).not.toContain("粤B12345");
+    expect(screen.queryByRole("button", { name: "撤销" })).toBeNull();
   });
+
+  it("照片保存成功时返回链接不带 photo=0", async () => {
+    renderForm(
+      {},
+      {
+        result: {
+          sessionId: "00000000-0000-4000-8000-000000000001",
+          plate: "粤B12345",
+          photoSaved: true,
+        },
+      },
+    );
+    await waitFor(() =>
+      expect(push).toHaveBeenCalledWith(
+        "/?checkedIn=3&session=00000000-0000-4000-8000-000000000001",
+      ),
+    );
+  });
+
 });

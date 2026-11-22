@@ -53,6 +53,9 @@ describe("PageShell", () => {
     expect(screen.getByRole("contentinfo")).toHaveStyle({
       paddingBottom: `calc(${theme.spacing(2)} + env(safe-area-inset-bottom, 0px))`,
     });
+    expect(screen.getByRole("main")).toHaveStyle({
+      paddingBottom: `calc(${theme.spacing(4)} + env(safe-area-inset-bottom, 0px))`,
+    });
     expect(screen.getByRole("main").parentElement).toHaveStyle({
       maxWidth: `${designTokens.size.contentMaxWidth}px`,
     });
@@ -75,6 +78,11 @@ describe("PageShell", () => {
       "href",
       "/settings",
     );
+  });
+
+  it("传入 backHref 时显示可点击的返回链接", () => {
+    render(<PageShell title="收费设置" backHref="/settings">内容</PageShell>);
+    expect(screen.getByRole("link", { name: "返回" })).toHaveAttribute("href", "/settings");
   });
 
   it("未传 footer 时不渲染底部区域", () => {

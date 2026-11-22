@@ -31,10 +31,6 @@ describe("MonthlyStats", () => {
       "href",
       "/stats?month=2026-12",
     );
-    expect(screen.getByRole("link", { name: "返回设置" })).toHaveAttribute(
-      "href",
-      "/settings",
-    );
   });
 
   it("390px 空月份展示三种零元方式和空明细提示", () => {

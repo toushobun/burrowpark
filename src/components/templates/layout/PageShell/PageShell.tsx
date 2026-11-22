@@ -1,10 +1,15 @@
 "use client";
 
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import Link from "next/link";
+
 import type { ReactNode } from "react";
 
+import { commonText } from "config/commonText";
 import { designTokens } from "theme/designTokens";
 
 type PageShellProps = {
@@ -14,6 +19,8 @@ type PageShellProps = {
   /** 固定在页面底部的主操作区，例如「车进来」按钮。 */
   footer?: ReactNode;
   headerAction?: ReactNode;
+  backHref?: string;
+  backLabel?: string;
   children: ReactNode;
 };
 
@@ -23,6 +30,8 @@ export function PageShell({
   subtitle,
   footer,
   headerAction,
+  backHref,
+  backLabel = commonText.back,
   children,
 }: PageShellProps) {
   return (
@@ -47,9 +56,30 @@ export function PageShell({
           spacing={1}
           sx={{ alignItems: "center", justifyContent: "space-between" }}
         >
-          <Typography component="h1" variant="h1">
-            {title}
-          </Typography>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ alignItems: "center", minWidth: 0 }}
+          >
+            {backHref && (
+              <Button
+                component={Link}
+                href={backHref}
+                size="large"
+                startIcon={<ChevronLeftIcon />}
+                sx={{
+                  flexShrink: 0,
+                  minHeight: designTokens.size.touchTargetMin,
+                }}
+                variant="text"
+              >
+                {backLabel}
+              </Button>
+            )}
+            <Typography component="h1" variant="h1">
+              {title}
+            </Typography>
+          </Stack>
           {headerAction}
         </Stack>
         {subtitle && (
@@ -58,7 +88,14 @@ export function PageShell({
           </Typography>
         )}
       </Box>
-      <Box component="main" sx={{ flex: 1, px: 2 }}>
+      <Box
+        component="main"
+        sx={{
+          flex: 1,
+          pb: (t) => `calc(${t.spacing(4)} + env(safe-area-inset-bottom, 0px))`,
+          px: 2,
+        }}
+      >
         {children}
       </Box>
       {footer && (

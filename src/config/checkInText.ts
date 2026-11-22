@@ -30,13 +30,13 @@ export const checkInText = {
   submit: "确认登记",
   submitting: "登记中",
   undo: "撤销",
+  close: "关闭提示",
+  toastSuccess: (slotName: string, plate: string) =>
+    "已登记 " + slotName + " " + plate,
   undoing: "撤销中",
-  undone: "已撤销登记",
+  undone: "已撤销",
   backMap: "回地图",
-  viewSlot: "查看车位",
   invalidPlate: "车牌应为 2～10 个字符",
-  success: (plate: string, slotName: string) =>
-    "已登记：" + plate + " 停在 " + slotName,
 } as const;
 
 export const paymentMethodLabels = {

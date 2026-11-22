@@ -19,7 +19,7 @@ export default async function RecordsPage({
     await searchParams,
   );
   return (
-    <PageShell title={recordsText.title}>
+    <PageShell backHref="/settings" title={recordsText.title}>
       <RecordsView
         key={
           filter.kind === "date"

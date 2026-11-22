@@ -7,7 +7,7 @@ import { PageShell } from "templates/layout/PageShell/PageShell";
 export default async function SlotSettingsPage() {
   const rows = await loadSlotSettings();
   return (
-    <PageShell title={slotSettingsText.slots}>
+    <PageShell backHref="/settings" title={slotSettingsText.slots}>
       <SlotSettingsList rows={rows} action={updateSlotSettingsAction} />
     </PageShell>
   );
