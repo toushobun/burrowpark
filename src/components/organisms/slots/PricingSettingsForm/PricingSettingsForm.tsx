@@ -59,7 +59,9 @@ export function PricingSettingsForm({ initial, action }: Props) {
 
   return (
     <Stack spacing={3}>
-      {state.success && !dirty && <Alert severity="success">{text.saved}</Alert>}
+      {state.success && !dirty && (
+        <Alert severity="success">{text.saved}</Alert>
+      )}
       <TextField
         label={text.hotelDaily}
         value={hotelDailyYuan}
