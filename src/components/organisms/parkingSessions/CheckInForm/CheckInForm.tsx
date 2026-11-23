@@ -111,9 +111,10 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
       slot: form.code,
       id: result.sessionId,
     });
-    if (!result.photoSaved) params.set("photo", "0");
+    // 未拍照时 photoSaved 也为 false，不能误报为照片上传失败。
+    if (photo && !result.photoSaved) params.set("photo", "0");
     router.push("/?" + params.toString());
-  }, [state.result, form, router]);
+  }, [state.result, form, photo, router]);
 
   useEffect(
     () => () => {
