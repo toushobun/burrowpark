@@ -2,6 +2,7 @@
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -11,10 +12,12 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
 import { paymentMethodLabels } from "config/checkInText";
+import { operationText } from "config/operationText";
 import { billingTypeLabels, slotDetailText } from "config/slotDetailText";
 import type { SlotDetail as SlotDetailData } from "internal/parking";
 import {
@@ -42,7 +45,6 @@ export type SlotFormAction = (
 
 export type SlotDetailOperations = {
   reserve: SlotFormAction;
-  undoReservation: SlotFormAction;
   cancelReservation: SlotFormAction;
   undoCancelReservation: SlotFormAction;
   extendBorrow: SlotFormAction;
@@ -110,6 +112,8 @@ function SlotDetailContent({
   initialState,
   onViewSlot,
 }: SlotDetailProps & { onViewSlot: () => void }) {
+  const router = useRouter();
+  const redirectedReservation = useRef<string | null>(null);
   const [reserveOpen, setReserveOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
@@ -132,9 +136,6 @@ function SlotDetailContent({
   );
 
   const completed =
-    (reserveState.result
-      ? { kind: "reserve", result: reserveState.result }
-      : null) ??
     (cancelState.result
       ? { kind: "cancel", result: cancelState.result }
       : null) ??
@@ -143,17 +144,44 @@ function SlotDetailContent({
       : null) ??
     (endState.result ? { kind: "end", result: endState.result } : null);
   const undoAction =
-    completed?.kind === "reserve"
-      ? operations?.undoReservation
-      : completed?.kind === "cancel"
-        ? operations?.undoCancelReservation
-        : completed?.kind === "extend"
-          ? operations?.undoExtendBorrow
-          : operations?.undoEndLease;
+    completed?.kind === "cancel"
+      ? operations?.undoCancelReservation
+      : completed?.kind === "extend"
+        ? operations?.undoExtendBorrow
+        : operations?.undoEndLease;
   const [undoState, submitUndo, undoPending] = useActionState(
     undoAction ?? unavailableAction,
     {} as SlotActionState,
   );
+
+  useEffect(() => {
+    const id = reserveState.result?.id;
+    if (
+      !reserveState.success ||
+      !detail ||
+      !id ||
+      redirectedReservation.current === id
+    ) {
+      return;
+    }
+    redirectedReservation.current = id;
+    const params = new URLSearchParams({
+      done: "reserve",
+      slot: detail.code,
+      id,
+    });
+    router.push("/?" + params.toString());
+  }, [detail, reserveState.result?.id, reserveState.success, router]);
+
+  // 预留后重新渲染时车位可能已被占用，成功状态优先于权限判断。
+  if (reserveState.success) {
+    return (
+      <Stack spacing={2} sx={{ alignItems: "center" }}>
+        <CircularProgress aria-label={operationText.returning} />
+        <Typography variant="h2">{operationText.returning}</Typography>
+      </Stack>
+    );
+  }
 
   if (!detail) {
     return (
@@ -182,17 +210,15 @@ function SlotDetailContent({
         <ParkingOperationResult
           code={detail.code}
           title={
-            completed.kind === "reserve"
-              ? slotDetailText.reservedSuccess
-              : completed.kind === "cancel"
-                ? slotDetailText.cancelledSuccess
-                : completed.kind === "extend"
-                  ? slotDetailText.extendedSuccess
-                  : slotDetailText.endedSuccess
+            completed.kind === "cancel"
+              ? slotDetailText.cancelledSuccess
+              : completed.kind === "extend"
+                ? slotDetailText.extendedSuccess
+                : slotDetailText.endedSuccess
           }
           id={result.id}
           idName={
-            completed.kind === "reserve" || completed.kind === "cancel"
+            completed.kind === "cancel"
               ? "reservationId"
               : completed.kind === "extend"
                 ? "sessionId"
@@ -264,20 +290,10 @@ function SlotDetailContent({
     !vehicle &&
     !detail.lease &&
     !detail.reservation;
-  const showNewLease =
-    detail.isActive &&
-    detail.kind === "regular" &&
-    !vehicle &&
-    !detail.lease &&
-    !detail.reservation;
+  const showNewLease = showReserve;
   const showEditLease = detail.isActive && Boolean(detail.lease?.id);
   const showEndLease = showEditLease && !vehicle;
-  const hasMore =
-    showReserve ||
-    showNewLease ||
-    showEditLease ||
-    showEndLease ||
-    privateBorrowed;
+  const hasMore = showEditLease || showEndLease || privateBorrowed;
   const errorState = reserveState.error
     ? reserveState
     : cancelState.error
@@ -474,6 +490,29 @@ function SlotDetailContent({
               {label}
             </Button>
           ))}
+          {showReserve && (
+            <Button
+              fullWidth
+              size="large"
+              sx={buttonSx}
+              variant="outlined"
+              onClick={() => setReserveOpen(true)}
+            >
+              {slotDetailText.reserve}
+            </Button>
+          )}
+          {showNewLease && (
+            <Button
+              component={Link}
+              fullWidth
+              href={`/slots/${detail.code}/lease/new`}
+              size="large"
+              sx={buttonSx}
+              variant="outlined"
+            >
+              {slotDetailText.newLease}
+            </Button>
+          )}
           {reserved && detail.reservation?.id && (
             <Button
               fullWidth
@@ -493,27 +532,6 @@ function SlotDetailContent({
           <Typography component="h3" variant="body1">
             {slotDetailText.moreActions}
           </Typography>
-          {showReserve && (
-            <Button
-              fullWidth
-              sx={buttonSx}
-              variant="text"
-              onClick={() => setReserveOpen(!reserveOpen)}
-            >
-              {slotDetailText.reserve}
-            </Button>
-          )}
-          {showNewLease && (
-            <Button
-              component={Link}
-              fullWidth
-              href={`/slots/${detail.code}/lease/new`}
-              sx={buttonSx}
-              variant="text"
-            >
-              {slotDetailText.newLease}
-            </Button>
-          )}
           {showEditLease && (
             <Button
               component={Link}
@@ -579,6 +597,17 @@ function SlotDetailContent({
                 sx={buttonSx}
               >
                 {slotDetailText.confirmReserve}
+              </Button>
+              <Button
+                fullWidth
+                type="button"
+                variant="text"
+                size="large"
+                disabled={reservePending}
+                sx={buttonSx}
+                onClick={() => setReserveOpen(false)}
+              >
+                {slotDetailText.cancel}
               </Button>
             </Stack>
           </form>

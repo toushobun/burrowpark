@@ -1,23 +1,29 @@
 import Stack from "@mui/material/Stack";
 
 import { slotMapText } from "config/slotMapText";
+import { undoCheckInAction } from "internal/parking/adapter/next/checkInActions";
 import { loadReminders } from "internal/parking/adapter/next/loadReminders";
+import { loadSlotDetail } from "internal/parking/adapter/next/loadSlotDetail";
+import { loadSlotMap } from "internal/parking/adapter/next/loadSlotMap";
+import {
+  undoCreateLeaseAction,
+  undoReservationAction,
+} from "internal/parking/adapter/next/slotOperationsActions";
+import { SettingsIconLink } from "molecules/navigation/SettingsIconLink/SettingsIconLink";
+import { OperationMapSection } from "organisms/slots/ParkingSlotMap/OperationMapSection";
 import { ReminderRefresh } from "organisms/slots/SlotReminders/ReminderRefresh";
 import { SlotReminders } from "organisms/slots/SlotReminders/SlotReminders";
-import { loadSlotMap } from "internal/parking/adapter/next/loadSlotMap";
-import { loadSlotDetail } from "internal/parking/adapter/next/loadSlotDetail";
-import { undoCheckInAction } from "internal/parking/adapter/next/checkInActions";
-import { SettingsIconLink } from "molecules/navigation/SettingsIconLink/SettingsIconLink";
-import { CheckInMapSection } from "organisms/slots/ParkingSlotMap/CheckInMapSection";
-import { parseCheckInParams } from "utils/checkInParams";
 import { PageShell } from "templates/layout/PageShell/PageShell";
+import { resolveOperationNotice } from "utils/operationNotice";
+import { parseOperationParams } from "utils/operationParams";
 
 export default async function HomePage({
   searchParams,
 }: {
   searchParams: Promise<{
-    checkedIn?: string | string[];
-    session?: string | string[];
+    done?: string | string[];
+    slot?: string | string[];
+    id?: string | string[];
     photo?: string | string[];
   }>;
 }) {
@@ -27,22 +33,12 @@ export default async function HomePage({
     loadReminders(now),
   ]);
 
-  const parsed = parseCheckInParams(
+  const parsed = parseOperationParams(
     await searchParams,
     slots.map((slot) => slot.code),
   );
-  const detail = parsed ? await loadSlotDetail(parsed.code, now) : null;
-  const vehicle = detail?.presentVehicle;
-  const notice =
-    parsed && detail && vehicle?.sessionId === parsed.sessionId
-      ? {
-          code: parsed.code,
-          sessionId: parsed.sessionId,
-          plate: vehicle.plate,
-          slotName: detail.name,
-          photoSaved: parsed.photoSaved,
-        }
-      : null;
+  const detail = parsed ? await loadSlotDetail(parsed.slot, now) : null;
+  const notice = resolveOperationNotice(parsed, detail);
 
   return (
     <PageShell
@@ -53,11 +49,15 @@ export default async function HomePage({
       <Stack spacing={3}>
         <ReminderRefresh />
         <SlotReminders reminders={reminders} />
-        <CheckInMapSection
+        <OperationMapSection
           notice={notice}
-          querySessionId={parsed?.sessionId}
+          queryId={parsed?.id}
           slots={slots}
-          undoAction={undoCheckInAction}
+          undoActions={{
+            checkin: undoCheckInAction,
+            reserve: undoReservationAction,
+            lease: undoCreateLeaseAction,
+          }}
         />
       </Stack>
     </PageShell>

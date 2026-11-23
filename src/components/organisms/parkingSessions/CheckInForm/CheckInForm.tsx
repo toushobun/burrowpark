@@ -107,8 +107,9 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
     }
     redirectedSession.current = result.sessionId;
     const params = new URLSearchParams({
-      checkedIn: form.code,
-      session: result.sessionId,
+      done: "checkin",
+      slot: form.code,
+      id: result.sessionId,
     });
     if (!result.photoSaved) params.set("photo", "0");
     router.push("/?" + params.toString());
@@ -248,7 +249,7 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
   const [customDays, setCustomDays] = useState(false);
   const [borrowMinutes, setBorrowMinutes] = useState<10 | 30 | null>(null);
   const [method, setMethod] = useState<keyof typeof paymentMethodLabels | null>(
-    null,
+    "wechat",
   );
   const defaultAmount = form
     ? (form.pricing.hotel_daily_price_cents / 100).toFixed(2)

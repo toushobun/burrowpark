@@ -36,6 +36,15 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Create: Story = {};
+export const CreateSuccess: Story = {
+  args: {
+    detail: leaseAwayDetail,
+    initialState: {
+      success: "长租建立成功",
+      result: { id: "00000000-0000-4000-8000-000000000006" },
+    },
+  },
+};
 export const Edit: Story = { args: { mode: "edit", detail: leaseAwayDetail } };
 export const Unavailable: Story = {
   args: { detail: { ...emptyDetail, kind: "private", status: "privateIdle" } },

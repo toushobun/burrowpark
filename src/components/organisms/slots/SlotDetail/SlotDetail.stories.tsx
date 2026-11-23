@@ -35,6 +35,10 @@ type Story = StoryObj<typeof meta>;
 
 export const Empty: Story = {};
 
+export const ProminentActions: Story = {
+  args: { detail: emptyDetail },
+};
+
 export const HotelExpiring: Story = {
   args: { detail: hotelExpiringDetail },
 };

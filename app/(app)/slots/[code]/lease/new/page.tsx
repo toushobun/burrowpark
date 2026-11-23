@@ -1,9 +1,6 @@
 import { leaseText } from "config/leaseText";
 import { getBusinessDate } from "internal/parking";
-import {
-  createLeaseAction,
-  undoCreateLeaseAction,
-} from "internal/parking/adapter/next/slotOperationsActions";
+import { createLeaseAction } from "internal/parking/adapter/next/slotOperationsActions";
 import { loadSlotDetail } from "internal/parking/adapter/next/loadSlotDetail";
 import { LeaseForm } from "organisms/slots/LeaseForm/LeaseForm";
 import { PageShell } from "templates/layout/PageShell/PageShell";
@@ -24,7 +21,6 @@ export default async function NewLeasePage({
         detail={detail}
         today={today}
         action={createLeaseAction}
-        undoAction={undoCreateLeaseAction}
       />
     </PageShell>
   );

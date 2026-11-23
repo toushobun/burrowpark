@@ -9,7 +9,6 @@ import {
 import { loadSlotDetail } from "internal/parking/adapter/next/loadSlotDetail";
 import {
   reserveAction,
-  undoReservationAction,
   cancelReservationAction,
   undoCancelReservationAction,
   extendBorrowAction,
@@ -61,7 +60,6 @@ export default async function SlotDetailPage({
         today={getBusinessDate(now)}
         operations={{
           reserve: reserveAction,
-          undoReservation: undoReservationAction,
           cancelReservation: cancelReservationAction,
           undoCancelReservation: undoCancelReservationAction,
           extendBorrow: extendBorrowAction,

@@ -1,14 +1,17 @@
 "use client";
 
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { leaseText } from "config/leaseText";
+import { operationText } from "config/operationText";
 import { parkingOperationText } from "config/renewAndCheckOutText";
 import type { SlotDetail } from "internal/parking";
 import {
@@ -18,7 +21,6 @@ import {
 import type { SlotActionState } from "internal/parking/adapter/next/slotOperationsActions";
 import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/FailureFeedbackDialog";
 import {
-  ParkingOperationResult,
   PaymentAmountField,
   PaymentMethodChoices,
   validYuanAmount,
@@ -36,20 +38,24 @@ type Props = {
   detail: SlotDetail | null;
   today: string;
   action: FormAction;
-  undoAction: FormAction;
+  initialState?: SlotActionState;
 };
 
 const buttonSx = { minHeight: designTokens.size.touchTargetMin };
 
-export function LeaseForm({ mode, detail, today, action, undoAction }: Props) {
+export function LeaseForm({
+  mode,
+  detail,
+  today,
+  action,
+  initialState,
+}: Props) {
+  const router = useRouter();
   const [state, submit, isPending] = useActionState(
     action,
-    {} as SlotActionState,
+    initialState ?? ({} as SlotActionState),
   );
-  const [undoState, undo, undoPending] = useActionState(
-    undoAction,
-    {} as SlotActionState,
-  );
+  const redirectedLease = useRef<string | null>(null);
   const [tenantName, setTenantName] = useState(detail?.lease?.tenantName ?? "");
   const [phone, setPhone] = useState(detail?.lease?.phone ?? "");
   const [plate, setPlate] = useState(detail?.lease?.plate ?? "");
@@ -59,9 +65,70 @@ export function LeaseForm({ mode, detail, today, action, undoAction }: Props) {
     defaultLeasePaidThrough(today),
   );
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState<PaymentMethod | null>(null);
+  const [method, setMethod] = useState<PaymentMethod>("wechat");
 
   const creating = mode === "create";
+
+  useEffect(() => {
+    const id = state.result?.id;
+    if (
+      !creating ||
+      !state.success ||
+      !detail ||
+      !id ||
+      redirectedLease.current === id
+    ) {
+      return;
+    }
+    redirectedLease.current = id;
+    const params = new URLSearchParams({
+      done: "lease",
+      slot: detail.code,
+      id,
+    });
+    router.push("/?" + params.toString());
+  }, [creating, detail, router, state.result?.id, state.success]);
+
+  // 成功后服务端重新验证时车位已有长租，不能先按新建权限拦截成功状态。
+  if (creating && state.success) {
+    return (
+      <Stack spacing={2} sx={{ alignItems: "center" }}>
+        <CircularProgress aria-label={operationText.returning} />
+        <Typography variant="h2">{operationText.returning}</Typography>
+      </Stack>
+    );
+  }
+
+  if (!creating && state.success) {
+    return (
+      <Stack spacing={2}>
+        <Paper variant="outlined" sx={{ p: 3 }}>
+          <Typography variant="h2">{leaseText.editSuccess}</Typography>
+        </Paper>
+        <Button
+          component={Link}
+          href="/"
+          variant="contained"
+          size="large"
+          fullWidth
+          sx={buttonSx}
+        >
+          {parkingOperationText.backMap}
+        </Button>
+        <Button
+          component={Link}
+          href={detail ? `/slots/${detail.code}` : "/"}
+          variant="outlined"
+          size="large"
+          fullWidth
+          sx={buttonSx}
+        >
+          {parkingOperationText.viewSlot}
+        </Button>
+      </Stack>
+    );
+  }
+
   const canAccess =
     detail?.isActive &&
     detail.kind === "regular" &&
@@ -88,51 +155,6 @@ export function LeaseForm({ mode, detail, today, action, undoAction }: Props) {
     );
   }
 
-  if (state.success) {
-    return (
-      <>
-        {creating && state.result ? (
-          <ParkingOperationResult
-            code={detail.code}
-            title={leaseText.createSuccess}
-            id={state.result.id}
-            idName="leaseId"
-            undo={undo}
-            undoState={undoState}
-            isUndoPending={undoPending}
-          />
-        ) : (
-          <Stack spacing={2}>
-            <Paper variant="outlined" sx={{ p: 3 }}>
-              <Typography variant="h2">{leaseText.editSuccess}</Typography>
-            </Paper>
-            <Button
-              component={Link}
-              href="/"
-              variant="contained"
-              size="large"
-              fullWidth
-              sx={buttonSx}
-            >
-              {parkingOperationText.backMap}
-            </Button>
-            <Button
-              component={Link}
-              href={`/slots/${detail.code}`}
-              variant="outlined"
-              size="large"
-              fullWidth
-              sx={buttonSx}
-            >
-              {parkingOperationText.viewSlot}
-            </Button>
-          </Stack>
-        )}
-        <FailureFeedbackDialog state={undoState} />
-      </>
-    );
-  }
-
   let validDates = false;
   try {
     leaseDateToPaidUntil(startsOn);
@@ -144,7 +166,7 @@ export function LeaseForm({ mode, detail, today, action, undoAction }: Props) {
   const canSubmit =
     tenantName.trim().length > 0 &&
     !isPending &&
-    (!creating || (validDates && method !== null && validYuanAmount(amount)));
+    (!creating || (validDates && validYuanAmount(amount)));
 
   return (
     <>
@@ -226,7 +248,7 @@ export function LeaseForm({ mode, detail, today, action, undoAction }: Props) {
                 disabled={isPending}
                 label={leaseText.amount}
               />
-              <input type="hidden" name="paymentMethod" value={method ?? ""} />
+              <input type="hidden" name="paymentMethod" value={method} />
               <input type="hidden" name="amountYuan" value={amount} />
             </>
           )}

@@ -18,12 +18,14 @@ const hourly: CheckOutFormData = {
 };
 const action = vi.fn(async () => ({}));
 describe("CheckOutForm", () => {
-  it("临停显示时长、建议金额且必须选方式才能收款离场", () => {
+  it("临停显示时长、建议金额且默认微信可收款离场", () => {
     render(<CheckOutForm form={hourly} action={action} undoAction={action} />);
     expect(screen.getByText("已停 2 小时 10 分")).toBeInTheDocument();
     expect(screen.getByText("建议补收：15.00 元")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "收款并离场" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "微信" }));
+    expect(screen.getByRole("button", { name: "微信" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(screen.getByRole("button", { name: "收款并离场" })).toBeEnabled();
     expect(
       screen.getByRole("button", { name: "不收钱，直接离场" }),
@@ -74,6 +76,31 @@ describe("CheckOutForm", () => {
     expect(screen.getByRole("link", { name: "查看车位" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
   });
+  it("离场成功后服务端已清空该车位时仍展示成功结果", () => {
+    const initialState = {
+      success: "离场成功",
+      result: { sessionId: hourly.sessionId },
+    };
+    const { rerender } = render(
+      <CheckOutForm
+        form={hourly}
+        action={action}
+        undoAction={action}
+        initialState={initialState}
+      />,
+    );
+    rerender(
+      <CheckOutForm
+        form={null}
+        action={action}
+        undoAction={action}
+        initialState={initialState}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
+    expect(screen.queryByText("这个车位没有待离场的车")).toBeNull();
+  });
+
   it("失败使用统一弹框", () => {
     render(
       <CheckOutForm

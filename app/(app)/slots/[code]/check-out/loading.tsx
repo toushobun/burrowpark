@@ -1,6 +1,6 @@
 import { checkOutText } from "config/renewAndCheckOutText";
-import { PageSkeleton } from "templates/layout/PageSkeleton/PageSkeleton";
+import { SlotActionSkeleton } from "organisms/slots/SlotActionSkeleton/SlotActionSkeleton";
 
 export default function Loading() {
-  return <PageSkeleton title={checkOutText.title} rows={5} />;
+  return <SlotActionSkeleton title={checkOutText.title} rows={5} />;
 }

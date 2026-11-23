@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { CheckInMapSection } from "./CheckInMapSection";
+import { OperationMapSection } from "./OperationMapSection";
 
 vi.mock("./ParkingSlotMap", () => ({
   ParkingSlotMap: ({ highlightCode }: { highlightCode?: string }) => (
@@ -9,8 +9,8 @@ vi.mock("./ParkingSlotMap", () => ({
   ),
 }));
 
-vi.mock("organisms/parkingSessions/CheckInToast/CheckInToast", () => ({
-  CheckInToast: ({
+vi.mock("organisms/slots/OperationToast/OperationToast", () => ({
+  OperationToast: ({
     notice,
     onUndoStart,
     onUndone,
@@ -21,7 +21,7 @@ vi.mock("organisms/parkingSessions/CheckInToast/CheckInToast", () => ({
     onUndone: () => void;
     onDismiss: () => void;
   }) => (
-    <div data-testid="check-in-toast">
+    <div data-testid="operation-toast">
       {notice.code}
       <button onClick={onUndoStart}>开始撤销</button>
       <button onClick={onUndone}>撤销成功</button>
@@ -31,47 +31,40 @@ vi.mock("organisms/parkingSessions/CheckInToast/CheckInToast", () => ({
 }));
 
 const notice = {
+  kind: "reserve" as const,
   code: "12",
-  sessionId: "00000000-0000-4000-8000-000000000001",
-  plate: "辽A12345",
-  slotName: "12号",
-  photoSaved: true,
+  id: "00000000-0000-4000-8000-000000000001",
+  message: "已预留 12号（张三）",
 };
 
-const undoAction = async () => ({});
+const undo = async () => ({});
+const undoActions = { checkin: undo, reserve: undo, lease: undo };
 
-describe("CheckInMapSection", () => {
-  it("撤销后首页重新读取不到会话时，仍保留成功提示直到关闭", () => {
-    const props = { slots: [], undoAction, querySessionId: notice.sessionId };
+describe("OperationMapSection", () => {
+  it("撤销刷新首页后仍显示成功提示直到关闭，红框同时消失", () => {
+    const props = { slots: [], undoActions, queryId: notice.id };
     const { rerender } = render(
-      <CheckInMapSection {...props} notice={notice} />,
+      <OperationMapSection {...props} notice={notice} />,
     );
     expect(screen.getByTestId("map")).toHaveAttribute("data-highlight", "12");
-
     fireEvent.click(screen.getByRole("button", { name: "开始撤销" }));
-    rerender(<CheckInMapSection {...props} notice={null} />);
-    expect(screen.getByTestId("check-in-toast")).toHaveTextContent("12");
-
+    rerender(<OperationMapSection {...props} notice={null} />);
+    expect(screen.getByTestId("operation-toast")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "撤销成功" }));
     expect(screen.getByTestId("map")).toHaveAttribute("data-highlight", "");
-
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));
-    expect(screen.queryByTestId("check-in-toast")).toBeNull();
+    expect(screen.queryByTestId("operation-toast")).toBeNull();
   });
 
-  it("URL 清除本次登记参数后不再保留旧提示", () => {
-    const props = { slots: [], undoAction };
+  it("查询参数清除后不会留下旧提示", () => {
+    const props = { slots: [], undoActions };
     const { rerender } = render(
-      <CheckInMapSection
-        {...props}
-        notice={notice}
-        querySessionId={notice.sessionId}
-      />,
+      <OperationMapSection {...props} notice={notice} queryId={notice.id} />,
     );
     fireEvent.click(screen.getByRole("button", { name: "开始撤销" }));
     rerender(
-      <CheckInMapSection {...props} notice={null} querySessionId={null} />,
+      <OperationMapSection {...props} notice={null} queryId={null} />,
     );
-    expect(screen.queryByTestId("check-in-toast")).toBeNull();
+    expect(screen.queryByTestId("operation-toast")).toBeNull();
   });
 });
