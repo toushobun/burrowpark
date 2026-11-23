@@ -155,6 +155,22 @@ describe("OperationToast", () => {
     expect(screen.queryByRole("button", { name: "撤销" })).toBeNull();
   });
 
+  it("撤销失败后错误未确认时暂停自动关闭，确认后恢复十秒计时", () => {
+    vi.useFakeTimers();
+    renderToast(reserve, actions(), () => {}, {
+      error: "撤销失败，请重试",
+      errorKey: "failed-undo",
+    });
+    expect(screen.getByRole("dialog")).toHaveTextContent("撤销失败，请重试");
+    act(() => vi.advanceTimersByTime(15_000));
+    expect(replace).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "知道了" }));
+    act(() => vi.advanceTimersByTime(9_999));
+    expect(replace).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(replace).toHaveBeenCalledWith("/");
+  });
+
   it("提示十秒后自动关闭，手动关闭立即清除参数", () => {
     vi.useFakeTimers();
     const onUndone = vi.fn();

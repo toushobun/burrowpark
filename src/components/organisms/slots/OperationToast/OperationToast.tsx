@@ -71,7 +71,11 @@ export function OperationToast({
     initialState ?? {},
   );
   const [closed, setClosed] = useState(false);
+  const [acknowledgedErrorKey, setAcknowledgedErrorKey] = useState<string>();
   const field = undoField[notice.kind];
+  const errorUnacknowledged = Boolean(
+    state.error && state.errorKey && state.errorKey !== acknowledgedErrorKey,
+  );
 
   useEffect(() => {
     if (state.success) onUndone();
@@ -84,10 +88,10 @@ export function OperationToast({
   }, [onDismiss, router]);
 
   useEffect(() => {
-    if (closed || pending) return;
+    if (closed || pending || errorUnacknowledged) return;
     const timer = setTimeout(close, noticeDurationMs);
     return () => clearTimeout(timer);
-  }, [close, closed, pending, state.success]);
+  }, [close, closed, pending, errorUnacknowledged, state.success]);
 
   return (
     <>
@@ -143,6 +147,7 @@ export function OperationToast({
               <IconButton
                 aria-label={operationText.close}
                 color="inherit"
+                disabled={pending}
                 onClick={close}
                 sx={{
                   minHeight: designTokens.size.touchTargetMin,
@@ -177,7 +182,10 @@ export function OperationToast({
           </Stack>
         </Alert>
       </Snackbar>
-      <FailureFeedbackDialog state={state} />
+      <FailureFeedbackDialog
+        state={state}
+        onClose={() => setAcknowledgedErrorKey(state.errorKey)}
+      />
     </>
   );
 }
