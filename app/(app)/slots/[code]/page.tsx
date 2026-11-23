@@ -49,7 +49,7 @@ export default async function SlotDetailPage({
     : null;
 
   return (
-    <PageShell title={slotDetailText.pageTitle}>
+    <PageShell backHref="/" title={slotDetailText.pageTitle}>
       {detail?.kind === "private" && detail.presentVehicle && (
         <ReminderRefresh />
       )}

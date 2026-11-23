@@ -14,7 +14,7 @@ export default async function EditLeasePage({
   const now = new Date();
   const detail = await loadSlotDetail(code, now);
   return (
-    <PageShell title={leaseText.editTitle}>
+    <PageShell backHref={"/slots/" + code} title={leaseText.editTitle}>
       <LeaseForm
         mode="edit"
         detail={detail}
