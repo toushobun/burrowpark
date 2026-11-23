@@ -12,7 +12,6 @@ const action = async () => ({
     id: "00000000-0000-4000-8000-000000000001",
   },
 });
-const undoAction = async () => ({ success: "已撤销" });
 
 const meta = {
   component: LeaseForm,
@@ -22,7 +21,6 @@ const meta = {
     detail: emptyDetail,
     today: "2026-11-19",
     action,
-    undoAction,
   },
   decorators: [
     (Story) => (

@@ -10,7 +10,7 @@ import { resolveOperationNotice } from "./operationNotice";
 const id = "00000000-0000-4000-8000-000000000001";
 
 describe("resolveOperationNotice", () => {
-  it("已登记的车牌取服务器事实而不是 URL", () => {
+  it("登记车牌取服务器事实而非 URL", () => {
     const detail = {
       ...emptyDetail,
       presentVehicle: {
@@ -23,71 +23,52 @@ describe("resolveOperationNotice", () => {
         photoUrl: null,
       },
     };
-    expect(
-      resolveOperationNotice(
-        { done: "checkin", slot: "7", id, photo: "0" },
-        detail,
-      ),
-    ).toEqual({
+    const notice = resolveOperationNotice(
+      { done: "checkin", slot: "7", id, photo: "0" },
+      detail,
+    );
+    expect(notice).toEqual({
       kind: "checkin",
       code: "7",
       id,
       message: "已登记 7号 粤B·12345",
       photoSaved: false,
     });
-    expect(
-      resolveOperationNotice({ done: "checkin", slot: "7", id: "wrong" }, detail),
-    ).toBeNull();
+    const wrongId = { done: "checkin" as const, slot: "7", id: "wrong" };
+    expect(resolveOperationNotice(wrongId, detail)).toBeNull();
   });
 
-  it("预留和长租按 id 复核并使用实际姓名", () => {
-    const reservationDetail = {
+  it("预留和长租按照 ID 复核并使用真实姓名", () => {
+    const reserve = { done: "reserve" as const, slot: "7", id };
+    const reservation = { id, guestName: " 张三 ", note: null };
+    const withGuest = { ...emptyDetail, reservation };
+    const withName = resolveOperationNotice(reserve, withGuest);
+    expect(withName?.message).toBe("已预留 7号（张三）");
+
+    const withoutGuest = {
       ...emptyDetail,
-      reservation: { id, guestName: " 张三 ", note: null },
+      reservation: { ...reservation, guestName: null },
     };
-    expect(
-      resolveOperationNotice(
-        { done: "reserve", slot: "7", id },
-        reservationDetail,
-      )?.message,
-    ).toBe("已预留 7号（张三）");
+    const withoutName = resolveOperationNotice(reserve, withoutGuest);
+    expect(withoutName?.message).toBe("已预留 7号");
 
-    const noNameDetail = {
-      ...reservationDetail,
-      reservation: { id, guestName: null, note: null },
-    };
-    expect(
-      resolveOperationNotice(
-        { done: "reserve", slot: "7", id },
-        noNameDetail,
-      )?.message,
-    ).toBe("已预留 7号");
-
-    const leaseDetail = {
+    const lease = { done: "lease" as const, slot: "7", id };
+    const leased = {
       ...leaseAwayDetail,
       lease: { ...leaseAwayDetail.lease!, id, tenantName: "王先生" },
     };
-    expect(
-      resolveOperationNotice(
-        { done: "lease", slot: "7", id },
-        leaseDetail,
-      )?.message,
-    ).toBe("7号已设为长租（王先生）");
+    const leasedNotice = resolveOperationNotice(lease, leased);
+    expect(leasedNotice?.message).toBe("7号已设为长租（王先生）");
   });
 
-  it("操作类型不符、记录 id 不符或车位不符时一律不展示", () => {
-    expect(
-      resolveOperationNotice({ done: "reserve", slot: "7", id }, emptyDetail),
-    ).toBeNull();
-    expect(
-      resolveOperationNotice({ done: "lease", slot: "7", id }, leaseAwayDetail),
-    ).toBeNull();
-    expect(
-      resolveOperationNotice({ done: "reserve", slot: "7", id }, null),
-    ).toBeNull();
-    expect(
-      resolveOperationNotice({ done: "lease", slot: "8", id }, leaseAwayDetail),
-    ).toBeNull();
+  it("操作类型不符、记录 ID 或车位不符时不展示提示", () => {
+    const reserve = { done: "reserve" as const, slot: "7", id };
+    const lease = { done: "lease" as const, slot: "7", id };
+    expect(resolveOperationNotice(reserve, emptyDetail)).toBeNull();
+    expect(resolveOperationNotice(lease, leaseAwayDetail)).toBeNull();
+    expect(resolveOperationNotice(reserve, null)).toBeNull();
+    const wrongSlot = { done: "lease" as const, slot: "8", id };
+    expect(resolveOperationNotice(wrongSlot, leaseAwayDetail)).toBeNull();
     expect(resolveOperationNotice(null, leaseAwayDetail)).toBeNull();
   });
 });

@@ -52,7 +52,7 @@ describe("LeaseForm", () => {
   });
 
   it("新建成功但车位已有长租时仍跳回地图而不显示不能办理", () => {
-    const id = leaseAwayDetail.lease!.id;
+    const id = leaseAwayDetail.lease!.id!;
     render(
       <LeaseForm
         mode="create"
