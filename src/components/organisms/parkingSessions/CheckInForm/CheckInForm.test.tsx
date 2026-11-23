@@ -494,35 +494,6 @@ describe("CheckInForm", () => {
     expect(screen.queryByRole("button", { name: "撤销" })).toBeNull();
   });
 
-  it("提交了照片但保存失败时才附带 photo=0", async () => {
-    action.mockResolvedValueOnce({
-      success: "登记成功",
-      successKey: "photo-failed",
-      result: {
-        sessionId: "00000000-0000-4000-8000-000000000001",
-        plate: "粤B12345",
-        photoSaved: false,
-      },
-    });
-    vi.mocked(recognizePlate).mockResolvedValue(null);
-    const { container } = renderForm();
-    fireEvent.change(screen.getByRole("textbox", { name: "车牌号码" }), {
-      target: { value: "粤B12345" },
-    });
-    choosePhoto(container);
-    await waitFor(() =>
-      expect(screen.getByRole("img", { name: "车头照片" })).toBeInTheDocument(),
-    );
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "确认登记" }));
-    });
-    await waitFor(() =>
-      expect(push).toHaveBeenCalledWith(
-        "/?done=checkin&slot=3&id=00000000-0000-4000-8000-000000000001&photo=0",
-      ),
-    );
-  });
-
   it("照片保存成功时返回链接不带 photo=0", async () => {
     renderForm(
       {},

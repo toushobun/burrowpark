@@ -35,6 +35,7 @@ import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/
 import { designTokens } from "theme/designTokens";
 
 import { compressPhoto } from "./compressPhoto";
+import { photoUploadFailed } from "./photoUploadStatus";
 
 type Props = {
   form: CheckInFormData | null;
@@ -112,7 +113,7 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
       id: result.sessionId,
     });
     // 未拍照时 photoSaved 也为 false，不能误报为照片上传失败。
-    if (photo && !result.photoSaved) params.set("photo", "0");
+    if (photoUploadFailed(photo, result.photoSaved)) params.set("photo", "0");
     router.push("/?" + params.toString());
   }, [state.result, form, photo, router]);
 
