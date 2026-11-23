@@ -1,7 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SlotDetail as SlotDetailData } from "internal/parking";
+
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 import { SlotDetail } from "./SlotDetail";
 import {
@@ -40,6 +43,7 @@ function expectActions(expected: string[]) {
 }
 
 describe("SlotDetail", () => {
+  beforeEach(() => push.mockClear());
   it("车位不存在时显示提示及大号回首页按钮", () => {
     renderDetail(null);
     expect(screen.getByText("没有这个车位")).toBeInTheDocument();
@@ -235,13 +239,15 @@ describe("SlotDetail", () => {
     expect(screen.getByText("更多操作")).toBeInTheDocument();
   });
 
-  it("空位展示预留和设为长租的文字操作", () => {
+  it("空车位的预留和设为长租是登记按钮下方的大号描边操作", () => {
     renderDetail(emptyDetail);
-    expect(screen.getByRole("button", { name: "预留" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "设为长租" })).toHaveAttribute(
-      "href",
-      "/slots/7/lease/new",
-    );
+    const reserve = screen.getByRole("button", { name: "预留" });
+    const lease = screen.getByRole("link", { name: "设为长租" });
+    expect(reserve).toHaveClass("MuiButton-outlined", "MuiButton-sizeLarge");
+    expect(lease).toHaveClass("MuiButton-outlined", "MuiButton-sizeLarge");
+    expect(reserve).toHaveStyle({ minHeight: "56px" });
+    expect(lease).toHaveAttribute("href", "/slots/7/lease/new");
+    expect(screen.queryByText("更多操作")).toBeNull();
   });
 });
 
@@ -253,6 +259,10 @@ describe("SlotDetail 预留、退租和成功结果", () => {
     expect(
       screen.getByRole("button", { name: "确认预留" }),
     ).toBeInTheDocument();
+    const cancel = screen.getByRole("button", { name: "取消" });
+    expect(cancel).toHaveStyle({ minHeight: "56px" });
+    fireEvent.click(cancel);
+    expect(screen.queryByRole("textbox", { name: "预留人" })).toBeNull();
   });
 
   it("长租车不在时退租需要 Dialog 二次确认", () => {
@@ -278,31 +288,24 @@ describe("SlotDetail 预留、退租和成功结果", () => {
     expect(screen.getByText("确定取消预留吗？")).toBeInTheDocument();
   });
 
-  it("预留成功结果常驻展示地图、查看车位和撤销", () => {
+  it("预留成功且服务端已出现预留记录时跳回地图，不显示旧结果区", () => {
+    const id = "00000000-0000-4000-8000-000000000007";
     render(
       <SlotDetail
-        detail={emptyDetail}
+        detail={{
+          ...emptyDetail,
+          status: "reserved",
+          reservation: { id, guestName: "张女士", note: null },
+        }}
         display={detailDisplay}
         initialState={{
-          reserve: {
-            success: "预留成功",
-            result: {
-              id: "00000000-0000-4000-8000-000000000007",
-            },
-          },
+          reserve: { success: "预留成功", result: { id } },
         }}
       />,
     );
-    expect(screen.getByText("预留成功")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "回地图" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "查看车位" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "查看车位" }));
-    expect(screen.queryByText("预留成功")).not.toBeInTheDocument();
-    expect(screen.getByText("7号")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "登记进场" })).toBeInTheDocument();
+    expect(screen.getByText("正在返回地图…")).toBeInTheDocument();
+    expect(push).toHaveBeenCalledWith("/?done=reserve&slot=7&id=" + id);
+    expect(screen.queryByRole("button", { name: "撤销" })).toBeNull();
   });
 
   it("私人位借用只根据服务端更新的时间刷新剩余分钟和超时状态", () => {

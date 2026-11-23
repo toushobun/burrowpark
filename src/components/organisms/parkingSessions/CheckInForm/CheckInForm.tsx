@@ -35,6 +35,7 @@ import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/
 import { designTokens } from "theme/designTokens";
 
 import { compressPhoto } from "./compressPhoto";
+import { photoUploadFailed } from "./photoUploadStatus";
 
 type Props = {
   form: CheckInFormData | null;
@@ -107,12 +108,14 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
     }
     redirectedSession.current = result.sessionId;
     const params = new URLSearchParams({
-      checkedIn: form.code,
-      session: result.sessionId,
+      done: "checkin",
+      slot: form.code,
+      id: result.sessionId,
     });
-    if (!result.photoSaved) params.set("photo", "0");
+    // 未拍照时 photoSaved 也为 false，不能误报为照片上传失败。
+    if (photoUploadFailed(photo, result.photoSaved)) params.set("photo", "0");
     router.push("/?" + params.toString());
-  }, [state.result, form, router]);
+  }, [state.result, form, photo, router]);
 
   useEffect(
     () => () => {
@@ -248,7 +251,7 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
   const [customDays, setCustomDays] = useState(false);
   const [borrowMinutes, setBorrowMinutes] = useState<10 | 30 | null>(null);
   const [method, setMethod] = useState<keyof typeof paymentMethodLabels | null>(
-    null,
+    "wechat",
   );
   const defaultAmount = form
     ? (form.pricing.hotel_daily_price_cents / 100).toFixed(2)

@@ -69,6 +69,8 @@ function renderForm(
 describe("CheckInForm", () => {
   beforeEach(() => {
     push.mockReset();
+    action.mockReset();
+    action.mockResolvedValue({});
     vi.mocked(recognizePlate).mockReset();
     vi.mocked(preloadPlateModels).mockReset();
     vi.mocked(preloadPlateModels).mockResolvedValue(true);
@@ -134,13 +136,15 @@ describe("CheckInForm", () => {
     expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled();
   });
 
-  it("自动大写车牌并在输入完成前禁用提交", () => {
+  it("自动大写车牌，未输完整时禁用提交", () => {
     renderForm();
     const plate = screen.getByRole("textbox", { name: "车牌号码" });
     expect(screen.getByRole("button", { name: "确认登记" })).toBeDisabled();
+    fireEvent.change(plate, { target: { value: "粤" } });
+    expect(screen.getByRole("button", { name: "确认登记" })).toBeDisabled();
     fireEvent.change(plate, { target: { value: "粤b12345" } });
     expect(plate).toHaveValue("粤B12345");
-    expect(screen.getByRole("button", { name: "确认登记" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled();
   });
 
   it("选择住宿天数后更新交到时间和建议金额", () => {
@@ -160,13 +164,15 @@ describe("CheckInForm", () => {
     expect(screen.getByText("建议金额：900.00 元")).toBeInTheDocument();
   });
 
-  it("酒店客必须选择收款方式且金额必须大于零", () => {
+  it("酒店客默认选中微信且金额必须大于零", () => {
     renderForm();
     fireEvent.change(screen.getByRole("textbox", { name: "车牌号码" }), {
       target: { value: "粤B12345" },
     });
-    expect(screen.getByRole("button", { name: "确认登记" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "微信" }));
+    expect(screen.getByRole("button", { name: "微信" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled();
     fireEvent.change(screen.getByRole("textbox", { name: "实收金额（元）" }), {
       target: { value: "0" },
@@ -466,7 +472,7 @@ describe("CheckInForm", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("登记成功后携带车位与会话跳回地图且不包含车牌", async () => {
+  it("未拍照登记成功后只携带车位与会话，不误报照片失败", async () => {
     renderForm(
       {},
       {
@@ -481,7 +487,7 @@ describe("CheckInForm", () => {
     );
     await waitFor(() =>
       expect(push).toHaveBeenCalledWith(
-        "/?checkedIn=3&session=00000000-0000-4000-8000-000000000001&photo=0",
+        "/?done=checkin&slot=3&id=00000000-0000-4000-8000-000000000001",
       ),
     );
     expect(push.mock.calls[0][0]).not.toContain("粤B12345");
@@ -501,7 +507,7 @@ describe("CheckInForm", () => {
     );
     await waitFor(() =>
       expect(push).toHaveBeenCalledWith(
-        "/?checkedIn=3&session=00000000-0000-4000-8000-000000000001",
+        "/?done=checkin&slot=3&id=00000000-0000-4000-8000-000000000001",
       ),
     );
   });

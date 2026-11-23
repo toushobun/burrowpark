@@ -37,14 +37,17 @@ type Props = {
 const buttonSx = { minHeight: designTokens.size.touchTargetMin };
 
 export function CheckOutForm({
-  form,
+  form: currentForm,
   action,
   undoAction,
   initialState,
 }: Props) {
   const [state, submit, isPending] = useActionState(action, initialState ?? {});
+  const [initialForm] = useState(currentForm);
+  // 离场成功后车位已清空，后续 RSC 刷新不能盖掉原本的成功结果。
+  const form = currentForm ?? (state.result ? initialForm : null);
   const [undoState, undo, isUndoPending] = useActionState(undoAction, {});
-  const [method, setMethod] = useState<PaymentMethod | null>(null);
+  const [method, setMethod] = useState<PaymentMethod>("wechat");
   const [amount, setAmount] = useState(
     form?.suggestedAmountCents
       ? (form.suggestedAmountCents / 100).toFixed(2)

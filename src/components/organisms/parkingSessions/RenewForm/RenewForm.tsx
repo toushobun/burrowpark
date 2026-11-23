@@ -40,13 +40,21 @@ type Props = {
 };
 const buttonSx = { minHeight: designTokens.size.touchTargetMin };
 
-export function RenewForm({ form, action, undoAction, initialState }: Props) {
+export function RenewForm({
+  form: currentForm,
+  action,
+  undoAction,
+  initialState,
+}: Props) {
   const [state, submit, isPending] = useActionState(action, initialState ?? {});
+  const [initialForm] = useState(currentForm);
+  // 续费完成后页面可能重读出不再可续费的状态，结果区使用提交前的事实。
+  const form = currentForm ?? (state.result ? initialForm : null);
   const [undoState, undo, isUndoPending] = useActionState(undoAction, {});
   const [days, setDays] = useState(1);
   const [custom, setCustom] = useState(false);
   const [endDate, setEndDate] = useState(form?.defaultEndDate ?? "");
-  const [method, setMethod] = useState<PaymentMethod | null>(null);
+  const [method, setMethod] = useState<PaymentMethod>("wechat");
   const [amount, setAmount] = useState(
     form?.mode === "hotel_daily"
       ? (form.hotelDailyPriceCents / 100).toFixed(2)

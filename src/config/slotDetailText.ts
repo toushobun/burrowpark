@@ -33,7 +33,7 @@ export const slotDetailText = {
   borrow30: "再借 30 分钟",
   reserve: "预留",
   confirmReserve: "确认预留",
-  reservedSuccess: "预留成功",
+  cancel: "取消",
   cancelledSuccess: "预留已取消",
   extendedSuccess: "借用已延长",
   endedSuccess: "退租成功",

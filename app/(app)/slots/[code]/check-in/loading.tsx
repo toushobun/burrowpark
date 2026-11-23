@@ -1,6 +1,6 @@
 import { checkInText } from "config/checkInText";
-import { PageSkeleton } from "templates/layout/PageSkeleton/PageSkeleton";
+import { SlotActionSkeleton } from "organisms/slots/SlotActionSkeleton/SlotActionSkeleton";
 
 export default function Loading() {
-  return <PageSkeleton title={checkInText.title} rows={7} />;
+  return <SlotActionSkeleton title={checkInText.title} rows={7} />;
 }

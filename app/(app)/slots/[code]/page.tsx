@@ -9,7 +9,6 @@ import {
 import { loadSlotDetail } from "internal/parking/adapter/next/loadSlotDetail";
 import {
   reserveAction,
-  undoReservationAction,
   cancelReservationAction,
   undoCancelReservationAction,
   extendBorrowAction,
@@ -50,7 +49,7 @@ export default async function SlotDetailPage({
     : null;
 
   return (
-    <PageShell title={slotDetailText.pageTitle}>
+    <PageShell backHref="/" title={slotDetailText.pageTitle}>
       {detail?.kind === "private" && detail.presentVehicle && (
         <ReminderRefresh />
       )}
@@ -61,7 +60,6 @@ export default async function SlotDetailPage({
         today={getBusinessDate(now)}
         operations={{
           reserve: reserveAction,
-          undoReservation: undoReservationAction,
           cancelReservation: cancelReservationAction,
           undoCancelReservation: undoCancelReservationAction,
           extendBorrow: extendBorrowAction,

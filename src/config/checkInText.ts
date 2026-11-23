@@ -15,7 +15,6 @@ export const checkInText = {
   recognized: "已自动填入，请核对",
   recognitionFailed: "没认出来，请手动输入",
   recognitionSuggestion: (plate: string) => `识别结果：${plate}，点这里填入`,
-  photoUploadFailed: "照片没传上去，车已登记",
   photoPreview: "车头照片",
   billingType: "计费方式",
   days: "住宿天数",
@@ -29,12 +28,6 @@ export const checkInText = {
   minuteUnit: "分钟",
   submit: "确认登记",
   submitting: "登记中",
-  undo: "撤销",
-  close: "关闭提示",
-  toastSuccess: (slotName: string, plate: string) =>
-    "已登记 " + slotName + " " + plate,
-  undoing: "撤销中",
-  undone: "已撤销",
   backMap: "回地图",
   invalidPlate: "车牌应为 2～10 个字符",
 } as const;

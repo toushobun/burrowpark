@@ -48,10 +48,10 @@ describe("RenewForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "3 天" }));
     expect(screen.getByText("新的交到时间：11月2日 12:00")).toBeInTheDocument();
     expect(screen.getByText("建议金额：90.00 元")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "确认收款并续费" }),
-    ).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "微信" }));
+    expect(screen.getByRole("button", { name: "微信" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(
       screen.getByRole("button", { name: "确认收款并续费" }),
     ).toBeEnabled();
@@ -103,6 +103,34 @@ describe("RenewForm", () => {
     );
     expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
   });
+  it("续费成功后即使服务端表单数据消失也保留结果区", () => {
+    const initialState = {
+      success: "续费成功",
+      result: {
+        paymentId: "00000000-0000-4000-8000-000000000003",
+        paidUntil: "2026-11-02T04:00:00.000Z",
+      },
+    };
+    const { rerender } = render(
+      <RenewForm
+        form={hotel}
+        action={action}
+        undoAction={action}
+        initialState={initialState}
+      />,
+    );
+    rerender(
+      <RenewForm
+        form={null}
+        action={action}
+        undoAction={action}
+        initialState={initialState}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
+    expect(screen.queryByText("这个车位当前不能续费")).toBeNull();
+  });
+
   it("失败通过统一错误弹框反馈", () => {
     render(
       <RenewForm

@@ -11,39 +11,51 @@ import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 
-import { checkInText } from "config/checkInText";
-import { formatPlateForDisplay } from "internal/parking";
+import { operationText } from "config/operationText";
 import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/FailureFeedbackDialog";
 import { designTokens } from "theme/designTokens";
 import type { ActionState } from "types/actions";
+import type { OperationNotice } from "utils/operationNotice";
 
-export type CheckInNotice = {
-  code: string;
-  sessionId: string;
-  plate: string;
-  slotName: string;
-  photoSaved: boolean;
+export type UndoAction = (
+  state: ActionState,
+  data: FormData,
+) => Promise<ActionState>;
+
+export type OperationUndoActions = {
+  checkin: UndoAction;
+  reserve: UndoAction;
+  lease: UndoAction;
 };
 
+const undoField = {
+  checkin: "sessionId",
+  reserve: "reservationId",
+  lease: "leaseId",
+} as const;
+
 type Props = {
-  notice: CheckInNotice;
-  undoAction: (state: ActionState, data: FormData) => Promise<ActionState>;
+  notice: OperationNotice;
+  undoActions: OperationUndoActions;
   onUndone: () => void;
   onUndoStart?: () => void;
   onDismiss?: () => void;
   initialState?: ActionState;
 };
 
-export function CheckInToast({
+export function OperationToast({
   notice,
-  undoAction,
+  undoActions,
   onUndone,
   onUndoStart,
   onDismiss,
   initialState,
 }: Props) {
   const router = useRouter();
-  const [state, undo, pending] = useActionState(undoAction, initialState ?? {});
+  const [state, undo, pending] = useActionState(
+    undoActions[notice.kind],
+    initialState ?? {},
+  );
   const [closed, setClosed] = useState(false);
 
   useEffect(() => {
@@ -84,15 +96,16 @@ export function CheckInToast({
             fontSize: designTokens.typography.bodySize,
             width: "100%",
             "& .MuiAlert-action": { alignItems: "center", ml: 1, mr: 0, p: 0 },
+            "& .MuiAlert-message": { minWidth: 0, overflowWrap: "anywhere" },
           }}
           action={
             <Stack direction="row" sx={{ alignItems: "center" }}>
               {!state.success && (
                 <form action={undo} onSubmit={onUndoStart}>
                   <input
-                    name="sessionId"
+                    name={undoField[notice.kind]}
                     type="hidden"
-                    value={notice.sessionId}
+                    value={notice.id}
                   />
                   <Button
                     color="inherit"
@@ -108,13 +121,13 @@ export function CheckInToast({
                     {pending ? (
                       <CircularProgress color="inherit" size={24} />
                     ) : (
-                      checkInText.undo
+                      operationText.undo
                     )}
                   </Button>
                 </form>
               )}
               <IconButton
-                aria-label={checkInText.close}
+                aria-label={operationText.close}
                 color="inherit"
                 onClick={close}
                 sx={{
@@ -135,21 +148,18 @@ export function CheckInToast({
                 fontWeight: 700,
               }}
             >
-              {state.success
-                ? checkInText.undone
-                : checkInText.toastSuccess(
-                    notice.slotName,
-                    formatPlateForDisplay(notice.plate),
-                  )}
+              {state.success ? operationText.undone : notice.message}
             </Typography>
-            {!state.success && !notice.photoSaved && (
-              <Typography
-                component="span"
-                sx={{ fontSize: designTokens.typography.bodySize }}
-              >
-                {checkInText.photoUploadFailed}
-              </Typography>
-            )}
+            {notice.kind === "checkin" &&
+              notice.photoSaved === false &&
+              !state.success && (
+                <Typography
+                  component="span"
+                  sx={{ fontSize: designTokens.typography.bodySize }}
+                >
+                  {operationText.photoUploadFailed}
+                </Typography>
+              )}
           </Stack>
         </Alert>
       </Snackbar>
