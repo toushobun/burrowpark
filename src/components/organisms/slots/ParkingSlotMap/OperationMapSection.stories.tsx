@@ -16,6 +16,11 @@ const meta = {
       checkin: noopAction,
       reserve: noopAction,
       lease: noopAction,
+      checkout: noopAction,
+      renew: noopAction,
+      cancel: noopAction,
+      extend: noopAction,
+      end: noopAction,
     },
     notice: {
       kind: "checkin",
@@ -42,6 +47,16 @@ type Story = StoryObj<typeof OperationMapSection>;
 export const JustCheckedIn: Story = {};
 export const PhotoUploadFailed: Story = {
   args: { notice: { ...meta.args.notice, photoSaved: false } },
+};
+export const JustCheckedOut: Story = {
+  args: {
+    slots: emptySlotMapSlots,
+    notice: {
+      ...meta.args.notice,
+      kind: "checkout",
+      message: "离场成功：辽A·12345",
+    },
+  },
 };
 export const JustReserved: Story = {
   args: {

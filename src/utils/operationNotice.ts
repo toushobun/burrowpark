@@ -5,11 +5,19 @@ import { formatPlateForDisplay } from "internal/parking";
 import type { OperationParams } from "./operationParams";
 
 export type OperationNotice = {
-  kind: OperationParams["done"];
+  kind:
+    | OperationParams["done"]
+    | "checkout"
+    | "renew"
+    | "cancel"
+    | "extend"
+    | "end"
+    | "edit";
   code: string;
   id: string;
   message: string;
   photoSaved?: boolean;
+  extraUndoFields?: { name: string; value: string }[];
 };
 
 /** URL 的 id 只作定位，服务端实际记录不吻合时不展示完成提示。 */

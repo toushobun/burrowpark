@@ -109,7 +109,7 @@ export const ReserveRedirecting: Story = {
     },
   },
 };
-export const CancelReservationSuccess: Story = {
+export const CancelReservationRedirecting: Story = {
   args: {
     detail: {
       ...emptyDetail,
@@ -128,7 +128,7 @@ export const CancelReservationSuccess: Story = {
     },
   },
 };
-export const ExtendBorrowSuccess: Story = {
+export const ExtendBorrowRedirecting: Story = {
   args: {
     detail: privateBorrowedDetail,
     initialState: {
@@ -143,7 +143,7 @@ export const ExtendBorrowSuccess: Story = {
     },
   },
 };
-export const EndLeaseSuccess: Story = {
+export const EndLeaseRedirecting: Story = {
   args: {
     detail: leaseAwayDetail,
     initialState: {

@@ -15,6 +15,9 @@ const hotel: RenewFormData = {
   plate: "粤B12345",
 };
 const action = vi.fn(async () => ({}));
+const push = vi.fn();
+const replace = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }) }));
 describe("RenewForm", () => {
   it("长租的当前交到时间在当天中午时，允许续到当天 23:59:59", () => {
     render(
@@ -26,7 +29,6 @@ describe("RenewForm", () => {
           defaultEndDate: "2026-11-30",
         }}
         action={action}
-        undoAction={action}
       />,
     );
     fireEvent.change(screen.getByLabelText("续到哪天"), {
@@ -41,7 +43,7 @@ describe("RenewForm", () => {
     ).toBeEnabled();
   });
   it("过期酒店客从旧交到日期顺延并随天数调整金额", () => {
-    render(<RenewForm form={hotel} action={action} undoAction={action} />);
+    render(<RenewForm form={hotel} action={action} />);
     expect(
       screen.getByText("新的交到时间：10月31日 12:00"),
     ).toBeInTheDocument();
@@ -66,7 +68,6 @@ describe("RenewForm", () => {
           paidUntil: "2026-10-31T15:59:59.000Z",
         }}
         action={action}
-        undoAction={action}
       />,
     );
     expect(screen.queryByRole("button", { name: "1 天" })).toBeNull();
@@ -77,12 +78,11 @@ describe("RenewForm", () => {
       screen.getByRole("button", { name: "确认收款并续租" }),
     ).toBeDisabled();
   });
-  it("续费成功后常驻三按钮结果区", () => {
+  it("续费成功直接返回地图而不显示独立成功页", () => {
     render(
       <RenewForm
         form={hotel}
         action={action}
-        undoAction={action}
         initialState={{
           success: "续费成功",
           successKey: "ok",
@@ -93,17 +93,11 @@ describe("RenewForm", () => {
         }}
       />,
     );
-    expect(screen.getByRole("link", { name: "回地图" })).toHaveAttribute(
-      "href",
-      "/",
-    );
-    expect(screen.getByRole("link", { name: "查看车位" })).toHaveAttribute(
-      "href",
-      "/slots/3",
-    );
-    expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
+    expect(replace).toHaveBeenCalledWith("/");
+    expect(screen.getByText("正在返回地图…")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "撤销" })).toBeNull();
   });
-  it("续费成功后即使服务端表单数据消失也保留结果区", () => {
+  it("续费成功后即使服务端表单数据消失也保留返回地图状态", () => {
     const initialState = {
       success: "续费成功",
       result: {
@@ -112,22 +106,12 @@ describe("RenewForm", () => {
       },
     };
     const { rerender } = render(
-      <RenewForm
-        form={hotel}
-        action={action}
-        undoAction={action}
-        initialState={initialState}
-      />,
+      <RenewForm form={hotel} action={action} initialState={initialState} />,
     );
     rerender(
-      <RenewForm
-        form={null}
-        action={action}
-        undoAction={action}
-        initialState={initialState}
-      />,
+      <RenewForm form={null} action={action} initialState={initialState} />,
     );
-    expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
+    expect(screen.getByText("正在返回地图…")).toBeInTheDocument();
     expect(screen.queryByText("这个车位当前不能续费")).toBeNull();
   });
 
@@ -136,7 +120,6 @@ describe("RenewForm", () => {
       <RenewForm
         form={hotel}
         action={action}
-        undoAction={action}
         initialState={{ error: "已经不能撤销了", errorKey: "err" }}
       />,
     );

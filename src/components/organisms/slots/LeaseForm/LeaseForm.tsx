@@ -1,8 +1,6 @@
 "use client";
 
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -11,7 +9,6 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 
 import { leaseText } from "config/leaseText";
-import { operationText } from "config/operationText";
 import { parkingOperationText } from "config/renewAndCheckOutText";
 import type { SlotDetail } from "internal/parking";
 import {
@@ -20,6 +17,8 @@ import {
 } from "internal/parking";
 import type { SlotActionState } from "internal/parking/adapter/next/slotOperationsActions";
 import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/FailureFeedbackDialog";
+import { OperationRedirecting } from "molecules/feedback/OperationRedirecting/OperationRedirecting";
+import { useOperationFeedback } from "providers/OperationFeedbackProvider";
 import {
   PaymentAmountField,
   PaymentMethodChoices,
@@ -51,6 +50,8 @@ export function LeaseForm({
   initialState,
 }: Props) {
   const router = useRouter();
+  const { showNotice } = useOperationFeedback();
+  const redirectedEdit = useRef(false);
   const [state, submit, isPending] = useActionState(
     action,
     initialState ?? ({} as SlotActionState),
@@ -89,44 +90,32 @@ export function LeaseForm({
     router.push("/?" + params.toString());
   }, [creating, detail, router, state.result?.id, state.success]);
 
+  useEffect(() => {
+    if (
+      creating ||
+      !state.success ||
+      !detail?.lease?.id ||
+      redirectedEdit.current
+    ) {
+      return;
+    }
+    redirectedEdit.current = true;
+    showNotice({
+      kind: "edit",
+      code: detail.code,
+      id: detail.lease.id,
+      message: leaseText.editSuccess,
+    });
+    router.replace("/");
+  }, [creating, detail, router, showNotice, state.success]);
+
   // 成功后服务端重新验证时车位已有长租，不能先按新建权限拦截成功状态。
   if (creating && state.success) {
-    return (
-      <Stack spacing={2} sx={{ alignItems: "center" }}>
-        <CircularProgress aria-label={operationText.returning} />
-        <Typography variant="h2">{operationText.returning}</Typography>
-      </Stack>
-    );
+    return <OperationRedirecting />;
   }
 
   if (!creating && state.success) {
-    return (
-      <Stack spacing={2}>
-        <Paper variant="outlined" sx={{ p: 3 }}>
-          <Typography variant="h2">{leaseText.editSuccess}</Typography>
-        </Paper>
-        <Button
-          component={Link}
-          href="/"
-          variant="contained"
-          size="large"
-          fullWidth
-          sx={buttonSx}
-        >
-          {parkingOperationText.backMap}
-        </Button>
-        <Button
-          component={Link}
-          href={detail ? `/slots/${detail.code}` : "/"}
-          variant="outlined"
-          size="large"
-          fullWidth
-          sx={buttonSx}
-        >
-          {parkingOperationText.viewSlot}
-        </Button>
-      </Stack>
-    );
+    return <OperationRedirecting />;
   }
 
   const canAccess =

@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import {
+  OperationFeedbackProvider,
+  useOperationFeedback,
+} from "providers/OperationFeedbackProvider";
 import { OperationMapSection } from "./OperationMapSection";
 
 vi.mock("./ParkingSlotMap", () => ({
@@ -37,9 +41,51 @@ const notice = {
   message: "已预留 12号（张三）",
 };
 const undo = async () => ({});
-const undoActions = { checkin: undo, reserve: undo, lease: undo };
+const undoActions = {
+  checkin: undo,
+  reserve: undo,
+  lease: undo,
+  checkout: undo,
+  renew: undo,
+  cancel: undo,
+  extend: undo,
+  end: undo,
+};
+
+function ShowRecentNotice() {
+  const { showNotice } = useOperationFeedback();
+  return (
+    <button onClick={() => showNotice({ ...notice, kind: "checkout" })}>
+      显示离场成功
+    </button>
+  );
+}
 
 describe("OperationMapSection", () => {
+  it("跨页面保存的离场提示可在地图显示并关闭", () => {
+    render(
+      <OperationFeedbackProvider>
+        <ShowRecentNotice />
+        <OperationMapSection
+          slots={[]}
+          notice={null}
+          undoActions={undoActions}
+        />
+      </OperationFeedbackProvider>,
+    );
+    expect(screen.queryByTestId("operation-toast")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "显示离场成功" }));
+    expect(screen.getByTestId("operation-toast")).toHaveTextContent("12");
+    fireEvent.click(screen.getByRole("button", { name: "撤销成功" }));
+    expect(screen.getByTestId("map")).toHaveAttribute("data-highlight", "");
+    fireEvent.click(screen.getByRole("button", { name: "显示离场成功" }));
+    expect(screen.getByTestId("map")).toHaveAttribute("data-highlight", "12");
+    fireEvent.click(screen.getByRole("button", { name: "撤销成功" }));
+    expect(screen.getByTestId("map")).toHaveAttribute("data-highlight", "");
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    expect(screen.queryByTestId("operation-toast")).toBeNull();
+  });
+
   it("撤销刷新首页后仍显示成功提示直到关闭，红框同时消失", () => {
     const props = { slots: [], undoActions, queryId: notice.id };
     const initial = <OperationMapSection {...props} notice={notice} />;

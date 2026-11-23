@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import { useCallback, useState } from "react";
 
 import type { SlotMapSlot } from "internal/parking";
+import { useOperationFeedback } from "providers/OperationFeedbackProvider";
 import {
   OperationToast,
   type OperationUndoActions,
@@ -25,14 +26,22 @@ export function OperationMapSection({
   queryId,
   undoActions,
 }: Props) {
+  const {
+    notice: submittedNotice,
+    sequence,
+    dismissNotice,
+  } = useOperationFeedback();
   const [retainedNotice, setRetainedNotice] = useState<OperationNotice | null>(
     null,
   );
   const [pendingUndoId, setPendingUndoId] = useState<string | null>(null);
-  const [undoneId, setUndoneId] = useState<string | null>(null);
-  // 撤销会刷新服务端记录：保留原提示到撤销完成后 3 秒。
+  const [undoneNotice, setUndoneNotice] = useState<OperationNotice | null>(
+    null,
+  );
+  // 撤销会刷新服务端记录，临时保留原提示直至撤销成功。
   const visibleNotice =
     notice ??
+    submittedNotice ??
     (retainedNotice?.id === pendingUndoId && pendingUndoId === queryId
       ? retainedNotice
       : null);
@@ -43,24 +52,25 @@ export function OperationMapSection({
     setPendingUndoId(visibleNotice.id);
   }, [visibleNotice]);
   const onUndone = useCallback(() => {
-    setUndoneId(visibleNotice?.id ?? null);
-  }, [visibleNotice?.id]);
+    setUndoneNotice(visibleNotice ?? null);
+  }, [visibleNotice]);
   const onDismiss = useCallback(() => {
     setRetainedNotice(null);
     setPendingUndoId(null);
-  }, []);
+    dismissNotice();
+  }, [dismissNotice]);
 
   return (
     <Box sx={{ pb: visibleNotice ? 24 : 0 }}>
       <ParkingSlotMap
         highlightCode={
-          undoneId !== visibleNotice?.id ? visibleNotice?.code : undefined
+          undoneNotice !== visibleNotice ? visibleNotice?.code : undefined
         }
         slots={slots}
       />
       {visibleNotice && (
         <OperationToast
-          key={visibleNotice.kind + ":" + visibleNotice.id}
+          key={`${visibleNotice.kind}:${visibleNotice.id}:${sequence}`}
           notice={visibleNotice}
           onDismiss={onDismiss}
           onUndoStart={onUndoStart}

@@ -39,7 +39,16 @@ const lease: OperationNotice = {
 
 function actions(): OperationUndoActions {
   const run = async (_state: ActionState, _data: FormData) => ({});
-  return { checkin: vi.fn(run), reserve: vi.fn(run), lease: vi.fn(run) };
+  return {
+    checkin: vi.fn(run),
+    reserve: vi.fn(run),
+    lease: vi.fn(run),
+    checkout: vi.fn(run),
+    renew: vi.fn(run),
+    cancel: vi.fn(run),
+    extend: vi.fn(run),
+    end: vi.fn(run),
+  };
 }
 
 function renderToast(
@@ -78,11 +87,16 @@ describe("OperationToast", () => {
     expect(screen.getByText("照片没传上去，车已登记")).toBeInTheDocument();
   });
 
-  it("三种撤销分别调用对应的 action 和字段", async () => {
+  it("八种撤销分别调用对应的 action 和字段", async () => {
     const variants = [
       ["checkin", "sessionId"],
       ["reserve", "reservationId"],
       ["lease", "leaseId"],
+      ["checkout", "sessionId"],
+      ["renew", "paymentId"],
+      ["cancel", "reservationId"],
+      ["extend", "sessionId"],
+      ["end", "leaseId"],
     ] as const;
     for (const [kind, field] of variants) {
       const undoActions = actions();
@@ -95,6 +109,32 @@ describe("OperationToast", () => {
       expect(data.get(field)).toBe(id);
       view.unmount();
     }
+  });
+
+  it("无需撤销的编辑完成只显示提示", () => {
+    renderToast({ ...lease, kind: "edit", message: "长租资料已保存" });
+    expect(screen.getByText("长租资料已保存")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "撤销" })).toBeNull();
+  });
+
+  it("延长借用时一并发送原时间与预期时间", async () => {
+    const undoActions = actions();
+    const notice: OperationNotice = {
+      ...checkin,
+      kind: "extend",
+      extraUndoFields: [
+        { name: "previous", value: "2026-11-23T00:00:00.000Z" },
+        { name: "expectedCurrent", value: "2026-11-23T00:10:00.000Z" },
+      ],
+    };
+    renderToast(notice, undoActions);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+    });
+    await waitFor(() => expect(undoActions.extend).toHaveBeenCalledOnce());
+    const data = vi.mocked(undoActions.extend).mock.calls[0][1];
+    expect(data.get("previous")).toBe("2026-11-23T00:00:00.000Z");
+    expect(data.get("expectedCurrent")).toBe("2026-11-23T00:10:00.000Z");
   });
 
   it("撤销成功展示已撤销并关闭撤销按钮", async () => {
@@ -115,13 +155,15 @@ describe("OperationToast", () => {
     expect(screen.queryByRole("button", { name: "撤销" })).toBeNull();
   });
 
-  it("撤销三秒后清除参数，关闭按钮立即清除参数", () => {
+  it("提示十秒后自动关闭，手动关闭立即清除参数", () => {
     vi.useFakeTimers();
     const onUndone = vi.fn();
     const success: ActionState = { success: "已撤销", successKey: "ok" };
     const view = renderToast(reserve, actions(), onUndone, success);
     expect(onUndone).toHaveBeenCalled();
-    act(() => vi.advanceTimersByTime(3000));
+    act(() => vi.advanceTimersByTime(9999));
+    expect(replace).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
     expect(replace).toHaveBeenCalledWith("/");
     view.unmount();
     vi.useRealTimers();
