@@ -11,10 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ActionState } from "types/actions";
 import type { OperationNotice } from "utils/operationNotice";
 
-import {
-  OperationToast,
-  type OperationUndoActions,
-} from "./OperationToast";
+import { OperationToast, type OperationUndoActions } from "./OperationToast";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
