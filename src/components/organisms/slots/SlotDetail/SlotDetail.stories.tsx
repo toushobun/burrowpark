@@ -90,8 +90,17 @@ export const LeaseOccupied: Story = {
     },
   },
 };
-export const ReserveSuccess: Story = {
+export const ReserveRedirecting: Story = {
   args: {
+    detail: {
+      ...emptyDetail,
+      status: "reserved",
+      reservation: {
+        id: "00000000-0000-4000-8000-000000000007",
+        guestName: "张女士",
+        note: null,
+      },
+    },
     initialState: {
       reserve: {
         success: "预留成功",

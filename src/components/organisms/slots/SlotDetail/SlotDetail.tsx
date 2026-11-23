@@ -90,7 +90,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** 首页详情只保留最多两个主操作；低频操作集中在「更多操作」。 */
+/** 高频操作直接展示；编辑长租、退租等低频操作集中在「更多操作」。 */
 export function SlotDetail(props: SlotDetailProps) {
   const [resetKey, setResetKey] = useState(0);
   return (

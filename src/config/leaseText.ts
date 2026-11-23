@@ -12,6 +12,5 @@ export const leaseText = {
   paymentMethod: "收款方式",
   create: "确认建立长租",
   edit: "保存长租资料",
-  createSuccess: "长租建立成功",
   editSuccess: "长租资料已保存",
 } as const;

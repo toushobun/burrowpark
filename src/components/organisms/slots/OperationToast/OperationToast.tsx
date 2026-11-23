@@ -96,6 +96,7 @@ export function OperationToast({
             fontSize: designTokens.typography.bodySize,
             width: "100%",
             "& .MuiAlert-action": { alignItems: "center", ml: 1, mr: 0, p: 0 },
+            "& .MuiAlert-message": { minWidth: 0, overflowWrap: "anywhere" },
           }}
           action={
             <Stack direction="row" sx={{ alignItems: "center" }}>

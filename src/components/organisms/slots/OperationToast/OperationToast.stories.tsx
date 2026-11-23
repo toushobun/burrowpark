@@ -55,6 +55,15 @@ export const Leased: Story = {
     },
   },
 };
+export const LongTenantName: Story = {
+  args: {
+    notice: {
+      ...notice,
+      kind: "lease",
+      message: "12号已设为长租（ABC国际贸易公司长期租赁客户）",
+    },
+  },
+};
 export const Undone: Story = {
   args: {
     initialState: { success: "已撤销", successKey: "storybook-undo" },
