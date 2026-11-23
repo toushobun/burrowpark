@@ -20,12 +20,12 @@ vi.mock("organisms/slots/OperationToast/OperationToast", () => ({
     onUndone,
     onDismiss,
   }: {
-    notice: { code: string };
+    notice: { code: string; kind: string };
     onUndoStart: () => void;
     onUndone: () => void;
     onDismiss: () => void;
   }) => (
-    <div data-testid="operation-toast">
+    <div data-testid="operation-toast" data-kind={notice.kind}>
       {notice.code}
       <button onClick={onUndoStart}>开始撤销</button>
       <button onClick={onUndone}>撤销成功</button>
@@ -99,6 +99,35 @@ describe("OperationMapSection", () => {
     expect(screen.getByTestId("map")).toHaveAttribute("data-highlight", "");
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));
     expect(screen.queryByTestId("operation-toast")).toBeNull();
+  });
+
+  it("撤销 URL 操作后旧的跨页面提示不能覆盖当前撤销反馈", () => {
+    const props = { slots: [], undoActions, queryId: notice.id };
+    const view = (urlNotice: typeof notice | null) => (
+      <OperationFeedbackProvider>
+        <ShowRecentNotice />
+        <OperationMapSection {...props} notice={urlNotice} />
+      </OperationFeedbackProvider>
+    );
+    const { rerender } = render(view(null));
+    fireEvent.click(screen.getByRole("button", { name: "显示离场成功" }));
+    expect(screen.getByTestId("operation-toast")).toHaveAttribute(
+      "data-kind",
+      "checkout",
+    );
+    rerender(view(notice));
+    expect(screen.getByTestId("operation-toast")).toHaveAttribute(
+      "data-kind",
+      "reserve",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "开始撤销" }));
+    rerender(view(null));
+    expect(screen.getByTestId("operation-toast")).toHaveAttribute(
+      "data-kind",
+      "reserve",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "撤销成功" }));
+    expect(screen.getByTestId("map")).toHaveAttribute("data-highlight", "");
   });
 
   it("查询参数清除后不会留下旧提示", () => {

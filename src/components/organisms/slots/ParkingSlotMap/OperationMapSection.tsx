@@ -38,13 +38,12 @@ export function OperationMapSection({
   const [undoneNotice, setUndoneNotice] = useState<OperationNotice | null>(
     null,
   );
-  // 撤销会刷新服务端记录，临时保留原提示直至撤销成功。
-  const visibleNotice =
-    notice ??
-    submittedNotice ??
-    (retainedNotice?.id === pendingUndoId && pendingUndoId === queryId
+  // 撤销刷新后必须优先保留当前结果，避免此前跨页面保存的提示覆盖它。
+  const retainedUndoNotice =
+    retainedNotice?.id === pendingUndoId && pendingUndoId === queryId
       ? retainedNotice
-      : null);
+      : null;
+  const visibleNotice = notice ?? retainedUndoNotice ?? submittedNotice;
 
   const onUndoStart = useCallback(() => {
     if (!visibleNotice) return;
