@@ -1,11 +1,18 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   OperationFeedbackProvider,
   useOperationFeedback,
 } from "providers/OperationFeedbackProvider";
 import { OperationMapSection } from "./OperationMapSection";
+
+const navigation = vi.hoisted(() => ({ pathname: "/" }));
+const replace = vi.fn();
+vi.mock("next/navigation", () => ({
+  usePathname: () => navigation.pathname,
+  useRouter: () => ({ replace }),
+}));
 
 vi.mock("./ParkingSlotMap", () => ({
   ParkingSlotMap: ({ highlightCode }: { highlightCode?: string }) => (
@@ -62,6 +69,36 @@ function ShowRecentNotice() {
 }
 
 describe("OperationMapSection", () => {
+  beforeEach(() => {
+    navigation.pathname = "/";
+    replace.mockClear();
+  });
+
+  it("消费 URL 成功提示后清理历史参数，离开再返回不会重新出现", () => {
+    const view = (urlNotice: typeof notice | null, onMap = true) => (
+      <OperationFeedbackProvider>
+        {onMap ? (
+          <OperationMapSection
+            slots={[]}
+            notice={urlNotice}
+            queryId={urlNotice?.id ?? null}
+            undoActions={undoActions}
+          />
+        ) : (
+          <div>车位详情页</div>
+        )}
+      </OperationFeedbackProvider>
+    );
+    const { rerender } = render(view(notice));
+    expect(replace).toHaveBeenCalledWith("/");
+    rerender(view(null));
+    expect(screen.getByTestId("operation-toast")).toBeInTheDocument();
+    navigation.pathname = "/slots/12";
+    rerender(view(null, false));
+    navigation.pathname = "/";
+    rerender(view(null));
+    expect(screen.queryByTestId("operation-toast")).toBeNull();
+  });
   it("跨页面保存的离场提示可在地图显示并关闭", () => {
     render(
       <OperationFeedbackProvider>

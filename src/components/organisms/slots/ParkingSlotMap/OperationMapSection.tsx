@@ -1,7 +1,8 @@
 "use client";
 
 import Box from "@mui/material/Box";
-import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { SlotMapSlot } from "internal/parking";
 import { useOperationFeedback } from "providers/OperationFeedbackProvider";
@@ -26,11 +27,23 @@ export function OperationMapSection({
   queryId,
   undoActions,
 }: Props) {
+  const router = useRouter();
+  const consumedUrlNotice = useRef<string | null>(null);
   const {
     notice: submittedNotice,
     sequence,
+    showNotice,
     dismissNotice,
   } = useOperationFeedback();
+  useEffect(() => {
+    if (!notice || !queryId) return;
+    const key = `${notice.kind}:${queryId}`;
+    if (consumedUrlNotice.current === key) return;
+    consumedUrlNotice.current = key;
+    // URL 提示已经过服务端验证，转为一次性状态后清理历史记录中的参数。
+    showNotice(notice);
+    router.replace("/");
+  }, [notice, queryId, router, showNotice]);
   const [retainedNotice, setRetainedNotice] = useState<OperationNotice | null>(
     null,
   );
@@ -44,6 +57,9 @@ export function OperationMapSection({
       ? retainedNotice
       : null;
   const visibleNotice = notice ?? retainedUndoNotice ?? submittedNotice;
+  // URL 提示转入 Provider 时保留 Toast 实例，避免重置撤销进度与倒计时。
+  const toastSequence =
+    notice && submittedNotice !== notice ? sequence + 1 : sequence;
 
   const onUndoStart = useCallback(() => {
     if (!visibleNotice) return;
@@ -69,7 +85,7 @@ export function OperationMapSection({
       />
       {visibleNotice && (
         <OperationToast
-          key={`${visibleNotice.kind}:${visibleNotice.id}:${sequence}`}
+          key={`${visibleNotice.kind}:${visibleNotice.id}:${toastSequence}`}
           notice={visibleNotice}
           onDismiss={onDismiss}
           onUndoStart={onUndoStart}
