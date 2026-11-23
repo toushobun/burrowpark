@@ -1,9 +1,11 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -35,11 +37,21 @@ export function OperationFeedbackProvider({
 }: {
   children: ReactNode;
 }) {
+  const pathname = usePathname();
+  const previousPathname = useRef(pathname);
   const [current, setCurrent] = useState<{
     notice: OperationNotice;
     sequence: number;
   } | null>(null);
   const sequence = useRef(0);
+  useEffect(() => {
+    // 离开地图时清除旧提示；其他页面操作成功后仍可带新提示回到地图。
+    if (previousPathname.current === "/" && pathname !== "/") {
+      setCurrent(null);
+    }
+    previousPathname.current = pathname;
+  }, [pathname]);
+
   const showNotice = useCallback((value: OperationNotice) => {
     sequence.current += 1;
     setCurrent({ notice: value, sequence: sequence.current });
