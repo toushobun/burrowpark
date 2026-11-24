@@ -6,11 +6,10 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 
-import { renewText, parkingOperationText } from "config/renewAndCheckOutText";
+import { renewText } from "config/renewAndCheckOutText";
 import type { RenewFormData } from "internal/parking";
 import {
   extendHotelPaidUntil,
@@ -81,16 +80,6 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
     return (
       <Stack spacing={3}>
         <Typography variant="h2">{renewText.missing}</Typography>
-        <Button
-          component={Link}
-          href="/"
-          size="large"
-          fullWidth
-          variant="contained"
-          sx={buttonSx}
-        >
-          {parkingOperationText.backMap}
-        </Button>
       </Stack>
     );
   }
@@ -260,16 +249,6 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
               </Button>
             </Stack>
           </form>
-          <Button
-            component={Link}
-            href="/"
-            fullWidth
-            size="large"
-            variant="outlined"
-            sx={buttonSx}
-          >
-            {parkingOperationText.backMap}
-          </Button>
         </Stack>
       )}
       <FailureFeedbackDialog state={state} />

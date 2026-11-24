@@ -14,10 +14,10 @@ describe("PageSkeleton", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: "收费设置" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "返回" })).toHaveAttribute(
-      "href",
-      "/settings",
-    );
+    const backLink = screen.getByRole("link", { name: "返回" });
+    expect(backLink).toHaveAttribute("href", "/settings");
+    expect(screen.getByRole("contentinfo")).toContainElement(backLink);
+    expect(screen.getByRole("banner")).not.toContainElement(backLink);
     expect(
       screen.getByRole("main").querySelectorAll(".MuiSkeleton-root"),
     ).toHaveLength(4);

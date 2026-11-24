@@ -12,7 +12,6 @@ export const slotSettingsText = {
   },
   private: "私人位",
   active: "启用",
-  back: "返回设置",
   confirm: "确定",
   cancel: "取消",
   setPrivate: (name: string) => "确定把 " + name + " 设为私人位吗？",

@@ -13,7 +13,7 @@ export default async function RenewPage({
   const form = await loadRenewForm(code);
   return (
     <PageShell
-      backHref={"/slots/" + code}
+      backHref={form ? "/slots/" + code : "/"}
       title={form?.mode === "lease" ? renewText.leaseTitle : renewText.title}
     >
       <RenewForm form={form} action={renewAction} />

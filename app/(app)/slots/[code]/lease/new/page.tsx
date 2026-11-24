@@ -15,7 +15,10 @@ export default async function NewLeasePage({
   const detail = await loadSlotDetail(code, now);
   const today = getBusinessDate(now);
   return (
-    <PageShell backHref={"/slots/" + code} title={leaseText.createTitle}>
+    <PageShell
+      backHref={detail ? "/slots/" + code : "/"}
+      title={leaseText.createTitle}
+    >
       <LeaseForm
         mode="create"
         detail={detail}

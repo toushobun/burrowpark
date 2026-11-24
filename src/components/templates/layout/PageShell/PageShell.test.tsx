@@ -80,19 +80,19 @@ describe("PageShell", () => {
     );
   });
 
-  it("传入 backHref 时显示可点击的返回链接", () => {
+  it("传入 backHref 时仅在页面底部显示返回链接", () => {
     render(
       <PageShell title="收费设置" backHref="/settings">
         内容
       </PageShell>,
     );
-    expect(screen.getByRole("link", { name: "返回" })).toHaveAttribute(
-      "href",
-      "/settings",
-    );
+    const link = screen.getByRole("link", { name: "返回" });
+    expect(link).toHaveAttribute("href", "/settings");
+    expect(screen.getByRole("contentinfo")).toContainElement(link);
+    expect(screen.getByRole("banner").querySelector("a")).toBeNull();
   });
 
-  it("未传 footer 时不渲染底部区域", () => {
+  it("没有底部操作和返回地址时不渲染底部区域", () => {
     render(<PageShell title="途泊属">内容</PageShell>);
 
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();

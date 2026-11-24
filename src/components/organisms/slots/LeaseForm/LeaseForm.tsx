@@ -4,12 +4,10 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 
 import { leaseText } from "config/leaseText";
-import { parkingOperationText } from "config/renewAndCheckOutText";
 import type { SlotDetail } from "internal/parking";
 import {
   defaultLeasePaidThrough,
@@ -130,16 +128,6 @@ export function LeaseForm({
         <Typography component="h2" variant="h2">
           {leaseText.missing}
         </Typography>
-        <Button
-          component={Link}
-          href="/"
-          variant="contained"
-          size="large"
-          fullWidth
-          sx={buttonSx}
-        >
-          {parkingOperationText.backMap}
-        </Button>
       </Stack>
     );
   }
@@ -258,16 +246,6 @@ export function LeaseForm({
             disabled={!canSubmit}
           >
             {creating ? leaseText.create : leaseText.edit}
-          </Button>
-          <Button
-            component={Link}
-            href={`/slots/${detail.code}`}
-            variant="outlined"
-            size="large"
-            fullWidth
-            sx={buttonSx}
-          >
-            {parkingOperationText.viewSlot}
           </Button>
         </Stack>
       </form>

@@ -1,6 +1,5 @@
 "use client";
 
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
@@ -20,7 +19,6 @@ type PageShellProps = {
   footer?: ReactNode;
   headerAction?: ReactNode;
   backHref?: string;
-  backLabel?: string;
   children: ReactNode;
 };
 
@@ -31,7 +29,6 @@ export function PageShell({
   footer,
   headerAction,
   backHref,
-  backLabel = commonText.back,
   children,
 }: PageShellProps) {
   return (
@@ -56,30 +53,9 @@ export function PageShell({
           spacing={1}
           sx={{ alignItems: "center", justifyContent: "space-between" }}
         >
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ alignItems: "center", minWidth: 0 }}
-          >
-            {backHref && (
-              <Button
-                component={Link}
-                href={backHref}
-                size="large"
-                startIcon={<ChevronLeftIcon />}
-                sx={{
-                  flexShrink: 0,
-                  minHeight: designTokens.size.touchTargetMin,
-                }}
-                variant="text"
-              >
-                {backLabel}
-              </Button>
-            )}
-            <Typography component="h1" variant="h1">
-              {title}
-            </Typography>
-          </Stack>
+          <Typography component="h1" variant="h1">
+            {title}
+          </Typography>
           {headerAction}
         </Stack>
         {subtitle && (
@@ -98,7 +74,7 @@ export function PageShell({
       >
         {children}
       </Box>
-      {footer && (
+      {(footer || backHref) && (
         <Box
           component="footer"
           sx={{
@@ -111,7 +87,21 @@ export function PageShell({
             px: 2,
           }}
         >
-          {footer}
+          <Stack spacing={2}>
+            {footer}
+            {backHref && (
+              <Button
+                component={Link}
+                fullWidth
+                href={backHref}
+                size="large"
+                sx={{ minHeight: designTokens.size.touchTargetMin }}
+                variant="outlined"
+              >
+                {commonText.back}
+              </Button>
+            )}
+          </Stack>
         </Box>
       )}
     </Stack>

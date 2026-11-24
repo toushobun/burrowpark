@@ -32,8 +32,3 @@ export const checkOutText = {
   success: "离场成功",
   overstay: (hours: number) => "超时 " + hours + " 小时",
 } as const;
-
-export const parkingOperationText = {
-  backMap: "回地图",
-  viewSlot: "查看车位",
-} as const;
