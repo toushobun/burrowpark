@@ -87,7 +87,8 @@ export function SlotCardList({
           .map(({ code }) => {
             const slot = byCode.get(code);
             const active = Boolean(slot?.isActive);
-            const colors = slot && active ? slotStatusColors[slot.status] : null;
+            const colors =
+              slot && active ? slotStatusColors[slot.status] : null;
             const status = !slot
               ? slotMapText.unavailable
               : active
@@ -97,13 +98,11 @@ export function SlotCardList({
               active &&
               slot &&
               !["empty", "reserved", "privateIdle"].includes(slot.status);
-            const primary = showPlate
-              ? slot?.plate || slotMapText.noPlate
-              : status;
-            const label =
-              code +
-              "号，" +
-              (active && slot ? slotStatusLabels[slot.status] : status);
+            const plate = slot?.plate || slotMapText.noPlate;
+            const primary = showPlate ? plate : status;
+            const fullStatus =
+              active && slot ? slotStatusLabels[slot.status] : status;
+            const label = code + "号，" + fullStatus;
             return (
               <ButtonBase
                 key={code}

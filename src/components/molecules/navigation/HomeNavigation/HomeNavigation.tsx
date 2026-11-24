@@ -35,8 +35,7 @@ export function HomeNavigation({
     () => window.location.hash,
     () => "",
   );
-  const selected =
-    active === "home" && hash === "#slot-list" ? "slots" : active;
+  const selected = active === "home" && hash === "#slot-list" ? "slots" : active;
   return (
     <Box
       component="nav"
@@ -50,11 +49,12 @@ export function HomeNavigation({
       {destinations.map(({ key, href, icon: Icon }) => {
         const current = key === selected;
         const local = active === "home" && (key === "home" || key === "slots");
+        const localHref = key === "home" ? "#top" : "#slot-list";
         return (
           <ButtonBase
             key={key}
             component={local ? "a" : Link}
-            href={local ? key === "home" ? "#top" : "#slot-list" : href}
+            href={local ? localHref : href}
             aria-current={current ? "page" : undefined}
             sx={{
               bgcolor: current ? "primary.light" : "transparent",

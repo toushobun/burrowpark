@@ -29,4 +29,18 @@ describe("SlotCardList", () => {
       screen.getByRole("link", { name: "25号，有车，辽AD98765" }),
     ).toHaveTextContent("辽AD98765");
   });
+  it("停用车位不能点击，无车牌时仍显示真实状态", () => {
+    const slots = emptySlotMapSlots.map((slot) => {
+      if (slot.code === "1") return { ...slot, isActive: false };
+      if (slot.code === "2") {
+        return { ...slot, status: "occupied" as const, plate: null };
+      }
+      return slot;
+    });
+    render(<SlotCardList slots={slots} />);
+    expect(screen.getByRole("button", { name: "1号，停用" })).toBeDisabled();
+    expect(screen.getByRole("link", { name: "2号，有车" })).toHaveTextContent(
+      "无车牌",
+    );
+  });
 });
