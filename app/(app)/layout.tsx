@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { requireSignedInPage } from "internal/auth/adapter/next/requireSignedInPage";
+import { OperationFeedbackProvider } from "providers/OperationFeedbackProvider";
 
 export default async function AuthenticatedLayout({
   children,
@@ -8,5 +9,5 @@ export default async function AuthenticatedLayout({
   children: ReactNode;
 }) {
   await requireSignedInPage();
-  return children;
+  return <OperationFeedbackProvider>{children}</OperationFeedbackProvider>;
 }

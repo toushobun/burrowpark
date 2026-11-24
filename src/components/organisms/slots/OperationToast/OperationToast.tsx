@@ -9,7 +9,7 @@ import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useCallback, useEffect, useState } from "react";
 
 import { operationText } from "config/operationText";
 import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/FailureFeedbackDialog";
@@ -26,12 +26,26 @@ export type OperationUndoActions = {
   checkin: UndoAction;
   reserve: UndoAction;
   lease: UndoAction;
+  checkout: UndoAction;
+  renew: UndoAction;
+  cancel: UndoAction;
+  extend: UndoAction;
+  end: UndoAction;
 };
+
+const noopUndo: UndoAction = async () => ({});
+const noticeDurationMs = 10_000;
 
 const undoField = {
   checkin: "sessionId",
   reserve: "reservationId",
   lease: "leaseId",
+  checkout: "sessionId",
+  renew: "paymentId",
+  cancel: "reservationId",
+  extend: "sessionId",
+  end: "leaseId",
+  edit: null,
 } as const;
 
 type Props = {
@@ -53,26 +67,31 @@ export function OperationToast({
 }: Props) {
   const router = useRouter();
   const [state, undo, pending] = useActionState(
-    undoActions[notice.kind],
+    notice.kind === "edit" ? noopUndo : undoActions[notice.kind],
     initialState ?? {},
   );
   const [closed, setClosed] = useState(false);
+  const [acknowledgedErrorKey, setAcknowledgedErrorKey] = useState<string>();
+  const field = undoField[notice.kind];
+  const errorUnacknowledged = Boolean(
+    state.error && state.errorKey && state.errorKey !== acknowledgedErrorKey,
+  );
 
   useEffect(() => {
-    if (!state.success) return;
-    onUndone();
-    const timer = setTimeout(() => {
-      onDismiss?.();
-      router.replace("/");
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [onDismiss, onUndone, router, state.success]);
+    if (state.success) onUndone();
+  }, [onUndone, state.success]);
 
-  const close = () => {
+  const close = useCallback(() => {
     setClosed(true);
     onDismiss?.();
     router.replace("/");
-  };
+  }, [onDismiss, router]);
+
+  useEffect(() => {
+    if (closed || pending || errorUnacknowledged) return;
+    const timer = setTimeout(close, noticeDurationMs);
+    return () => clearTimeout(timer);
+  }, [close, closed, pending, errorUnacknowledged, state.success]);
 
   return (
     <>
@@ -100,13 +119,12 @@ export function OperationToast({
           }}
           action={
             <Stack direction="row" sx={{ alignItems: "center" }}>
-              {!state.success && (
+              {!state.success && field && (
                 <form action={undo} onSubmit={onUndoStart}>
-                  <input
-                    name={undoField[notice.kind]}
-                    type="hidden"
-                    value={notice.id}
-                  />
+                  <input name={field} type="hidden" value={notice.id} />
+                  {notice.extraUndoFields?.map(({ name, value }) => (
+                    <input key={name} type="hidden" name={name} value={value} />
+                  ))}
                   <Button
                     color="inherit"
                     disabled={pending}
@@ -129,6 +147,7 @@ export function OperationToast({
               <IconButton
                 aria-label={operationText.close}
                 color="inherit"
+                disabled={pending}
                 onClick={close}
                 sx={{
                   minHeight: designTokens.size.touchTargetMin,
@@ -163,7 +182,10 @@ export function OperationToast({
           </Stack>
         </Alert>
       </Snackbar>
-      <FailureFeedbackDialog state={state} />
+      <FailureFeedbackDialog
+        state={state}
+        onClose={() => setAcknowledgedErrorKey(state.errorKey)}
+      />
     </>
   );
 }

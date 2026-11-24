@@ -15,6 +15,11 @@ const undoActions = {
   checkin: noopAction,
   reserve: noopAction,
   lease: noopAction,
+  checkout: noopAction,
+  renew: noopAction,
+  cancel: noopAction,
+  extend: noopAction,
+  end: noopAction,
 };
 const meta = {
   component: OperationToast,
@@ -53,6 +58,25 @@ export const Leased: Story = {
       kind: "lease",
       message: "12号已设为长租（张三）",
     },
+  },
+};
+export const CheckOut: Story = {
+  args: {
+    notice: { ...notice, kind: "checkout", message: "离场成功：辽A·12345" },
+  },
+};
+export const Renewal: Story = {
+  args: {
+    notice: {
+      ...notice,
+      kind: "renew",
+      message: "续费成功，交到 11月25日 12:00",
+    },
+  },
+};
+export const EditedLease: Story = {
+  args: {
+    notice: { ...notice, kind: "edit", message: "长租资料已保存" },
   },
 };
 export const LongTenantName: Story = {

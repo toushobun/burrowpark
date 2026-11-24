@@ -7,7 +7,8 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { renewText, parkingOperationText } from "config/renewAndCheckOutText";
 import type { RenewFormData } from "internal/parking";
@@ -19,10 +20,10 @@ import {
 } from "internal/parking";
 import type { RenewActionState } from "internal/parking/adapter/next/renewActions";
 import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/FailureFeedbackDialog";
+import { OperationRedirecting } from "molecules/feedback/OperationRedirecting/OperationRedirecting";
+import { useOperationFeedback } from "providers/OperationFeedbackProvider";
 import { designTokens } from "theme/designTokens";
-import type { ActionState } from "types/actions";
 import {
-  ParkingOperationResult,
   PaymentAmountField,
   PaymentMethodChoices,
   validYuanAmount,
@@ -35,22 +36,18 @@ type Props = {
     state: RenewActionState,
     data: FormData,
   ) => Promise<RenewActionState>;
-  undoAction: (state: ActionState, data: FormData) => Promise<ActionState>;
   initialState?: RenewActionState;
 };
 const buttonSx = { minHeight: designTokens.size.touchTargetMin };
 
-export function RenewForm({
-  form: currentForm,
-  action,
-  undoAction,
-  initialState,
-}: Props) {
+export function RenewForm({ form: currentForm, action, initialState }: Props) {
+  const router = useRouter();
+  const { showNotice } = useOperationFeedback();
+  const redirected = useRef<string | null>(null);
   const [state, submit, isPending] = useActionState(action, initialState ?? {});
   const [initialForm] = useState(currentForm);
-  // 续费完成后页面可能重读出不再可续费的状态，结果区使用提交前的事实。
+  // 续费完成后页面可能重读出不再可续费的状态，跳转前保留提交时的事实。
   const form = currentForm ?? (state.result ? initialForm : null);
-  const [undoState, undo, isUndoPending] = useActionState(undoAction, {});
   const [days, setDays] = useState(1);
   const [custom, setCustom] = useState(false);
   const [endDate, setEndDate] = useState(form?.defaultEndDate ?? "");
@@ -60,6 +57,25 @@ export function RenewForm({
       ? (form.hotelDailyPriceCents / 100).toFixed(2)
       : "",
   );
+
+  useEffect(() => {
+    if (!form || !state.result) return;
+    const { paymentId, paidUntil } = state.result;
+    if (redirected.current === paymentId) return;
+    redirected.current = paymentId;
+    const hotel = form.mode === "hotel_daily";
+    const title = hotel ? renewText.success : renewText.successLease;
+    const formattedDate = hotel
+      ? formatBusinessDateTime(paidUntil)
+      : formatBusinessDate(paidUntil);
+    showNotice({
+      kind: "renew",
+      code: form.code,
+      id: paymentId,
+      message: `${title}，交到 ${formattedDate}`,
+    });
+    router.replace("/");
+  }, [form, router, showNotice, state.result]);
 
   if (!form) {
     return (
@@ -113,38 +129,8 @@ export function RenewForm({
 
   return (
     <>
-      {undoState.success ? (
-        <Stack spacing={3}>
-          <Typography variant="h2">
-            {hotel ? renewText.undone : renewText.undoneLease}
-          </Typography>
-          <Button
-            component={Link}
-            href="/"
-            fullWidth
-            size="large"
-            variant="contained"
-            sx={buttonSx}
-          >
-            {parkingOperationText.backMap}
-          </Button>
-        </Stack>
-      ) : state.result ? (
-        <ParkingOperationResult
-          code={form.code}
-          title={
-            (hotel ? renewText.success : renewText.successLease) +
-            "，交到 " +
-            (hotel
-              ? formatBusinessDateTime(state.result.paidUntil)
-              : formatBusinessDate(state.result.paidUntil))
-          }
-          id={state.result.paymentId}
-          idName="paymentId"
-          undo={undo}
-          undoState={undoState}
-          isUndoPending={isUndoPending}
-        />
+      {state.result ? (
+        <OperationRedirecting />
       ) : (
         <Stack spacing={3}>
           <Typography component="h2" variant="h2">
@@ -286,7 +272,7 @@ export function RenewForm({
           </Button>
         </Stack>
       )}
-      <FailureFeedbackDialog state={undoState.error ? undoState : state} />
+      <FailureFeedbackDialog state={state} />
     </>
   );
 }

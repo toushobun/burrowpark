@@ -19,7 +19,7 @@ const hourly: CheckOutFormData = {
 const noopAction = async () => ({});
 const meta = {
   component: CheckOutForm,
-  args: { form: hourly, action: noopAction, undoAction: noopAction },
+  args: { form: hourly, action: noopAction },
   decorators: [
     (Story) => (
       <Box sx={{ width: 390, maxWidth: "100%", px: 2 }}>
@@ -56,7 +56,7 @@ export const LeaseCheckOut: Story = {
     },
   },
 };
-export const CheckOutSuccess: Story = {
+export const CheckOutRedirecting: Story = {
   args: {
     initialState: {
       success: "离场成功",

@@ -1,7 +1,18 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  OperationFeedbackProvider,
+  useOperationFeedback,
+} from "providers/OperationFeedbackProvider";
 import { OperationMapSection } from "./OperationMapSection";
+
+const navigation = vi.hoisted(() => ({ pathname: "/" }));
+const replace = vi.fn();
+vi.mock("next/navigation", () => ({
+  usePathname: () => navigation.pathname,
+  useRouter: () => ({ replace }),
+}));
 
 vi.mock("./ParkingSlotMap", () => ({
   ParkingSlotMap: ({ highlightCode }: { highlightCode?: string }) => (
@@ -16,12 +27,12 @@ vi.mock("organisms/slots/OperationToast/OperationToast", () => ({
     onUndone,
     onDismiss,
   }: {
-    notice: { code: string };
+    notice: { code: string; kind: string };
     onUndoStart: () => void;
     onUndone: () => void;
     onDismiss: () => void;
   }) => (
-    <div data-testid="operation-toast">
+    <div data-testid="operation-toast" data-kind={notice.kind}>
       {notice.code}
       <button onClick={onUndoStart}>开始撤销</button>
       <button onClick={onUndone}>撤销成功</button>
@@ -37,9 +48,81 @@ const notice = {
   message: "已预留 12号（张三）",
 };
 const undo = async () => ({});
-const undoActions = { checkin: undo, reserve: undo, lease: undo };
+const undoActions = {
+  checkin: undo,
+  reserve: undo,
+  lease: undo,
+  checkout: undo,
+  renew: undo,
+  cancel: undo,
+  extend: undo,
+  end: undo,
+};
+
+function ShowRecentNotice() {
+  const { showNotice } = useOperationFeedback();
+  return (
+    <button onClick={() => showNotice({ ...notice, kind: "checkout" })}>
+      显示离场成功
+    </button>
+  );
+}
 
 describe("OperationMapSection", () => {
+  beforeEach(() => {
+    navigation.pathname = "/";
+    replace.mockClear();
+  });
+
+  it("消费 URL 成功提示后清理历史参数，离开再返回不会重新出现", () => {
+    const view = (urlNotice: typeof notice | null, onMap = true) => (
+      <OperationFeedbackProvider>
+        {onMap ? (
+          <OperationMapSection
+            slots={[]}
+            notice={urlNotice}
+            queryId={urlNotice?.id ?? null}
+            undoActions={undoActions}
+          />
+        ) : (
+          <div>车位详情页</div>
+        )}
+      </OperationFeedbackProvider>
+    );
+    const { rerender } = render(view(notice));
+    expect(replace).toHaveBeenCalledWith("/");
+    rerender(view(null));
+    expect(screen.getByTestId("operation-toast")).toBeInTheDocument();
+    navigation.pathname = "/slots/12";
+    rerender(view(null, false));
+    navigation.pathname = "/";
+    rerender(view(null));
+    expect(screen.queryByTestId("operation-toast")).toBeNull();
+  });
+  it("跨页面保存的离场提示可在地图显示并关闭", () => {
+    render(
+      <OperationFeedbackProvider>
+        <ShowRecentNotice />
+        <OperationMapSection
+          slots={[]}
+          notice={null}
+          undoActions={undoActions}
+        />
+      </OperationFeedbackProvider>,
+    );
+    expect(screen.queryByTestId("operation-toast")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "显示离场成功" }));
+    expect(screen.getByTestId("operation-toast")).toHaveTextContent("12");
+    fireEvent.click(screen.getByRole("button", { name: "撤销成功" }));
+    expect(screen.getByTestId("map")).toHaveAttribute("data-highlight", "");
+    fireEvent.click(screen.getByRole("button", { name: "显示离场成功" }));
+    expect(screen.getByTestId("map")).toHaveAttribute("data-highlight", "12");
+    fireEvent.click(screen.getByRole("button", { name: "撤销成功" }));
+    expect(screen.getByTestId("map")).toHaveAttribute("data-highlight", "");
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    expect(screen.queryByTestId("operation-toast")).toBeNull();
+  });
+
   it("撤销刷新首页后仍显示成功提示直到关闭，红框同时消失", () => {
     const props = { slots: [], undoActions, queryId: notice.id };
     const initial = <OperationMapSection {...props} notice={notice} />;
@@ -53,6 +136,35 @@ describe("OperationMapSection", () => {
     expect(screen.getByTestId("map")).toHaveAttribute("data-highlight", "");
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));
     expect(screen.queryByTestId("operation-toast")).toBeNull();
+  });
+
+  it("撤销 URL 操作后旧的跨页面提示不能覆盖当前撤销反馈", () => {
+    const props = { slots: [], undoActions, queryId: notice.id };
+    const view = (urlNotice: typeof notice | null) => (
+      <OperationFeedbackProvider>
+        <ShowRecentNotice />
+        <OperationMapSection {...props} notice={urlNotice} />
+      </OperationFeedbackProvider>
+    );
+    const { rerender } = render(view(null));
+    fireEvent.click(screen.getByRole("button", { name: "显示离场成功" }));
+    expect(screen.getByTestId("operation-toast")).toHaveAttribute(
+      "data-kind",
+      "checkout",
+    );
+    rerender(view(notice));
+    expect(screen.getByTestId("operation-toast")).toHaveAttribute(
+      "data-kind",
+      "reserve",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "开始撤销" }));
+    rerender(view(null));
+    expect(screen.getByTestId("operation-toast")).toHaveAttribute(
+      "data-kind",
+      "reserve",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "撤销成功" }));
+    expect(screen.getByTestId("map")).toHaveAttribute("data-highlight", "");
   });
 
   it("查询参数清除后不会留下旧提示", () => {

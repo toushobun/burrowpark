@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SlotDetail as SlotDetailData } from "internal/parking";
 
 const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+const replace = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }) }));
 
 import { SlotDetail } from "./SlotDetail";
 import {
@@ -306,6 +307,40 @@ describe("SlotDetail 预留、退租和成功结果", () => {
     expect(screen.getByText("正在返回地图…")).toBeInTheDocument();
     expect(push).toHaveBeenCalledWith("/?done=reserve&slot=7&id=" + id);
     expect(screen.queryByRole("button", { name: "撤销" })).toBeNull();
+  });
+
+  it("取消预留、延长借用和退租后都自动返回地图", () => {
+    const id = "00000000-0000-4000-8000-000000000007";
+    const cases = [
+      { kind: "cancel" as const, detail: emptyDetail },
+      { kind: "extend" as const, detail: privateBorrowedDetail },
+      { kind: "end" as const, detail: leaseAwayDetail },
+    ];
+    for (const operation of cases) {
+      replace.mockClear();
+      const result = {
+        id,
+        previous: "2026-11-19T04:00:00.000Z",
+        current: "2026-11-19T04:10:00.000Z",
+      };
+      const initialState =
+        operation.kind === "cancel"
+          ? { cancel: { success: "操作成功", result } }
+          : operation.kind === "extend"
+            ? { extend: { success: "操作成功", result } }
+            : { end: { success: "操作成功", result } };
+      const view = render(
+        <SlotDetail
+          detail={operation.detail}
+          display={detailDisplay}
+          initialState={initialState}
+        />,
+      );
+      expect(replace).toHaveBeenCalledWith("/");
+      expect(screen.getByText("正在返回地图…")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "撤销" })).toBeNull();
+      view.unmount();
+    }
   });
 
   it("私人位借用只根据服务端更新的时间刷新剩余分钟和超时状态", () => {

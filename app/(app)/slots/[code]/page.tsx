@@ -10,11 +10,8 @@ import { loadSlotDetail } from "internal/parking/adapter/next/loadSlotDetail";
 import {
   reserveAction,
   cancelReservationAction,
-  undoCancelReservationAction,
   extendBorrowAction,
-  undoExtendBorrowAction,
   endLeaseAction,
-  undoEndLeaseAction,
 } from "internal/parking/adapter/next/slotOperationsActions";
 import { ReminderRefresh } from "organisms/slots/SlotReminders/ReminderRefresh";
 import { SlotDetail } from "organisms/slots/SlotDetail/SlotDetail";
@@ -61,11 +58,8 @@ export default async function SlotDetailPage({
         operations={{
           reserve: reserveAction,
           cancelReservation: cancelReservationAction,
-          undoCancelReservation: undoCancelReservationAction,
           extendBorrow: extendBorrowAction,
-          undoExtendBorrow: undoExtendBorrowAction,
           endLease: endLeaseAction,
-          undoEndLease: undoEndLeaseAction,
         }}
       />
     </PageShell>

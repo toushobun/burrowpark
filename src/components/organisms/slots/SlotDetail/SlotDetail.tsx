@@ -2,7 +2,6 @@
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -17,7 +16,6 @@ import { useActionState, useEffect, useRef, useState } from "react";
 
 import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
 import { paymentMethodLabels } from "config/checkInText";
-import { operationText } from "config/operationText";
 import { billingTypeLabels, slotDetailText } from "config/slotDetailText";
 import type { SlotDetail as SlotDetailData } from "internal/parking";
 import {
@@ -27,7 +25,8 @@ import {
 } from "internal/parking";
 import type { SlotActionState } from "internal/parking/adapter/next/slotOperationsActions";
 import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/FailureFeedbackDialog";
-import { ParkingOperationResult } from "organisms/parkingSessions/PaymentOperationParts";
+import { OperationRedirecting } from "molecules/feedback/OperationRedirecting/OperationRedirecting";
+import { useOperationFeedback } from "providers/OperationFeedbackProvider";
 import { designTokens } from "theme/designTokens";
 
 export type SlotDetailDisplay = {
@@ -46,11 +45,8 @@ export type SlotFormAction = (
 export type SlotDetailOperations = {
   reserve: SlotFormAction;
   cancelReservation: SlotFormAction;
-  undoCancelReservation: SlotFormAction;
   extendBorrow: SlotFormAction;
-  undoExtendBorrow: SlotFormAction;
   endLease: SlotFormAction;
-  undoEndLease: SlotFormAction;
 };
 
 type SlotDetailProps = {
@@ -91,28 +87,17 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 /** 高频操作直接展示；编辑长租、退租等低频操作集中在「更多操作」。 */
-export function SlotDetail(props: SlotDetailProps) {
-  const [resetKey, setResetKey] = useState(0);
-  return (
-    <SlotDetailContent
-      key={resetKey}
-      {...props}
-      initialState={resetKey === 0 ? props.initialState : undefined}
-      onViewSlot={() => setResetKey((key) => key + 1)}
-    />
-  );
-}
-
-function SlotDetailContent({
+export function SlotDetail({
   detail,
   display,
   today = "",
   now = "",
   operations,
   initialState,
-  onViewSlot,
-}: SlotDetailProps & { onViewSlot: () => void }) {
+}: SlotDetailProps) {
   const router = useRouter();
+  const { showNotice } = useOperationFeedback();
+  const redirectedOperation = useRef<string | null>(null);
   const redirectedReservation = useRef<string | null>(null);
   const [reserveOpen, setReserveOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -137,23 +122,14 @@ function SlotDetailContent({
 
   const completed =
     (cancelState.result
-      ? { kind: "cancel", result: cancelState.result }
+      ? { kind: "cancel" as const, result: cancelState.result }
       : null) ??
     (extendState.result
-      ? { kind: "extend", result: extendState.result }
+      ? { kind: "extend" as const, result: extendState.result }
       : null) ??
-    (endState.result ? { kind: "end", result: endState.result } : null);
-  const undoAction =
-    completed?.kind === "cancel"
-      ? operations?.undoCancelReservation
-      : completed?.kind === "extend"
-        ? operations?.undoExtendBorrow
-        : operations?.undoEndLease;
-  const [undoState, submitUndo, undoPending] = useActionState(
-    undoAction ?? unavailableAction,
-    {} as SlotActionState,
-  );
-
+    (endState.result
+      ? { kind: "end" as const, result: endState.result }
+      : null);
   useEffect(() => {
     const id = reserveState.result?.id;
     if (
@@ -173,14 +149,49 @@ function SlotDetailContent({
     router.push("/?" + params.toString());
   }, [detail, reserveState.result?.id, reserveState.success, router]);
 
+  const completionId = completed?.result.id;
+  const completionKind = completed?.kind;
+  const completionPrevious = completed?.result.previous;
+  const completionCurrent = completed?.result.current;
+  useEffect(() => {
+    if (!detail || !completionId || !completionKind) return;
+    const key =
+      completionKind + ":" + completionId + ":" + (completionCurrent ?? "");
+    if (redirectedOperation.current === key) return;
+    redirectedOperation.current = key;
+    showNotice({
+      kind: completionKind,
+      code: detail.code,
+      id: completionId,
+      message:
+        completionKind === "cancel"
+          ? slotDetailText.cancelledSuccess
+          : completionKind === "extend"
+            ? slotDetailText.extendedSuccess
+            : slotDetailText.endedSuccess,
+      ...(completionKind === "extend"
+        ? {
+            extraUndoFields: [
+              { name: "previous", value: completionPrevious ?? "" },
+              { name: "expectedCurrent", value: completionCurrent ?? "" },
+            ],
+          }
+        : {}),
+    });
+    router.replace("/");
+  }, [
+    completionCurrent,
+    completionId,
+    completionKind,
+    completionPrevious,
+    detail,
+    router,
+    showNotice,
+  ]);
+
   // 预留后重新渲染时车位可能已被占用，成功状态优先于权限判断。
   if (reserveState.success) {
-    return (
-      <Stack spacing={2} sx={{ alignItems: "center" }}>
-        <CircularProgress aria-label={operationText.returning} />
-        <Typography variant="h2">{operationText.returning}</Typography>
-      </Stack>
-    );
+    return <OperationRedirecting />;
   }
 
   if (!detail) {
@@ -204,42 +215,7 @@ function SlotDetailContent({
   }
 
   if (completed) {
-    const result = completed.result;
-    return (
-      <>
-        <ParkingOperationResult
-          code={detail.code}
-          title={
-            completed.kind === "cancel"
-              ? slotDetailText.cancelledSuccess
-              : completed.kind === "extend"
-                ? slotDetailText.extendedSuccess
-                : slotDetailText.endedSuccess
-          }
-          id={result.id}
-          idName={
-            completed.kind === "cancel"
-              ? "reservationId"
-              : completed.kind === "extend"
-                ? "sessionId"
-                : "leaseId"
-          }
-          extraUndoFields={
-            completed.kind === "extend"
-              ? [
-                  { name: "previous", value: result.previous ?? "" },
-                  { name: "expectedCurrent", value: result.current ?? "" },
-                ]
-              : undefined
-          }
-          undo={submitUndo}
-          undoState={undoState}
-          isUndoPending={undoPending}
-          onViewSlot={onViewSlot}
-        />
-        <FailureFeedbackDialog state={undoState} />
-      </>
-    );
+    return <OperationRedirecting />;
   }
 
   const vehicle = detail.presentVehicle;

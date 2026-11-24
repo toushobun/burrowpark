@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { CheckOutFormData } from "internal/parking";
 import { CheckOutForm } from "./CheckOutForm";
@@ -17,9 +17,12 @@ const hourly: CheckOutFormData = {
   overstayHours: 0,
 };
 const action = vi.fn(async () => ({}));
+const push = vi.fn();
+const replace = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }) }));
 describe("CheckOutForm", () => {
   it("临停显示时长、建议金额且默认微信可收款离场", () => {
-    render(<CheckOutForm form={hourly} action={action} undoAction={action} />);
+    render(<CheckOutForm form={hourly} action={action} />);
     expect(screen.getByText("已停 2 小时 10 分")).toBeInTheDocument();
     expect(screen.getByText("建议补收：15.00 元")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "微信" })).toHaveAttribute(
@@ -41,7 +44,6 @@ describe("CheckOutForm", () => {
           totalPaidCents: null,
         }}
         action={action}
-        undoAction={action}
       />,
     );
     expect(screen.queryByText(/已预交/)).toBeNull();
@@ -54,17 +56,15 @@ describe("CheckOutForm", () => {
       <CheckOutForm
         form={{ ...hourly, overstayHours: 3, suggestedAmountCents: 3000 }}
         action={action}
-        undoAction={action}
       />,
     );
     expect(screen.getByText("超时 3 小时")).toBeInTheDocument();
   });
-  it("离场成功常驻结果区并允许撤销", () => {
+  it("离场成功直接返回地图，不停留在带撤销按钮的结果页", () => {
     render(
       <CheckOutForm
         form={hourly}
         action={action}
-        undoAction={action}
         initialState={{
           success: "离场成功",
           successKey: "ok",
@@ -72,32 +72,19 @@ describe("CheckOutForm", () => {
         }}
       />,
     );
-    expect(screen.getByRole("link", { name: "回地图" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "查看车位" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
+    expect(replace).toHaveBeenCalledWith("/");
+    expect(screen.getByText("正在返回地图…")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "撤销" })).toBeNull();
   });
-  it("离场成功后服务端已清空该车位时仍展示成功结果", () => {
+  it("离场成功后服务端已清空该车位时仍保持返回地图状态", () => {
     const initialState = {
       success: "离场成功",
       result: { sessionId: hourly.sessionId },
     };
-    const { rerender } = render(
-      <CheckOutForm
-        form={hourly}
-        action={action}
-        undoAction={action}
-        initialState={initialState}
-      />,
-    );
-    rerender(
-      <CheckOutForm
-        form={null}
-        action={action}
-        undoAction={action}
-        initialState={initialState}
-      />,
-    );
-    expect(screen.getByRole("button", { name: "撤销" })).toBeInTheDocument();
+    const props = { action, initialState };
+    const { rerender } = render(<CheckOutForm form={hourly} {...props} />);
+    rerender(<CheckOutForm form={null} {...props} />);
+    expect(screen.getByText("正在返回地图…")).toBeInTheDocument();
     expect(screen.queryByText("这个车位没有待离场的车")).toBeNull();
   });
 
@@ -106,7 +93,6 @@ describe("CheckOutForm", () => {
       <CheckOutForm
         form={hourly}
         action={action}
-        undoAction={action}
         initialState={{ error: "这辆车已经离场了", errorKey: "err" }}
       />,
     );

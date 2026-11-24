@@ -8,7 +8,8 @@ import { LeaseForm } from "./LeaseForm";
 
 const action = vi.fn(async () => ({}));
 const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+const replace = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }) }));
 
 describe("LeaseForm", () => {
   beforeEach(() => push.mockClear());
@@ -80,6 +81,21 @@ describe("LeaseForm", () => {
     expect(screen.getByRole("button", { name: "保存长租资料" })).toBeEnabled();
     expect(screen.queryByText("首笔交到哪天")).not.toBeInTheDocument();
     expect(screen.queryByText("收款方式")).not.toBeInTheDocument();
+  });
+
+  it("编辑长租保存后自动返回地图，不显示结果页", () => {
+    render(
+      <LeaseForm
+        mode="edit"
+        detail={leaseAwayDetail}
+        today="2026-11-19"
+        action={action}
+        initialState={{ success: "长租资料已保存" }}
+      />,
+    );
+    expect(replace).toHaveBeenCalledWith("/");
+    expect(screen.getByText("正在返回地图…")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "回地图" })).toBeNull();
   });
 
   it("私人位无法建立长租", () => {

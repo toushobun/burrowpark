@@ -17,7 +17,7 @@ const hotel: RenewFormData = {
 const noopAction = async () => ({});
 const meta = {
   component: RenewForm,
-  args: { form: hotel, action: noopAction, undoAction: noopAction },
+  args: { form: hotel, action: noopAction },
   decorators: [
     (Story) => (
       <Box sx={{ width: 390, maxWidth: "100%", px: 2 }}>
@@ -48,7 +48,7 @@ export const LeaseRenewal: Story = {
     },
   },
 };
-export const RenewalSuccess: Story = {
+export const RenewalRedirecting: Story = {
   args: {
     initialState: {
       success: "续费成功",

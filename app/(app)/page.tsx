@@ -2,12 +2,17 @@ import Stack from "@mui/material/Stack";
 
 import { slotMapText } from "config/slotMapText";
 import { undoCheckInAction } from "internal/parking/adapter/next/checkInActions";
+import { undoCheckOutAction } from "internal/parking/adapter/next/checkOutActions";
+import { undoRenewalAction } from "internal/parking/adapter/next/renewActions";
 import { loadReminders } from "internal/parking/adapter/next/loadReminders";
 import { loadSlotDetail } from "internal/parking/adapter/next/loadSlotDetail";
 import { loadSlotMap } from "internal/parking/adapter/next/loadSlotMap";
 import {
   undoCreateLeaseAction,
   undoReservationAction,
+  undoCancelReservationAction,
+  undoExtendBorrowAction,
+  undoEndLeaseAction,
 } from "internal/parking/adapter/next/slotOperationsActions";
 import { SettingsIconLink } from "molecules/navigation/SettingsIconLink/SettingsIconLink";
 import { OperationMapSection } from "organisms/slots/ParkingSlotMap/OperationMapSection";
@@ -57,6 +62,11 @@ export default async function HomePage({
             checkin: undoCheckInAction,
             reserve: undoReservationAction,
             lease: undoCreateLeaseAction,
+            checkout: undoCheckOutAction,
+            renew: undoRenewalAction,
+            cancel: undoCancelReservationAction,
+            extend: undoExtendBorrowAction,
+            end: undoEndLeaseAction,
           }}
         />
       </Stack>

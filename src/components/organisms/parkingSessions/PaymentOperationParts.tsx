@@ -2,16 +2,9 @@
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
-import Paper from "@mui/material/Paper";
-import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
-import Link from "next/link";
 import { paymentMethodLabels } from "config/checkInText";
-import { parkingOperationText } from "config/renewAndCheckOutText";
 import { designTokens } from "theme/designTokens";
-import type { ActionState } from "types/actions";
 
 export type PaymentMethod = keyof typeof paymentMethodLabels;
 export const validYuanAmount = (value: string): boolean =>
@@ -75,95 +68,5 @@ export function PaymentAmountField({
       value={value}
       onChange={(event) => onChange(event.target.value)}
     />
-  );
-}
-
-export function ParkingOperationResult({
-  code,
-  title,
-  id,
-  idName,
-  undoState,
-  undo,
-  isUndoPending,
-  extraUndoFields,
-  onViewSlot,
-}: {
-  code: string;
-  title: string;
-  id: string;
-  idName: string;
-  undoState: ActionState;
-  undo: (data: FormData) => void;
-  isUndoPending: boolean;
-  extraUndoFields?: { name: string; value: string }[];
-  onViewSlot?: () => void;
-}) {
-  return (
-    <Stack spacing={3}>
-      <Paper
-        variant="outlined"
-        sx={{ borderRadius: String(designTokens.radius.lg) + "px", p: 3 }}
-      >
-        <Typography variant="h2" component="h2">
-          {title}
-        </Typography>
-      </Paper>
-      <Button
-        component={Link}
-        fullWidth
-        href="/"
-        size="large"
-        sx={{ minHeight: designTokens.size.touchTargetMin }}
-        variant="contained"
-      >
-        {parkingOperationText.backMap}
-      </Button>
-      {onViewSlot ? (
-        <Button
-          fullWidth
-          onClick={onViewSlot}
-          size="large"
-          sx={{ minHeight: designTokens.size.touchTargetMin }}
-          variant="outlined"
-        >
-          {parkingOperationText.viewSlot}
-        </Button>
-      ) : (
-        <Button
-          component={Link}
-          fullWidth
-          href={`/slots/${code}`}
-          size="large"
-          sx={{ minHeight: designTokens.size.touchTargetMin }}
-          variant="outlined"
-        >
-          {parkingOperationText.viewSlot}
-        </Button>
-      )}
-      {!undoState.success && (
-        <form action={undo}>
-          <input type="hidden" name={idName} value={id} />
-          {extraUndoFields?.map(({ name, value }) => (
-            <input key={name} type="hidden" name={name} value={value} />
-          ))}
-          <Button
-            disabled={isUndoPending}
-            fullWidth
-            size="large"
-            type="submit"
-            sx={{ minHeight: designTokens.size.touchTargetMin }}
-            variant="outlined"
-          >
-            {isUndoPending && (
-              <CircularProgress color="inherit" size={24} sx={{ mr: 1 }} />
-            )}
-            {isUndoPending
-              ? parkingOperationText.undoing
-              : parkingOperationText.undo}
-          </Button>
-        </form>
-      )}
-    </Stack>
   );
 }
