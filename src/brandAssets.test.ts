@@ -46,6 +46,9 @@ describe("品牌资源", () => {
       const offset = ico.readUInt32LE(entry + 12);
       expect(ico.readUInt32BE(offset + 16)).toBe(size);
       expect(ico.readUInt32BE(offset + 20)).toBe(size);
+      // Turbopack's ICO decoder requires 8-bit RGBA PNG frames.
+      expect(ico[offset + 24]).toBe(8);
+      expect(ico[offset + 25]).toBe(6);
     }
   });
 });
