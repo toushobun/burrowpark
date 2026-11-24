@@ -80,6 +80,24 @@ describe("PageShell", () => {
     );
   });
 
+  it("首页可使用自定义品牌标题且保留底部导航", () => {
+    render(
+      <PageShell
+        title="途泊属"
+        headerContent={<h1>BurrowPark</h1>}
+        footer={<nav>首页</nav>}
+      >
+        内容
+      </PageShell>,
+    );
+    expect(
+      screen.getByRole("heading", { level: 1, name: "BurrowPark" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("contentinfo")).toContainElement(
+      screen.getByRole("navigation"),
+    );
+  });
+
   it("传入 backHref 时仅在页面底部显示返回链接", () => {
     render(
       <PageShell title="收费设置" backHref="/settings">

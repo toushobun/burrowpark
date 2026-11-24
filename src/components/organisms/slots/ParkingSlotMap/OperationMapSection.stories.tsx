@@ -82,3 +82,14 @@ export const JustLeased: Story = {
     },
   },
 };
+
+export const InnerCourtyard: Story = {
+  args: {
+    notice: { ...meta.args.notice, code: "25" },
+    slots: emptySlotMapSlots.map((slot) =>
+      slot.code === "25"
+        ? { ...slot, status: "occupied", plate: "辽AD98765" }
+        : slot,
+    ),
+  },
+};

@@ -125,8 +125,14 @@ describe("createParkingService", () => {
   it("首页没有占用事实时推导空位和私人位，保留停用标志", async () => {
     const { service, repository } = makeService(makeRows());
     expect(await service.getSlotMap(now)).toEqual([
-      { code: "1", name: "1号", isActive: true, status: "empty" },
-      { code: "2", name: "2号", isActive: false, status: "privateIdle" },
+      { code: "1", name: "1号", isActive: true, status: "empty", plate: null },
+      {
+        code: "2",
+        name: "2号",
+        isActive: false,
+        status: "privateIdle",
+        plate: null,
+      },
     ]);
     expect(repository.readSlotFacts).toHaveBeenCalledOnce();
   });
@@ -430,8 +436,8 @@ describe("createParkingService", () => {
       name: "1号",
       isActive: true,
       status: "occupied",
+      plate: "粤B12345",
     });
-    expect(JSON.stringify(map)).not.toContain("粤B12345");
     expect(JSON.stringify(map)).not.toContain("13800000000");
   });
 

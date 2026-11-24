@@ -28,29 +28,12 @@ function intersects(a: Bounds, b: Bounds) {
 }
 
 describe("getSlotLabelLayout", () => {
-  it("横向车位号码和状态左右排列，字号不超过半个高度", () => {
-    const shape = slotLayout.slots.find((slot) => slot.code === "18")!;
-    const layout = getSlotLabelLayout(shape, "长租不在");
-    expect(layout.horizontal).toBe(true);
-    expect(layout.number.x).toBeLessThan(layout.status.x);
-    expect(layout.number.fontSize).toBeLessThanOrEqual(shape.h * 0.5);
-  });
-
-  it("竖向车位号码和状态上下排列", () => {
-    const shape = slotLayout.slots.find((slot) => slot.code === "23")!;
-    const layout = getSlotLabelLayout(shape, "已过期");
-    expect(layout.horizontal).toBe(false);
-    expect(layout.number.y).toBeLessThan(layout.status.y);
-  });
-
-  it("地图常用短状态在默认比例下不低于 16px", () => {
-    const scale = 44 / 90;
+  it("横向和竖向车位均采用号码与状态上下排列", () => {
     for (const shape of slotLayout.slots) {
-      for (const status of Object.values(slotStatusShortLabels)) {
-        const layout = getSlotLabelLayout(shape, status);
-        expect(layout.number.fontSize * scale).toBeGreaterThanOrEqual(16);
-        expect(layout.status.fontSize * scale).toBeGreaterThanOrEqual(16);
-      }
+      const layout = getSlotLabelLayout(shape, slotStatusShortLabels.occupied);
+      expect(layout.horizontal).toBe(false);
+      expect(layout.number.x).toBe(layout.status.x);
+      expect(layout.number.y).toBeLessThan(layout.status.y);
     }
   });
 

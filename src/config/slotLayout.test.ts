@@ -29,7 +29,7 @@ describe("slotLayout", () => {
   });
 
   it("区域标签的估算字框不覆盖任何车位或障碍物", () => {
-    const fontSize = 70;
+    const fontSize = 84;
     for (const area of slotLayout.areas) {
       const left = area.x - (area.label.length * fontSize) / 2;
       const right = area.x + (area.label.length * fontSize) / 2;
@@ -50,11 +50,22 @@ describe("slotLayout", () => {
   });
 
   it("按定稿尺寸和坐标载入入口与封闭出口", () => {
-    expect([slotLayout.width, slotLayout.height]).toEqual([1300, 1420]);
-    expect(slotLayout.entrance).toEqual({ x: 0, y: 480, w: 138, h: 120 });
+    expect([slotLayout.width, slotLayout.height]).toEqual([1695, 1329]);
+    expect(slotLayout.entrance).toEqual({ x: 21, y: 450, w: 165, h: 138 });
     expect(slotLayout.sealedOpening).toEqual([
-      [1300, 790],
-      [1300, 1030],
+      [1677, 792],
+      [1677, 948],
     ]);
+  });
+  it("里院按新版图排列，24 在 23 下方，25～29 沿左墙排列", () => {
+    const shape = (code: number) =>
+      slotLayout.slots.find((slot) => slot.code === String(code))!;
+    expect(shape(23).x).toBeLessThan(shape(18).x);
+    expect(shape(24).x).toBe(shape(23).x);
+    expect(shape(24).y).toBe(shape(23).y + shape(23).h);
+    for (let code = 26; code <= 29; code++) {
+      expect(shape(code).x).toBe(shape(25).x);
+      expect(shape(code).y).toBeGreaterThan(shape(code - 1).y);
+    }
   });
 });

@@ -10,10 +10,13 @@ import { describe, expect, it } from "vitest";
 const appDirectory = fileURLToPath(new URL("../app/(app)/", import.meta.url));
 
 describe("业务页面底部返回导航", () => {
-  it("除首页以外的所有页面均通过 PageShell 指定底部返回地址", () => {
-    const pages = [...globSync("**/page.tsx", { cwd: appDirectory })].filter(
-      (path) => path !== "page.tsx",
-    );
+  it("主导航页面使用 HomeNavigation，其余业务页面保留底部返回地址", () => {
+    const navigationPages = new Set([
+      "page.tsx",
+      join("settings", "page.tsx"),
+      join("reminders", "page.tsx"),
+    ]);
+    const pages = [...globSync("**/page.tsx", { cwd: appDirectory })];
     expect(pages.length).toBeGreaterThan(0);
 
     const missing: string[] = [];
@@ -38,7 +41,17 @@ describe("业务页面底部返回导航", () => {
               ts.isJsxAttribute(property) &&
               property.name.getText(file) === "backHref",
           );
-          if (!hasBackHref) missing.push(path);
+          const hasHomeNavigation = node.attributes.properties.some(
+            (property) =>
+              ts.isJsxAttribute(property) &&
+              property.name.getText(file) === "footer" &&
+              property.initializer?.getText(file).includes("<HomeNavigation"),
+          );
+          if (navigationPages.has(path)) {
+            if (!hasHomeNavigation) missing.push(path);
+          } else if (!hasBackHref) {
+            missing.push(path);
+          }
         }
         ts.forEachChild(node, visit);
       };

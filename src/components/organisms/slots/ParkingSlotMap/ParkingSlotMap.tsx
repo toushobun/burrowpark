@@ -6,13 +6,12 @@ import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
 import { slotLayout } from "config/slotLayout";
 import { slotMapText } from "config/slotMapText";
 import { slotStatusLabels, slotStatusShortLabels } from "config/slotStatusText";
 import type { SlotMapSlot } from "internal/parking";
 import { designTokens } from "theme/designTokens";
-import { slotStatusColors, slotStatuses } from "theme/slotStatusTokens";
+import { slotStatusColors } from "theme/slotStatusTokens";
 import { theme } from "theme/theme";
 
 import { getSlotLabelLayout } from "./getSlotLabelLayout";
@@ -21,9 +20,6 @@ type ParkingSlotMapProps = {
   slots: SlotMapSlot[];
   highlightCode?: string;
 };
-
-const scale =
-  44 / Math.min(...slotLayout.slots.flatMap((shape) => [shape.w, shape.h]));
 
 /** 布局坐标完全由定稿 JSON 决定；SVG 统一按 viewBox 等比缩放。 */
 export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
@@ -42,10 +38,31 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
     }
   }, [highlightCode]);
   return (
-    <Stack component="section" spacing={2} sx={{ minWidth: 0 }}>
-      <Typography component="h2" variant="h2">
-        {slotMapText.mapTitle}
-      </Typography>
+    <Stack
+      component="section"
+      spacing={1}
+      sx={{
+        minWidth: 0,
+        bgcolor: "background.paper",
+        borderRadius: designTokens.radius.lg + "px",
+        boxShadow: 1,
+        p: 1,
+      }}
+    >
+      <Stack
+        direction="row"
+        useFlexGap
+        sx={{
+          alignItems: "baseline",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+        }}
+      >
+        <Typography component="h2" variant="h3">
+          {slotMapText.overview}
+        </Typography>
+        <Typography variant="body2">{slotMapText.counts}</Typography>
+      </Stack>
       <Box
         aria-label={slotMapText.mapTitle}
         data-testid="slot-map-viewport"
@@ -53,7 +70,6 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
         tabIndex={0}
         sx={{
           minWidth: 0,
-          overflowX: "auto",
           width: "100%",
         }}
       >
@@ -65,7 +81,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
           sx={{
             display: "block",
             height: "auto",
-            width: slotLayout.width * scale + "px",
+            width: "100%",
             "@keyframes slot-highlight-pulse": {
               "0%, 100%": { strokeOpacity: 1 },
               "50%": { strokeOpacity: 0.35 },
@@ -79,7 +95,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
           viewBox={"0 0 " + slotLayout.width + " " + slotLayout.height}
         >
           <rect
-            fill={grey[50]}
+            fill={designTokens.color.background.app}
             height={slotLayout.height}
             width={slotLayout.width}
             x={0}
@@ -92,7 +108,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                 key={area.label}
                 fill={grey[700]}
                 fontFamily={designTokens.typography.fontFamily}
-                fontSize={70}
+                fontSize={84}
                 fontWeight={700}
                 textAnchor="middle"
                 x={area.x}
@@ -108,7 +124,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                   height={obstacle.h}
                   rx={designTokens.radius.sm}
                   stroke={grey[500]}
-                  strokeWidth={4}
+                  strokeWidth={3}
                   width={obstacle.w}
                   x={obstacle.x}
                   y={obstacle.y}
@@ -130,31 +146,11 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                 </text>
               </g>
             ))}
-            {slotLayout.walls.map((wall, index) => (
-              <polyline
-                key={index}
-                fill="none"
-                points={wall.map((point) => point.join(",")).join(" ")}
-                stroke={grey[600]}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={9}
-              />
-            ))}
-            <polyline
-              fill="none"
-              points={slotLayout.sealedOpening
-                .map((point) => point.join(","))
-                .join(" ")}
-              stroke={grey[600]}
-              strokeDasharray="18 12"
-              strokeWidth={9}
-            />
             <rect
               fill={grey[100]}
               height={slotLayout.entrance.h}
               stroke={grey[500]}
-              strokeWidth={4}
+              strokeWidth={3}
               width={slotLayout.entrance.w}
               x={slotLayout.entrance.x}
               y={slotLayout.entrance.y}
@@ -163,7 +159,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
               dominantBaseline="central"
               fill={grey[800]}
               fontFamily={designTokens.typography.fontFamily}
-              fontSize={55}
+              fontSize={62}
               fontWeight={700}
               textAnchor="middle"
               x={slotLayout.entrance.x + slotLayout.entrance.w / 2}
@@ -275,16 +271,34 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
               </g>
             );
           })}
+          <g
+            aria-hidden="true"
+            pointerEvents="none"
+            data-testid="slot-map-walls"
+          >
+            {slotLayout.walls.map((wall, index) => (
+              <polyline
+                key={index}
+                fill="none"
+                points={wall.map((point) => point.join(",")).join(" ")}
+                stroke={grey[600]}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={9}
+              />
+            ))}
+            <polyline
+              fill="none"
+              points={slotLayout.sealedOpening
+                .map((point) => point.join(","))
+                .join(" ")}
+              stroke={grey[600]}
+              strokeDasharray="18 12"
+              strokeWidth={9}
+            />
+          </g>
         </Box>
       </Box>
-      <Typography component="h3" variant="h3">
-        {slotMapText.legendTitle}
-      </Typography>
-      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }} useFlexGap>
-        {slotStatuses.map((status) => (
-          <SlotStatusBadge key={status} status={status} />
-        ))}
-      </Stack>
     </Stack>
   );
 }

@@ -18,6 +18,7 @@ type PageShellProps = {
   /** 固定在页面底部的主操作区，例如「车进来」按钮。 */
   footer?: ReactNode;
   headerAction?: ReactNode;
+  headerContent?: ReactNode;
   backHref?: string;
   children: ReactNode;
 };
@@ -28,6 +29,7 @@ export function PageShell({
   subtitle,
   footer,
   headerAction,
+  headerContent,
   backHref,
   children,
 }: PageShellProps) {
@@ -48,20 +50,24 @@ export function PageShell({
           px: 2,
         }}
       >
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ alignItems: "center", justifyContent: "space-between" }}
-        >
-          <Typography component="h1" variant="h1">
-            {title}
-          </Typography>
-          {headerAction}
-        </Stack>
-        {subtitle && (
-          <Typography color="textSecondary" variant="body1">
-            {subtitle}
-          </Typography>
+        {headerContent ?? (
+          <>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ alignItems: "center", justifyContent: "space-between" }}
+            >
+              <Typography component="h1" variant="h1">
+                {title}
+              </Typography>
+              {headerAction}
+            </Stack>
+            {subtitle && (
+              <Typography color="textSecondary" variant="body1">
+                {subtitle}
+              </Typography>
+            )}
+          </>
         )}
       </Box>
       <Box

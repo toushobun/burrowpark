@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { slotLayout } from "config/slotLayout";
 import { theme } from "theme/theme";
 
 const push = vi.fn();
@@ -18,27 +19,41 @@ describe("ParkingSlotMap", () => {
 
     expect(screen.getByRole("group", { name: "车位地图" })).toHaveAttribute(
       "viewBox",
-      "0 0 1300 1420",
+      "0 0 1695 1329",
     );
     const link = screen.getByRole("link", { name: "7号，空" });
     expect(link).toHaveAttribute("href", "/slots/7");
-    expect(link.querySelector("rect")).toHaveAttribute("x", "840");
+    expect(link.querySelector("rect")).toHaveAttribute("x", "1143");
     expect(screen.getAllByRole("link")).toHaveLength(29);
   });
 
-  it("地图默认按 44px 最短边显示，允许横向滑动且没有放大按钮", () => {
+  it("地图默认适配整个可用宽度且没有放大按钮", () => {
     render(<ParkingSlotMap slots={slots} />);
     const map = screen.getByRole("group", { name: "车位地图" });
     const viewport = screen.getByTestId("slot-map-viewport");
-    expect(map).toHaveAttribute("viewBox", "0 0 1300 1420");
-    expect(map).toHaveStyle({ width: 1300 * (44 / 90) + "px" });
-    expect(viewport).toHaveStyle({ overflowX: "auto", width: "100%" });
+    expect(map).toHaveAttribute("viewBox", "0 0 1695 1329");
+    expect(map).toHaveStyle({ width: "100%" });
+    expect(viewport).toHaveStyle({ width: "100%" });
     const viewportStyle = window.getComputedStyle(viewport);
     expect(viewportStyle.borderRadius).toMatch(/^(?:0(?:px)?)?$/);
     // 未绘制边框时，jsdom 仍可能返回默认宽度 medium。
     expect(viewportStyle.borderTopStyle).toMatch(/^(?:none)?$/);
     expect(screen.queryByRole("button", { name: "放大查看" })).toBeNull();
     expect(screen.getAllByRole("link")).toHaveLength(29);
+  });
+
+  it("外墙最后绘制，贴墙车位不覆盖墙线且墙线粗细一致", () => {
+    render(<ParkingSlotMap slots={slots} />);
+    const map = screen.getByRole("group", { name: "车位地图" });
+    const walls = screen.getByTestId("slot-map-walls");
+    expect(map.lastElementChild).toBe(walls);
+    expect(walls).toHaveAttribute("pointer-events", "none");
+    const lines = walls.querySelectorAll("polyline");
+    expect(lines).toHaveLength(slotLayout.walls.length + 1);
+    for (const line of lines) {
+      expect(line).toHaveAttribute("stroke-width", "9");
+    }
+    expect(lines[lines.length - 1]).toHaveAttribute("stroke-dasharray");
   });
 
   it("刚登记的车位红色粗描边并自动滚动到可见位置", () => {
@@ -94,7 +109,7 @@ describe("ParkingSlotMap", () => {
     expect(link).toHaveTextContent("过期");
     expect(link.querySelector("rect")).toHaveAttribute("fill", "#FBDAD6");
     expect(screen.getByText("入口")).toBeInTheDocument();
-    expect(screen.getByText("状态图例")).toBeInTheDocument();
+    expect(screen.getByText("公厕")).toBeInTheDocument();
   });
 
   it("停用或没有配置的车位灰显且不能点击", () => {
