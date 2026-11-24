@@ -247,6 +247,28 @@ describe("ParkingRepository RPC", () => {
     });
   });
 
+  it("登记 RPC 传递手机号和预上传照片路径", async () => {
+    const id = "00000000-0000-4000-8000-000000000001";
+    const photoPath = "2026/11/" + id + ".jpg";
+    const { client, rpc } = makeRpcClient({ data: id, error: null });
+    await createParkingRepository(client, logger).checkInVehicle({
+      ...rpcInput,
+      plate: "",
+      phone: "13800138000",
+      photoPath,
+      sessionId: id,
+    });
+    expect(rpc).toHaveBeenCalledWith(
+      "check_in_vehicle",
+      expect.objectContaining({
+        p_plate: "",
+        p_phone: "13800138000",
+        p_photo_path: photoPath,
+        p_session_id: id,
+      }),
+    );
+  });
+
   it("私人位直接传借用分钟数，不使用应用服务器时钟", async () => {
     const { client, rpc } = makeRpcClient({
       data: "00000000-0000-4000-8000-000000000001",

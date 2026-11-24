@@ -1,3 +1,4 @@
+import { commonText } from "config/commonText";
 import { slotDetailText } from "config/slotDetailText";
 import type { SlotStatus } from "theme/slotStatusTokens";
 import type {
@@ -248,8 +249,8 @@ export const normalizePlate = (plate: string): string =>
   plate.replace(/[·\s\u3000]/gu, "").toUpperCase();
 
 /** 格式化车牌显示值：在规范化车牌的第二位后插入间隔符。 */
-export const formatPlateForDisplay = (plate: string): string => {
-  const normalizedPlate = normalizePlate(plate);
+export const formatPlateForDisplay = (plate: string | null): string => {
+  const normalizedPlate = normalizePlate(plate ?? "");
 
   if (normalizedPlate.length <= 2) {
     return normalizedPlate;
@@ -257,6 +258,15 @@ export const formatPlateForDisplay = (plate: string): string => {
 
   return normalizedPlate.slice(0, 2) + "·" + normalizedPlate.slice(2);
 };
+
+/** 车牌缺失时用手机号识别车辆；不虚构车牌。 */
+export const formatVehicleIdentity = (
+  plate: string | null,
+  phone?: string | null,
+): string => formatPlateForDisplay(plate) || phone || commonText.noPlate;
+
+export const isValidCheckInPhone = (phone: string): boolean =>
+  /^\+?[0-9]{6,20}$/.test(phone.trim());
 
 /** 根据车位事实和当前时刻推导地图、列表共用的显示状态。 */
 export const deriveSlotStatus = (

@@ -37,6 +37,7 @@ export type MonthlyPayment = {
   leaseId: string | null;
   slotCode: string | null;
   plate: string | null;
+  phone?: string | null;
   tenantName: string | null;
   billingType: ParkingBillingType | null;
 };

@@ -15,6 +15,24 @@ import {
 import { parkingMessages } from "./errors";
 
 describe("checkInSchema", () => {
+  it("允许仅照片或仅手机号登记，拒绝全部为空", () => {
+    const base = { slotCode: "3", billingType: "hourly" };
+    const photo = new Blob(["photo"], { type: "image/jpeg" });
+    expect(parseCheckInInput({ ...base, photo })).toMatchObject({
+      plate: "",
+      photo,
+    });
+    expect(
+      parseCheckInInput({ ...base, phone: " 13800138000 " }),
+    ).toMatchObject({ plate: "", phone: "13800138000" });
+    expect(() => parseCheckInInput(base)).toThrow(
+      parkingMessages.identityRequired,
+    );
+    expect(() => parseCheckInInput({ ...base, phone: "abc" })).toThrow(
+      parkingMessages.invalidPhone,
+    );
+  });
+
   it("车牌规范化并接收合法酒店客参数", () => {
     const result = parseCheckInInput({
       slotCode: "3",

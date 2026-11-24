@@ -34,6 +34,19 @@ describe("CheckOutForm", () => {
       screen.getByRole("button", { name: "不收钱，直接离场" }),
     ).toBeEnabled();
   });
+  it("无车牌车辆显示手机号且可以离场", () => {
+    render(
+      <CheckOutForm
+        form={{ ...hourly, plate: null, phone: "13800138000" }}
+        action={action}
+      />,
+    );
+    expect(screen.getByText("车牌：未登记车牌")).toBeInTheDocument();
+    expect(screen.getByText("手机号：13800138000")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "不收钱，直接离场" }),
+    ).toBeEnabled();
+  });
   it("长租不显示预交合计且零建议时金额留空", () => {
     render(
       <CheckOutForm

@@ -147,6 +147,27 @@ describe("CheckInForm", () => {
     expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled();
   });
 
+  it("仅输入手机号即可登记，清空后禁止登记", () => {
+    renderForm();
+    const phone = screen.getByRole("textbox", { name: "手机号" });
+    fireEvent.change(phone, { target: { value: "13800138000" } });
+    expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled();
+    fireEvent.change(phone, { target: { value: "" } });
+    expect(screen.getByRole("button", { name: "确认登记" })).toBeDisabled();
+  });
+
+  it("照片压缩完成后无需等待车牌识别即可登记", async () => {
+    vi.mocked(recognizePlate).mockImplementation(() => new Promise(() => {}));
+    const { container } = renderForm();
+    choosePhoto(container);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled(),
+    );
+    expect(screen.getByRole("textbox", { name: "车牌号码" })).toHaveValue("");
+    fireEvent.click(screen.getByRole("button", { name: "删除照片" }));
+    expect(screen.getByRole("button", { name: "确认登记" })).toBeDisabled();
+  });
+
   it("选择住宿天数后更新交到时间和建议金额", () => {
     renderForm();
     expect(screen.getByText("交到 11月21日 12:00")).toBeInTheDocument();
@@ -249,7 +270,9 @@ describe("CheckInForm", () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(15000);
       });
-      expect(screen.getByText("没认出来，请手动输入")).toBeInTheDocument();
+      expect(
+        screen.getByText("没认出来，可直接使用照片登记"),
+      ).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }
@@ -272,13 +295,15 @@ describe("CheckInForm", () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(16000);
       });
-      expect(screen.getByText(/第一次使用要下载识别组件/)).toBeInTheDocument();
+      expect(screen.getByText(/首次识别需下载组件/)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "确认登记" })).toBeEnabled();
       expect(recognizePlate).not.toHaveBeenCalled();
       await act(async () => {
         await vi.advanceTimersByTimeAsync(74000);
       });
-      expect(screen.getByText("没认出来，请手动输入")).toBeInTheDocument();
+      expect(
+        screen.getByText("没认出来，可直接使用照片登记"),
+      ).toBeInTheDocument();
       await act(async () => finishLoad(true));
       expect(recognizePlate).not.toHaveBeenCalled();
     } finally {
@@ -297,7 +322,9 @@ describe("CheckInForm", () => {
     choosePhoto(container);
     expect(plateInput).toHaveValue("");
     await waitFor(() =>
-      expect(screen.getByText("没认出来，请手动输入")).toBeInTheDocument(),
+      expect(
+        screen.getByText("没认出来，可直接使用照片登记"),
+      ).toBeInTheDocument(),
     );
     expect(plateInput).toHaveValue("");
   });
@@ -467,7 +494,9 @@ describe("CheckInForm", () => {
     const { container } = renderForm();
     choosePhoto(container);
     await waitFor(() =>
-      expect(screen.getByText("没认出来，请手动输入")).toBeInTheDocument(),
+      expect(
+        screen.getByText("没认出来，可直接使用照片登记"),
+      ).toBeInTheDocument(),
     );
     expect(screen.queryByRole("dialog")).toBeNull();
   });

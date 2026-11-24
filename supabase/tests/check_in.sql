@@ -1,5 +1,5 @@
 begin;
-select plan(41);
+select plan(49);
 
 -- 专用测试数据在事务内创建，不影响其他 pgTAP 文件。
 insert into public.slots (code, name, yard, kind, sort_order, is_active) values
@@ -11,10 +11,12 @@ insert into public.slots (code, name, yard, kind, sort_order, is_active) values
   ('test-ci-6', '6号', 'outer', 'regular', 106, true),
   ('test-ci-7', '7号', 'outer', 'private', 107, true),
   ('test-ci-8', '8号', 'outer', 'private', 108, true),
-  ('test-ci-9', '9号', 'outer', 'regular', 109, false);
+  ('test-ci-9', '9号', 'outer', 'regular', 109, false),
+  ('test-ci-10', '10号', 'outer', 'regular', 110, true),
+  ('test-ci-11', '11号', 'outer', 'regular', 111, true);
 
 select ok(not has_function_privilege('anon',
-  'public.check_in_vehicle(text,text,public.billing_type,timestamptz,int,int,public.payment_method)',
+  'public.check_in_vehicle(text,text,public.billing_type,timestamptz,int,int,public.payment_method,text,text,uuid)',
   'execute'), '匿名用户没有登记权限');
 select ok(not has_function_privilege('anon', 'public.undo_check_in(uuid)', 'execute'),
   '匿名用户没有撤销权限');
@@ -169,6 +171,40 @@ select lives_ok(
   '没有新预留时撤销登记成功');
 select is((select count(*) from public.parking_sessions
   where slot_code = 'test-ci-5'), 0::bigint, '撤销成功后停车记录删除');
+
+-- 无车牌登记、同手机号多车以及仅照片登记。
+select throws_ok(
+  $$select public.check_in_vehicle('test-ci-10', '', 'hourly')$$,
+  'P0001', '登记参数无效', '三项全空被拒绝');
+select lives_ok(
+  $$select public.check_in_vehicle('test-ci-10', '', 'hourly',
+    p_phone => '13800138000')$$,
+  '仅手机号可登记');
+select ok((select plate is null and phone = '13800138000'
+  from public.parking_sessions where slot_code = 'test-ci-10'),
+  '手机号被保存且车牌为空');
+select throws_ok(
+  $$select public.check_in_vehicle('test-ci-11', '', 'hourly',
+    p_photo_path => '2026/11/00000000-0000-4000-8000-000000000071.jpg',
+    p_session_id => '00000000-0000-4000-8000-000000000071')$$,
+  'P0001', '登记参数无效', '仅照片但存储对象不存在时拒绝');
+insert into storage.objects (bucket_id, name) values
+  ('plate-photos', '2026/11/00000000-0000-4000-8000-000000000071.jpg');
+select lives_ok(
+  $$select public.check_in_vehicle('test-ci-11', '', 'hourly',
+    p_photo_path => '2026/11/00000000-0000-4000-8000-000000000071.jpg',
+    p_session_id => '00000000-0000-4000-8000-000000000071')$$,
+  '仅照片且存储对象存在时登记成功');
+select ok((select plate is null and phone is null and photo_path is not null
+  from public.parking_sessions where slot_code = 'test-ci-11'),
+  '仅照片记录不虚构车牌或手机号');
+select lives_ok(
+  $$select public.check_out_vehicle('00000000-0000-4000-8000-000000000071')$$,
+  '无车牌车辆可以离场');
+select lives_ok(
+  $$update public.parking_sessions set photo_path = null
+    where id = '00000000-0000-4000-8000-000000000071'$$,
+  '已离场照片可以按原规则清理');
 
 -- 更换非家庭账号，RLS 与 RPC 双重限制。
 set local request.jwt.claim.sub = '00000000-0000-4000-8000-000000000099';

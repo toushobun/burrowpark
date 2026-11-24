@@ -81,6 +81,7 @@ export const PhotoRecognized: Story = {
     storyPhoto: { previewUrl: photoPreview, status: "filled" },
   },
 };
+/** 未识别出车牌时，仍可直接用照片登记。 */
 export const PhotoRecognitionFailed: Story = {
   args: { storyPhoto: { previewUrl: photoPreview, status: "failed" } },
 };

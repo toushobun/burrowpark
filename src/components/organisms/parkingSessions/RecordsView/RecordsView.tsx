@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 
 import { paymentMethodLabels } from "config/checkInText";
+import { commonText } from "config/commonText";
 import { recordsText as text } from "config/recordsText";
 import { billingTypeLabels } from "config/slotDetailText";
 import {
@@ -133,7 +134,7 @@ export function RecordsView({
   const confirmation =
     change?.operation === "plate"
       ? text.newPlate(
-          formatPlateForDisplay(change.before),
+          formatPlateForDisplay(change.before) || commonText.noPlate,
           formatPlateForDisplay(normalizePlate(newPlate)),
         )
       : change?.operation === "payment"
@@ -273,8 +274,14 @@ export function RecordsView({
               <CardContent>
                 <Stack spacing={1}>
                   <Typography variant="h3">
-                    {session.slotName} · {formatPlateForDisplay(session.plate)}
+                    {session.slotName} ·{" "}
+                    {formatPlateForDisplay(session.plate) || commonText.noPlate}
                   </Typography>
+                  {session.phone && (
+                    <Typography>
+                      {commonText.phone}：{session.phone}
+                    </Typography>
+                  )}
                   <Typography>
                     {billingTypeLabels[session.billing_type]}
                   </Typography>
@@ -292,11 +299,11 @@ export function RecordsView({
                     variant="text"
                     sx={{ ...touch, alignSelf: "flex-start" }}
                     onClick={() => {
-                      setNewPlate(session.plate);
+                      setNewPlate(session.plate ?? "");
                       setChange({
                         operation: "plate",
                         sessionId: session.id,
-                        before: session.plate,
+                        before: session.plate ?? "",
                       });
                     }}
                   >

@@ -16,6 +16,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 
 import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
 import { paymentMethodLabels } from "config/checkInText";
+import { commonText } from "config/commonText";
 import { billingTypeLabels, slotDetailText } from "config/slotDetailText";
 import type { SlotDetail as SlotDetailData } from "internal/parking";
 import {
@@ -302,8 +303,13 @@ export function SlotDetail({
                 <>
                   <DetailRow
                     label={slotDetailText.plate}
-                    value={formatPlateForDisplay(vehicle.plate)}
+                    value={
+                      formatPlateForDisplay(vehicle.plate) || commonText.noPlate
+                    }
                   />
+                  {vehicle.phone && (
+                    <DetailRow label={commonText.phone} value={vehicle.phone} />
+                  )}
                   <DetailRow
                     label={slotDetailText.billingType}
                     value={billingTypeLabels[vehicle.billingType]}

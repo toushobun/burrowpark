@@ -6,6 +6,7 @@ import { parkingMessages } from "./errors";
 import {
   getBusinessDate,
   getBusinessMonth,
+  isValidCheckInPhone,
   normalizePlate,
 } from "./util/parkingDomain";
 
@@ -18,9 +19,17 @@ export const checkInInputSchema = z
     slotCode: z.string().regex(/^\d+$/, parkingMessages.invalidInput),
     plate: z
       .string()
+      .default("")
       .transform(normalizePlate)
-      .refine((value) => value.length >= 2 && value.length <= 10, {
+      .refine((value) => !value || (value.length >= 2 && value.length <= 10), {
         message: parkingMessages.invalidPlate,
+      }),
+    phone: z
+      .string()
+      .trim()
+      .default("")
+      .refine((value) => !value || isValidCheckInPhone(value), {
+        message: parkingMessages.invalidPhone,
       }),
     billingType: z.enum(["hotel_daily", "hourly", "lease", "free"]),
     days: z.number().int().min(1).max(30).optional(),
@@ -33,12 +42,19 @@ export const checkInInputSchema = z
           typeof Blob !== "undefined" &&
           value instanceof Blob &&
           value.type === "image/jpeg" &&
+          value.size > 0 &&
           value.size <= 2 * 1024 * 1024,
       )
       .optional()
       .catch(undefined),
   })
   .superRefine((value, ctx) => {
+    if (!value.plate && !value.phone && !value.photo) {
+      ctx.addIssue({
+        code: "custom",
+        message: parkingMessages.identityRequired,
+      });
+    }
     const hotel = value.billingType === "hotel_daily";
     if (hotel && value.days === undefined) {
       ctx.addIssue({
@@ -89,7 +105,8 @@ export function readCheckInFormData(formData: FormData): unknown {
   const borrowMinutes = formData.get("borrowMinutes");
   return {
     slotCode: formData.get("slotCode"),
-    plate: formData.get("plate"),
+    plate: formData.get("plate") ?? "",
+    phone: formData.get("phone") ?? "",
     billingType: formData.get("billingType"),
     days: days === null || days === "" ? undefined : Number(days),
     borrowMinutes:
