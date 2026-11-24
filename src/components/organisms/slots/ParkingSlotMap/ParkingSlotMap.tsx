@@ -27,7 +27,8 @@ type ParkingSlotMapProps = {
 /** 布局坐标完全由定稿 JSON 决定；SVG 统一按 viewBox 等比缩放。 */
 export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
   const router = useRouter();
-  const { yard, setYard, ...gestureHandlers } = useYardNavigation(highlightCode);
+  const { yard, setYard, ...gestureHandlers } =
+    useYardNavigation(highlightCode);
   const slotLayout = slotLayouts[yard];
   const highlightedRef = useRef<SVGGElement>(null);
   const [pressedCode, setPressedCode] = useState<string | null>(null);
@@ -54,19 +55,9 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
         p: 1,
       }}
     >
-      <Stack
-        direction="row"
-        useFlexGap
-        sx={{
-          alignItems: "baseline",
-          flexWrap: "wrap",
-          justifyContent: "space-between",
-        }}
-      >
-        <Typography component="h2" variant="h3">
-          {slotMapText.overview}
-        </Typography>
-      </Stack>
+      <Typography component="h2" variant="h3">
+        {slotMapText.overview}
+      </Typography>
       <Box
         aria-label={slotMapText.mapTitle}
         data-testid="slot-map-viewport"
@@ -179,6 +170,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                   : slotMapText.unavailable;
             const labelLayout = getSlotLabelLayout(shape, statusText);
             const highlighted = highlightCode === shape.code && active;
+            const pressed = pressedCode === shape.code;
             const fill = colors?.background ?? grey[300];
             const border = colors?.border ?? grey[600];
             const ink = colors?.text ?? grey[800];
@@ -186,7 +178,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
               <g
                 data-slot-highlight={highlighted ? "true" : undefined}
                 ref={highlighted ? highlightedRef : undefined}
-                opacity={pressedCode === shape.code ? 0.8 : 1}
+                opacity={pressed ? 0.8 : 1}
               >
                 <rect
                   fill={fill}
@@ -196,9 +188,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                   strokeDasharray={
                     colors?.borderStyle === "dashed" ? "12 8" : undefined
                   }
-                  strokeWidth={
-                    highlighted ? 12 : pressedCode === shape.code ? 9 : 5
-                  }
+                  strokeWidth={highlighted ? 12 : pressed ? 9 : 5}
                   width={shape.w}
                   x={shape.x}
                   y={shape.y}
@@ -237,6 +227,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                 key={shape.code}
                 aria-label={slot.name + "，" + slotStatusLabels[slot.status]}
                 href={"/slots/" + encodeURIComponent(shape.code)}
+                tabIndex={0}
                 onPointerDown={(event) => {
                   if (event.button !== 0) return;
                   setPressedCode(shape.code);
@@ -318,7 +309,11 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
           ))}
         </Stack>
       </ButtonBase>
-      <Typography variant="body2" textAlign="center" color="textSecondary">
+      <Typography
+        variant="body2"
+        color="textSecondary"
+        sx={{ textAlign: "center" }}
+      >
         {slotMapText.swipeHint}
       </Typography>
       <Stack

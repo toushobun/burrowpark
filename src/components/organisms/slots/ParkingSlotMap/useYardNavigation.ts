@@ -18,9 +18,12 @@ export function useYardNavigation(highlightCode?: string) {
 
   function onTouchStart(event: TouchEvent) {
     suppressClickUntil.current = 0;
+    if (event.touches.length !== 1) {
+      start.current = null;
+      return;
+    }
     const touch = event.touches[0];
-    start.current =
-      event.touches.length === 1 ? { x: touch.clientX, y: touch.clientY } : null;
+    start.current = { x: touch.clientX, y: touch.clientY };
   }
 
   function onTouchEnd(event: TouchEvent) {
@@ -48,10 +51,14 @@ export function useYardNavigation(highlightCode?: string) {
     event.stopPropagation();
   }
 
-  function onKeyDown(event: KeyboardEvent) {
+  function onKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
     event.preventDefault();
-    setYard(event.key === "ArrowRight" ? "inner" : "outer");
+    const nextYard = event.key === "ArrowRight" ? "inner" : "outer";
+    if (nextYard === yard) return;
+    // 原院车位切换后会卸载，将键盘焦点保留在地图区域。
+    event.currentTarget.focus();
+    setYard(nextYard);
   }
 
   return {

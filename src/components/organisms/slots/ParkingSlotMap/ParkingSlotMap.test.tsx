@@ -30,7 +30,11 @@ describe("ParkingSlotMap", () => {
   it("切换里院后只显示 15～29 号，支持按键和点击返回", () => {
     render(<ParkingSlotMap slots={slots} />);
     const viewport = screen.getByTestId("slot-map-viewport");
-    fireEvent.keyDown(viewport, { key: "ArrowRight" });
+    const link = screen.getByRole("link", { name: "7号，空" });
+    link.focus();
+    expect(link).toHaveFocus();
+    fireEvent.keyDown(link, { key: "ArrowRight" });
+    expect(viewport).toHaveFocus();
     expect(screen.getAllByRole("link")).toHaveLength(15);
     expect(screen.getByRole("link", { name: "29号，空" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "7号，空" })).toBeNull();
@@ -66,6 +70,28 @@ describe("ParkingSlotMap", () => {
     fireEvent.touchEnd(viewport, {
       touches: [],
       changedTouches: [{ clientX: 250, clientY: 105 }],
+    });
+    expect(screen.getAllByRole("link")).toHaveLength(14);
+  });
+
+  it("双指缩放及取消的触摸不切换院区", () => {
+    render(<ParkingSlotMap slots={slots} />);
+    const viewport = screen.getByTestId("slot-map-viewport");
+    const first = { clientX: 250, clientY: 100 };
+    const second = { clientX: 150, clientY: 100 };
+    fireEvent.touchStart(viewport, { touches: [first] });
+    fireEvent.touchStart(viewport, { touches: [first, second] });
+    fireEvent.touchEnd(viewport, {
+      touches: [],
+      changedTouches: [second],
+    });
+    expect(screen.getAllByRole("link")).toHaveLength(14);
+
+    fireEvent.touchStart(viewport, { touches: [first] });
+    fireEvent.touchCancel(viewport);
+    fireEvent.touchEnd(viewport, {
+      touches: [],
+      changedTouches: [second],
     });
     expect(screen.getAllByRole("link")).toHaveLength(14);
   });
