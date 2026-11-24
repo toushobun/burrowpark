@@ -5,7 +5,10 @@ import { PageShell } from "templates/layout/PageShell/PageShell";
 
 export default function SettingsPage() {
   return (
-    <PageShell footer={<HomeNavigation active="profile" />} title={slotSettingsText.settings}>
+    <PageShell
+      footer={<HomeNavigation active="profile" />}
+      title={slotSettingsText.settings}
+    >
       <SettingsMenu />
     </PageShell>
   );

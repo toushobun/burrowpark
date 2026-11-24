@@ -57,7 +57,11 @@ export function SlotCardList({
       <Stack
         direction="row"
         useFlexGap
-        sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}
+        sx={{
+          alignItems: "center",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+        }}
       >
         <Typography component="h2" variant="h3">
           {inner ? slotMapText.inner : slotMapText.outer}
@@ -78,58 +82,89 @@ export function SlotCardList({
           gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
         }}
       >
-        {slotLayout.slots.filter(({ code }) => isInner(code) === inner).map(({ code }) => {
-          const slot = byCode.get(code);
-          const active = Boolean(slot?.isActive);
-          const colors = slot && active ? slotStatusColors[slot.status] : null;
-          const status = !slot
-            ? slotMapText.unavailable
-            : active
-              ? slotStatusShortLabels[slot.status]
-              : slotMapText.inactive;
-          const showPlate = active && slot && !["empty", "reserved", "privateIdle"].includes(slot.status);
-          const primary = showPlate ? slot?.plate || slotMapText.noPlate : status;
-          const label = code + "号，" + (active && slot ? slotStatusLabels[slot.status] : status);
-          return (
-            <ButtonBase
-              key={code}
-              id={"slot-card-" + code}
-              aria-label={label + (showPlate && slot?.plate ? "，" + slot.plate : "")}
-              component={Link}
-              disabled={!active}
-              href={"/slots/" + code}
-              sx={{
-                alignItems: "stretch",
-                bgcolor: colors?.background ?? "action.disabledBackground",
-                border: "1px solid",
-                borderColor: highlightCode === code ? "error.main" : colors?.border ?? "divider",
-                borderWidth: highlightCode === code ? 3 : 1,
-                borderRadius: designTokens.radius.md + "px",
-                color: colors?.text ?? "text.secondary",
-                flexDirection: "column",
-                justifyContent: "center",
-                minHeight: designTokens.size.touchTargetMin,
-                minWidth: 0,
-                px: 0.5,
-                py: 0.25,
-                textAlign: "center",
-                "&:active": { opacity: 0.75 },
-              }}
-            >
-              <Typography component="span" variant="body2" sx={{ fontWeight: 900, textAlign: "left", lineHeight: 1.1 }}>
-                {code}
-              </Typography>
-              <Typography component="span" variant="h6" sx={{ overflowWrap: "anywhere", lineHeight: 1.15, fontWeight: 900 }}>
-                {primary}
-              </Typography>
-              {showPlate && (
-                <Typography component="span" variant="body2" sx={{ lineHeight: 1.2 }}>
-                  {status}
+        {slotLayout.slots
+          .filter(({ code }) => isInner(code) === inner)
+          .map(({ code }) => {
+            const slot = byCode.get(code);
+            const active = Boolean(slot?.isActive);
+            const colors = slot && active ? slotStatusColors[slot.status] : null;
+            const status = !slot
+              ? slotMapText.unavailable
+              : active
+                ? slotStatusShortLabels[slot.status]
+                : slotMapText.inactive;
+            const showPlate =
+              active &&
+              slot &&
+              !["empty", "reserved", "privateIdle"].includes(slot.status);
+            const primary = showPlate
+              ? slot?.plate || slotMapText.noPlate
+              : status;
+            const label =
+              code +
+              "号，" +
+              (active && slot ? slotStatusLabels[slot.status] : status);
+            return (
+              <ButtonBase
+                key={code}
+                id={"slot-card-" + code}
+                aria-label={
+                  label + (showPlate && slot?.plate ? "，" + slot.plate : "")
+                }
+                component={active ? Link : "button"}
+                disabled={!active}
+                href={active ? "/slots/" + code : undefined}
+                sx={{
+                  alignItems: "stretch",
+                  bgcolor: colors?.background ?? "action.disabledBackground",
+                  border: "1px solid",
+                  borderColor:
+                    highlightCode === code
+                      ? "error.main"
+                      : (colors?.border ?? "divider"),
+                  borderWidth: highlightCode === code ? 3 : 1,
+                  borderRadius: designTokens.radius.md + "px",
+                  color: colors?.text ?? "text.secondary",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  minHeight: designTokens.size.touchTargetMin,
+                  minWidth: 0,
+                  px: 0.5,
+                  py: 0.25,
+                  textAlign: "center",
+                  "&:active": { opacity: 0.75 },
+                }}
+              >
+                <Typography
+                  component="span"
+                  variant="body2"
+                  sx={{ fontWeight: 900, textAlign: "left", lineHeight: 1.1 }}
+                >
+                  {code}
                 </Typography>
-              )}
-            </ButtonBase>
-          );
-        })}
+                <Typography
+                  component="span"
+                  variant="h6"
+                  sx={{
+                    overflowWrap: "anywhere",
+                    lineHeight: 1.15,
+                    fontWeight: 900,
+                  }}
+                >
+                  {primary}
+                </Typography>
+                {showPlate && (
+                  <Typography
+                    component="span"
+                    variant="body2"
+                    sx={{ lineHeight: 1.2 }}
+                  >
+                    {status}
+                  </Typography>
+                )}
+              </ButtonBase>
+            );
+          })}
       </Box>
     </Stack>
   );

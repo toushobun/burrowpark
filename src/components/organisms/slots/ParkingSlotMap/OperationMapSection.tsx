@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
 import { slotMapText } from "config/slotMapText";
-import { slotStatusShortLabels } from "config/slotStatusText";
+import { slotStatusLabels, slotStatusShortLabels } from "config/slotStatusText";
 import type { SlotMapSlot } from "internal/parking";
 import { SlotCardList } from "organisms/slots/SlotCardList/SlotCardList";
 import { slotStatuses } from "theme/slotStatusTokens";
@@ -90,10 +90,23 @@ export function OperationMapSection({
       <Stack spacing={1}>
         <ParkingSlotMap highlightCode={highlightCode} slots={slots} />
         <SlotCardList highlightCode={highlightCode} slots={slots} />
-        <Stack direction="row" spacing={0.5} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
+        <Stack
+          direction="row"
+          spacing={0.5}
+          useFlexGap
+          sx={{ alignItems: "center", flexWrap: "wrap" }}
+        >
           <Typography variant="body2">{slotMapText.legendTitle}：</Typography>
           {slotStatuses.map((status) => (
-            <SlotStatusBadge key={status} status={status} label={status === "expiringSoon" ? "快到期" : status === "overdue" ? "已过期" : slotStatusShortLabels[status]} />
+            <SlotStatusBadge
+              key={status}
+              status={status}
+              label={
+                status === "expiringSoon" || status === "overdue"
+                  ? slotStatusLabels[status]
+                  : slotStatusShortLabels[status]
+              }
+            />
           ))}
         </Stack>
       </Stack>

@@ -8,7 +8,10 @@ import { PageShell } from "templates/layout/PageShell/PageShell";
 export default async function RemindersPage() {
   const reminders = await loadReminders(new Date());
   return (
-    <PageShell title={slotMapText.reminders} footer={<HomeNavigation active="reminders" />}>
+    <PageShell
+      title={slotMapText.reminders}
+      footer={<HomeNavigation active="reminders" />}
+    >
       <ReminderRefresh />
       <SlotReminders reminders={reminders} />
     </PageShell>

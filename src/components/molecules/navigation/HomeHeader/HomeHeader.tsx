@@ -18,13 +18,24 @@ export function HomeHeader({ hasReminders }: { hasReminders: boolean }) {
         component="img"
         alt=""
         src="/icons/icon-192.png"
-        sx={{ width: designTokens.size.touchTargetMin, height: designTokens.size.touchTargetMin, borderRadius: designTokens.radius.md + "px" }}
+        sx={{
+          width: designTokens.size.touchTargetMin,
+          height: designTokens.size.touchTargetMin,
+          borderRadius: designTokens.radius.md + "px",
+        }}
       />
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography component="h1" variant="h1">{slotMapText.title}</Typography>
+        <Typography component="h1" variant="h1">
+          {slotMapText.title}
+        </Typography>
         <Typography variant="body2">{slotMapText.subtitle}</Typography>
       </Box>
-      <IconButton component={Link} href="/reminders" aria-label={slotMapText.reminders} sx={{ bgcolor: "background.paper", boxShadow: 1 }}>
+      <IconButton
+        component={Link}
+        href="/reminders"
+        aria-label={slotMapText.reminders}
+        sx={{ bgcolor: "background.paper", boxShadow: 1 }}
+      >
         <Badge color="error" variant="dot" invisible={!hasReminders}>
           <NotificationsNoneIcon />
         </Badge>

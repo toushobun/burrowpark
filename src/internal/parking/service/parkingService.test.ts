@@ -126,7 +126,13 @@ describe("createParkingService", () => {
     const { service, repository } = makeService(makeRows());
     expect(await service.getSlotMap(now)).toEqual([
       { code: "1", name: "1号", isActive: true, status: "empty", plate: null },
-      { code: "2", name: "2号", isActive: false, status: "privateIdle", plate: null },
+      {
+        code: "2",
+        name: "2号",
+        isActive: false,
+        status: "privateIdle",
+        plate: null,
+      },
     ]);
     expect(repository.readSlotFacts).toHaveBeenCalledOnce();
   });

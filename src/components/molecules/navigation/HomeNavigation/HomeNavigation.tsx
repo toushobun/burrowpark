@@ -3,7 +3,7 @@
 import DirectionsCarOutlinedIcon from "@mui/icons-material/DirectionsCarOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
@@ -17,7 +17,7 @@ const destinations = [
   { key: "home", href: "/", icon: HomeOutlinedIcon },
   { key: "slots", href: "/#slot-list", icon: DirectionsCarOutlinedIcon },
   { key: "reminders", href: "/reminders", icon: AssignmentOutlinedIcon },
-  { key: "profile", href: "/settings", icon: PersonOutlineIcon },
+  { key: "profile", href: "/settings", icon: PersonOutlinedIcon },
 ] as const;
 
 function subscribe(callback: () => void) {
@@ -30,10 +30,23 @@ export function HomeNavigation({
 }: {
   active?: "home" | "reminders" | "profile";
 }) {
-  const hash = useSyncExternalStore(subscribe, () => window.location.hash, () => "");
-  const selected = active === "home" && hash === "#slot-list" ? "slots" : active;
+  const hash = useSyncExternalStore(
+    subscribe,
+    () => window.location.hash,
+    () => "",
+  );
+  const selected =
+    active === "home" && hash === "#slot-list" ? "slots" : active;
   return (
-    <Box component="nav" aria-label="主导航" sx={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 0.5 }}>
+    <Box
+      component="nav"
+      aria-label="主导航"
+      sx={{
+        display: "grid",
+        gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+        gap: 0.5,
+      }}
+    >
       {destinations.map(({ key, href, icon: Icon }) => {
         const current = key === selected;
         const local = active === "home" && (key === "home" || key === "slots");
@@ -52,7 +65,9 @@ export function HomeNavigation({
             }}
           >
             <Icon />
-            <Typography variant="body2" sx={{ fontWeight: 700 }}>{slotMapText[key]}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              {slotMapText[key]}
+            </Typography>
           </ButtonBase>
         );
       })}

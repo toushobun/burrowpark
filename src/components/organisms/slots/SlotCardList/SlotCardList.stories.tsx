@@ -15,7 +15,13 @@ const meta = {
       plate: "辽AD98765",
     })),
   },
-  decorators: [(Story) => <Box sx={{ width: 390, maxWidth: "100%" }}><Story /></Box>],
+  decorators: [
+    (Story) => (
+      <Box sx={{ width: 390, maxWidth: "100%" }}>
+        <Story />
+      </Box>
+    ),
+  ],
   title: "Organisms/Slots/SlotCardList",
 } satisfies Meta<typeof SlotCardList>;
 

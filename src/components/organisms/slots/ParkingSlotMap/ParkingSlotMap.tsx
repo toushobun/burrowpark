@@ -52,7 +52,11 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
       <Stack
         direction="row"
         useFlexGap
-        sx={{ alignItems: "baseline", flexWrap: "wrap", justifyContent: "space-between" }}
+        sx={{
+          alignItems: "baseline",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+        }}
       >
         <Typography component="h2" variant="h3">
           {slotMapText.overview}

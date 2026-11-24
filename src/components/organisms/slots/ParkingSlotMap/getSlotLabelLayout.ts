@@ -26,12 +26,20 @@ export function getSlotLabelLayout(
     number: {
       x: shape.x + shape.w / 2,
       y: shape.y + shape.h * 0.28,
-      fontSize: Math.min(54, shape.h * 0.4, (shape.w - 12) / textWidthUnits(shape.code)),
+      fontSize: Math.min(
+        54,
+        shape.h * 0.4,
+        (shape.w - 12) / textWidthUnits(shape.code),
+      ),
     },
     status: {
       x: shape.x + shape.w / 2,
       y: shape.y + shape.h * 0.73,
-      fontSize: Math.min(45, shape.h * 0.34, (shape.w - 12) / textWidthUnits(statusText)),
+      fontSize: Math.min(
+        45,
+        shape.h * 0.34,
+        (shape.w - 12) / textWidthUnits(statusText),
+      ),
     },
   };
 }
