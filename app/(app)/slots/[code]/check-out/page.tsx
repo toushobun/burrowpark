@@ -12,7 +12,10 @@ export default async function CheckOutPage({
   const { code } = await params;
   const form = await loadCheckOutForm(code);
   return (
-    <PageShell backHref={"/slots/" + code} title={checkOutText.title}>
+    <PageShell
+      backHref={form ? "/slots/" + code : "/"}
+      title={checkOutText.title}
+    >
       <CheckOutForm form={form} action={checkOutAction} />
     </PageShell>
   );

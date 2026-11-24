@@ -7,7 +7,6 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   startTransition,
@@ -262,15 +261,6 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
     return (
       <Stack spacing={3}>
         <Typography variant="h2">{checkInText.missing}</Typography>
-        <Button
-          component={Link}
-          fullWidth
-          href="/"
-          size="large"
-          variant="contained"
-        >
-          {checkInText.backMap}
-        </Button>
       </Stack>
     );
   }
@@ -637,16 +627,6 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
               </Stack>
             </form>
           )}
-          <Button
-            component={Link}
-            fullWidth
-            href="/"
-            size="large"
-            sx={bigButtonSx}
-            variant="outlined"
-          >
-            {checkInText.backMap}
-          </Button>
         </Stack>
       )}
       <FailureFeedbackDialog state={state} />

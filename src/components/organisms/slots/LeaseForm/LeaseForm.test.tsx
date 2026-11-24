@@ -95,7 +95,7 @@ describe("LeaseForm", () => {
     );
     expect(replace).toHaveBeenCalledWith("/");
     expect(screen.getByText("正在返回地图…")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "回地图" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "返回" })).toBeNull();
   });
 
   it("私人位无法建立长租", () => {

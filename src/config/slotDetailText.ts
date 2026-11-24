@@ -51,7 +51,5 @@ export const slotDetailText = {
   regularPlate: "常停车牌",
   paymentRecord: "收款记录",
   phone: "打电话",
-  backMap: "回地图",
-  backHome: "回首页",
   pending: "功能开发中",
 } as const;

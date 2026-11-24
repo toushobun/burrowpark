@@ -28,7 +28,6 @@ export const checkInText = {
   minuteUnit: "分钟",
   submit: "确认登记",
   submitting: "登记中",
-  backMap: "回地图",
   invalidPlate: "车牌应为 2～10 个字符",
 } as const;
 

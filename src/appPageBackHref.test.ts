@@ -9,8 +9,8 @@ import { describe, expect, it } from "vitest";
 
 const appDirectory = fileURLToPath(new URL("../app/(app)/", import.meta.url));
 
-describe("业务页面返回按钮", () => {
-  it("除首页以外的所有页面均通过 PageShell 提供 backHref", () => {
+describe("业务页面底部返回导航", () => {
+  it("除首页以外的所有页面均通过 PageShell 指定底部返回地址", () => {
     const pages = [...globSync("**/page.tsx", { cwd: appDirectory })].filter(
       (path) => path !== "page.tsx",
     );

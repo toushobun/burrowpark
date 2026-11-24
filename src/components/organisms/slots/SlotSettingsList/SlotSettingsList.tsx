@@ -10,7 +10,6 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 
@@ -124,16 +123,6 @@ export function SlotSettingsList({ rows, action }: Props) {
           );
         })}
       </Stack>
-      <Button
-        component={Link}
-        href="/settings"
-        fullWidth
-        size="large"
-        variant="outlined"
-        sx={buttonSx}
-      >
-        {slotSettingsText.back}
-      </Button>
       <Dialog open={Boolean(change)} fullWidth onClose={() => setChange(null)}>
         <DialogTitle>{change?.message}</DialogTitle>
         <form action={submit}>

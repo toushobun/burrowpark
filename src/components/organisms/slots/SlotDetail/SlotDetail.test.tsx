@@ -45,13 +45,10 @@ function expectActions(expected: string[]) {
 
 describe("SlotDetail", () => {
   beforeEach(() => push.mockClear());
-  it("车位不存在时显示提示及大号回首页按钮", () => {
+  it("车位不存在时仅显示提示，返回入口由页面骨架提供", () => {
     renderDetail(null);
     expect(screen.getByText("没有这个车位")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "回首页" })).toHaveAttribute(
-      "href",
-      "/",
-    );
+    expect(screen.queryByRole("link", { name: "回首页" })).toBeNull();
     expect(screen.queryByRole("link", { name: "登记进场" })).toBeNull();
   });
 
@@ -61,10 +58,7 @@ describe("SlotDetail", () => {
     expect(screen.getByText("7号")).toBeInTheDocument();
     expect(screen.getByText("空")).toBeInTheDocument();
     expectActions(["登记进场"]);
-    expect(screen.getByRole("link", { name: "回地图" })).toHaveAttribute(
-      "href",
-      "/",
-    );
+    expect(screen.queryByRole("link", { name: "回地图" })).toBeNull();
   });
 
   it("私人位空闲时也只显示登记进场按钮", () => {

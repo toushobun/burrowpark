@@ -13,7 +13,10 @@ export default async function CheckInPage({
   const form = await loadCheckInForm(code, new Date());
 
   return (
-    <PageShell backHref={"/slots/" + code} title={checkInText.title}>
+    <PageShell
+      backHref={form ? "/slots/" + code : "/"}
+      title={checkInText.title}
+    >
       <CheckInForm action={checkInAction} form={form} />
     </PageShell>
   );

@@ -200,16 +200,6 @@ export function SlotDetail({
         <Typography component="h2" variant="h2">
           {slotDetailText.missing}
         </Typography>
-        <Button
-          component={Link}
-          fullWidth
-          href="/"
-          size="large"
-          sx={buttonSx}
-          variant="contained"
-        >
-          {slotDetailText.backHome}
-        </Button>
       </Stack>
     );
   }
@@ -589,16 +579,6 @@ export function SlotDetail({
           </form>
         </Paper>
       )}
-      <Button
-        component={Link}
-        fullWidth
-        href="/"
-        size="large"
-        sx={buttonSx}
-        variant="outlined"
-      >
-        {slotDetailText.backMap}
-      </Button>
 
       <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} fullWidth>
         <DialogTitle>{slotDetailText.cancelReservationQuestion}</DialogTitle>
