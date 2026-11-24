@@ -26,8 +26,8 @@ export const checkInInputSchema = z
       }),
     phone: z
       .string()
-      .default("")
       .trim()
+      .default("")
       .refine((value) => !value || isValidCheckInPhone(value), {
         message: parkingMessages.invalidPhone,
       }),
