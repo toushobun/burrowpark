@@ -35,7 +35,8 @@ export function HomeNavigation({
     () => window.location.hash,
     () => "",
   );
-  const selected = active === "home" && hash === "#slot-list" ? "slots" : active;
+  const atSlots = active === "home" && hash === "#slot-list";
+  const selected = atSlots ? "slots" : active;
   return (
     <Box
       component="nav"
