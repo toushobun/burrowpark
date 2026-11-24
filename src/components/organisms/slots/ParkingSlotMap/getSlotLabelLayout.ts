@@ -27,7 +27,7 @@ export function getSlotLabelLayout(
       x: shape.x + shape.w / 2,
       y: shape.y + shape.h * 0.28,
       fontSize: Math.min(
-        54,
+        86,
         shape.h * 0.4,
         (shape.w - 12) / textWidthUnits(shape.code),
       ),
@@ -36,7 +36,7 @@ export function getSlotLabelLayout(
       x: shape.x + shape.w / 2,
       y: shape.y + shape.h * 0.73,
       fontSize: Math.min(
-        45,
+        66,
         shape.h * 0.34,
         (shape.w - 12) / textWidthUnits(statusText),
       ),

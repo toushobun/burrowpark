@@ -27,7 +27,6 @@ export const slotLayoutSchema = z
         .strict(),
     ),
     walls: z.array(z.array(pointSchema).min(2)),
-    sealedOpening: z.tuple([pointSchema, pointSchema]),
     entrance: rectSchema.strict(),
     areas: z.array(
       z
@@ -41,4 +40,15 @@ export const slotLayoutSchema = z
   })
   .strict();
 
-export const slotLayout = slotLayoutSchema.parse(rawLayout);
+export const slotLayouts = z
+  .object({ outer: slotLayoutSchema, inner: slotLayoutSchema })
+  .strict()
+  .parse(rawLayout);
+
+export type Yard = keyof typeof slotLayouts;
+
+export function getSlotYard(code: string | undefined): Yard {
+  return slotLayouts.inner.slots.some((slot) => slot.code === code)
+    ? "inner"
+    : "outer";
+}
