@@ -4,7 +4,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { slotStatuses } from "theme/slotStatusTokens";
 
 import { emptySlotMapSlots } from "../ParkingSlotMap/ParkingSlotMap.fixtures";
-import { SlotCardList, SlotCardListSkeleton } from "./SlotCardList";
+import { SlotCardList } from "./SlotCardList";
 
 const meta = {
   component: SlotCardList,
@@ -27,6 +27,5 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const BothCourtyards: Story = {};
-export const InnerHighlight: Story = { args: { highlightCode: "25" } };
-export const Loading: Story = { render: () => <SlotCardListSkeleton /> };
+export const Outer: Story = {};
+export const Inner: Story = { args: { highlightCode: "25" } };

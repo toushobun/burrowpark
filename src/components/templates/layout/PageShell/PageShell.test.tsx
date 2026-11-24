@@ -122,7 +122,9 @@ describe("PageShell", () => {
     const { rerender } = render(view(true));
     const footer = screen.getByRole("contentinfo");
     expect(footer).toHaveTextContent("主导航");
-    expect(screen.getByRole("main").parentElement).toHaveStyle({ flexGrow: "1" });
+    expect(screen.getByRole("main").parentElement).toHaveStyle({
+      flexGrow: "1",
+    });
     rerender(view(false));
     expect(screen.getByRole("contentinfo")).toBe(footer);
     expect(screen.getByRole("main")).toHaveTextContent("事项列表");
