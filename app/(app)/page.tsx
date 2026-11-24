@@ -14,10 +14,10 @@ import {
   undoExtendBorrowAction,
   undoEndLeaseAction,
 } from "internal/parking/adapter/next/slotOperationsActions";
-import { SettingsIconLink } from "molecules/navigation/SettingsIconLink/SettingsIconLink";
+import { HomeHeader } from "molecules/navigation/HomeHeader/HomeHeader";
+import { HomeNavigation } from "molecules/navigation/HomeNavigation/HomeNavigation";
 import { OperationMapSection } from "organisms/slots/ParkingSlotMap/OperationMapSection";
 import { ReminderRefresh } from "organisms/slots/SlotReminders/ReminderRefresh";
-import { SlotReminders } from "organisms/slots/SlotReminders/SlotReminders";
 import { PageShell } from "templates/layout/PageShell/PageShell";
 import { resolveOperationNotice } from "utils/operationNotice";
 import { parseOperationParams } from "utils/operationParams";
@@ -47,13 +47,12 @@ export default async function HomePage({
 
   return (
     <PageShell
-      subtitle={slotMapText.subtitle}
       title={slotMapText.title}
-      headerAction={<SettingsIconLink />}
+      headerContent={<HomeHeader hasReminders={reminders.length > 0} />}
+      footer={<HomeNavigation />}
     >
-      <Stack spacing={3}>
+      <Stack spacing={1}>
         <ReminderRefresh />
-        <SlotReminders reminders={reminders} />
         <OperationMapSection
           notice={notice}
           queryId={parsed?.id}

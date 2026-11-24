@@ -18,21 +18,21 @@ describe("ParkingSlotMap", () => {
 
     expect(screen.getByRole("group", { name: "车位地图" })).toHaveAttribute(
       "viewBox",
-      "0 0 1300 1420",
+      "0 0 1695 1329",
     );
     const link = screen.getByRole("link", { name: "7号，空" });
     expect(link).toHaveAttribute("href", "/slots/7");
-    expect(link.querySelector("rect")).toHaveAttribute("x", "840");
+    expect(link.querySelector("rect")).toHaveAttribute("x", "1143");
     expect(screen.getAllByRole("link")).toHaveLength(29);
   });
 
-  it("地图默认按 44px 最短边显示，允许横向滑动且没有放大按钮", () => {
+  it("地图默认适配整个可用宽度且没有放大按钮", () => {
     render(<ParkingSlotMap slots={slots} />);
     const map = screen.getByRole("group", { name: "车位地图" });
     const viewport = screen.getByTestId("slot-map-viewport");
-    expect(map).toHaveAttribute("viewBox", "0 0 1300 1420");
-    expect(map).toHaveStyle({ width: 1300 * (44 / 90) + "px" });
-    expect(viewport).toHaveStyle({ overflowX: "auto", width: "100%" });
+    expect(map).toHaveAttribute("viewBox", "0 0 1695 1329");
+    expect(map).toHaveStyle({ width: "100%" });
+    expect(viewport).toHaveStyle({ width: "100%" });
     const viewportStyle = window.getComputedStyle(viewport);
     expect(viewportStyle.borderRadius).toMatch(/^(?:0(?:px)?)?$/);
     // 未绘制边框时，jsdom 仍可能返回默认宽度 medium。
@@ -94,7 +94,7 @@ describe("ParkingSlotMap", () => {
     expect(link).toHaveTextContent("过期");
     expect(link.querySelector("rect")).toHaveAttribute("fill", "#FBDAD6");
     expect(screen.getByText("入口")).toBeInTheDocument();
-    expect(screen.getByText("状态图例")).toBeInTheDocument();
+    expect(screen.getByText("公厕")).toBeInTheDocument();
   });
 
   it("停用或没有配置的车位灰显且不能点击", () => {

@@ -100,7 +100,7 @@ export function OperationToast({
         open={!closed}
         sx={{
           bottom: (t) =>
-            `calc(${t.spacing(2)} + env(safe-area-inset-bottom, 0px)) !important`,
+            `calc(${t.spacing(12)} + env(safe-area-inset-bottom, 0px)) !important`,
           maxWidth: designTokens.size.contentMaxWidth,
           px: 2,
           width: "100%",

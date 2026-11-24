@@ -1,10 +1,17 @@
 "use client";
 
 import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
+import { slotMapText } from "config/slotMapText";
+import { slotStatusShortLabels } from "config/slotStatusText";
 import type { SlotMapSlot } from "internal/parking";
+import { SlotCardList } from "organisms/slots/SlotCardList/SlotCardList";
+import { slotStatuses } from "theme/slotStatusTokens";
 import { useOperationFeedback } from "providers/OperationFeedbackProvider";
 import {
   OperationToast,
@@ -75,14 +82,21 @@ export function OperationMapSection({
     dismissNotice();
   }, [dismissNotice]);
 
+  const highlightCode =
+    undoneNotice !== visibleNotice ? visibleNotice?.code : undefined;
+
   return (
     <Box sx={{ pb: visibleNotice ? 24 : 0 }}>
-      <ParkingSlotMap
-        highlightCode={
-          undoneNotice !== visibleNotice ? visibleNotice?.code : undefined
-        }
-        slots={slots}
-      />
+      <Stack spacing={1}>
+        <ParkingSlotMap highlightCode={highlightCode} slots={slots} />
+        <SlotCardList highlightCode={highlightCode} slots={slots} />
+        <Stack direction="row" spacing={0.5} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
+          <Typography variant="body2">{slotMapText.legendTitle}：</Typography>
+          {slotStatuses.map((status) => (
+            <SlotStatusBadge key={status} status={status} label={status === "expiringSoon" ? "快到期" : status === "overdue" ? "已过期" : slotStatusShortLabels[status]} />
+          ))}
+        </Stack>
+      </Stack>
       {visibleNotice && (
         <OperationToast
           key={`${visibleNotice.kind}:${visibleNotice.id}:${toastSequence}`}

@@ -76,6 +76,7 @@ export type SlotMapSlot = {
   name: string;
   isActive: boolean;
   status: SlotStatus;
+  plate?: string | null;
 };
 
 export type SlotDetail = SlotMapSlot & {
@@ -1003,12 +1004,23 @@ export function createParkingService(
       await requireAuthenticatedUserId(getAuth);
       const facts = await repository.readSlotFacts();
 
-      return assembleSlotFacts(facts).map(({ slot, statusFacts }) => ({
-        code: slot.code,
-        name: slot.name,
-        isActive: slot.is_active,
-        status: deriveSlotStatus(statusFacts, now),
-      }));
+      return assembleSlotFacts(facts).map(({ slot, session, lease, statusFacts }) => {
+        const status = deriveSlotStatus(statusFacts, now);
+        const plate = slot.is_active
+          ? session
+            ? session.plate
+            : status !== "reserved"
+              ? lease?.plate ?? null
+              : null
+          : null;
+        return {
+          code: slot.code,
+          name: slot.name,
+          isActive: slot.is_active,
+          status,
+          plate,
+        };
+      });
     },
 
     async getSlotDetail(code, now) {
