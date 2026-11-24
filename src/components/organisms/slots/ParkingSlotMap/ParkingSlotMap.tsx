@@ -52,10 +52,6 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
         role="region"
         tabIndex={0}
         sx={{
-          bgcolor: "background.paper",
-          border: 1,
-          borderColor: "divider",
-          borderRadius: theme.shape.borderRadius,
           minWidth: 0,
           overflowX: "auto",
           width: "100%",

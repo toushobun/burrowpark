@@ -32,7 +32,11 @@ describe("ParkingSlotMap", () => {
     const viewport = screen.getByTestId("slot-map-viewport");
     expect(map).toHaveAttribute("viewBox", "0 0 1300 1420");
     expect(map).toHaveStyle({ width: 1300 * (44 / 90) + "px" });
-    expect(viewport).toHaveStyle({ overflowX: "auto" });
+    expect(viewport).toHaveStyle({ overflowX: "auto", width: "100%" });
+    const viewportStyle = window.getComputedStyle(viewport);
+    expect(viewportStyle.borderRadius).toMatch(/^(?:0(?:px)?)?$/);
+    // 未绘制边框时，jsdom 仍可能返回默认宽度 medium。
+    expect(viewportStyle.borderTopStyle).toMatch(/^(?:none)?$/);
     expect(screen.queryByRole("button", { name: "放大查看" })).toBeNull();
     expect(screen.getAllByRole("link")).toHaveLength(29);
   });
