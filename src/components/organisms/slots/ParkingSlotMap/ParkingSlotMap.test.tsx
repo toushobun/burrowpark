@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { slotLayout } from "config/slotLayout";
 import { theme } from "theme/theme";
 
 const push = vi.fn();
@@ -39,6 +40,20 @@ describe("ParkingSlotMap", () => {
     expect(viewportStyle.borderTopStyle).toMatch(/^(?:none)?$/);
     expect(screen.queryByRole("button", { name: "放大查看" })).toBeNull();
     expect(screen.getAllByRole("link")).toHaveLength(29);
+  });
+
+  it("外墙最后绘制，贴墙车位不覆盖墙线且墙线粗细一致", () => {
+    render(<ParkingSlotMap slots={slots} />);
+    const map = screen.getByRole("group", { name: "车位地图" });
+    const walls = screen.getByTestId("slot-map-walls");
+    expect(map.lastElementChild).toBe(walls);
+    expect(walls).toHaveAttribute("pointer-events", "none");
+    const lines = walls.querySelectorAll("polyline");
+    expect(lines).toHaveLength(slotLayout.walls.length + 1);
+    for (const line of lines) {
+      expect(line).toHaveAttribute("stroke-width", "9");
+    }
+    expect(lines[lines.length - 1]).toHaveAttribute("stroke-dasharray");
   });
 
   it("刚登记的车位红色粗描边并自动滚动到可见位置", () => {

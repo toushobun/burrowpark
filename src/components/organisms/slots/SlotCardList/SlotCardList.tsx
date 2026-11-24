@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import { slotLayout } from "config/slotLayout";
 import { slotMapText } from "config/slotMapText";
 import { slotStatusLabels, slotStatusShortLabels } from "config/slotStatusText";
-import type { SlotMapSlot } from "internal/parking";
+import { formatPlateForDisplay, type SlotMapSlot } from "internal/parking";
 import { designTokens } from "theme/designTokens";
 import { slotStatusColors } from "theme/slotStatusTokens";
 
@@ -92,14 +92,17 @@ export function SlotCardList({
             const status = !slot
               ? slotMapText.unavailable
               : active
-                ? slotStatusShortLabels[slot.status]
+                ? slot.status === "expiringSoon" || slot.status === "overdue"
+                  ? slotStatusLabels[slot.status]
+                  : slotStatusShortLabels[slot.status]
                 : slotMapText.inactive;
             const showPlate =
               active &&
               slot &&
               !["empty", "reserved", "privateIdle"].includes(slot.status);
-            const plate = slot?.plate || slotMapText.noPlate;
-            const primary = showPlate ? plate : status;
+            const plate = formatPlateForDisplay(slot?.plate ?? null);
+            const displayPlate = plate || slotMapText.noPlate;
+            const primary = showPlate ? displayPlate : status;
             const fullStatus =
               active && slot ? slotStatusLabels[slot.status] : status;
             const label = code + "号，" + fullStatus;
@@ -107,9 +110,7 @@ export function SlotCardList({
               <ButtonBase
                 key={code}
                 id={"slot-card-" + code}
-                aria-label={
-                  label + (showPlate && slot?.plate ? "，" + slot.plate : "")
-                }
+                aria-label={label + (showPlate && plate ? "，" + plate : "")}
                 component={active ? Link : "button"}
                 disabled={!active}
                 href={active ? "/slots/" + code : undefined}

@@ -26,8 +26,8 @@ describe("SlotCardList", () => {
     const { rerender } = render(<SlotCardList slots={slots} />);
     rerender(<SlotCardList slots={slots} highlightCode="25" />);
     expect(
-      screen.getByRole("link", { name: "25号，有车，辽AD98765" }),
-    ).toHaveTextContent("辽AD98765");
+      screen.getByRole("link", { name: "25号，有车，辽A·D98765" }),
+    ).toHaveTextContent("辽A·D98765");
   });
   it("停用车位不能点击，无车牌时仍显示真实状态", () => {
     const slots = emptySlotMapSlots.map((slot) => {

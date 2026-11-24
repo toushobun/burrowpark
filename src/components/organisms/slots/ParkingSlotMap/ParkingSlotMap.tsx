@@ -146,26 +146,6 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                 </text>
               </g>
             ))}
-            {slotLayout.walls.map((wall, index) => (
-              <polyline
-                key={index}
-                fill="none"
-                points={wall.map((point) => point.join(",")).join(" ")}
-                stroke={grey[600]}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={9}
-              />
-            ))}
-            <polyline
-              fill="none"
-              points={slotLayout.sealedOpening
-                .map((point) => point.join(","))
-                .join(" ")}
-              stroke={grey[600]}
-              strokeDasharray="18 12"
-              strokeWidth={9}
-            />
             <rect
               fill={grey[100]}
               height={slotLayout.entrance.h}
@@ -291,6 +271,32 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
               </g>
             );
           })}
+          <g
+            aria-hidden="true"
+            pointerEvents="none"
+            data-testid="slot-map-walls"
+          >
+            {slotLayout.walls.map((wall, index) => (
+              <polyline
+                key={index}
+                fill="none"
+                points={wall.map((point) => point.join(",")).join(" ")}
+                stroke={grey[600]}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={9}
+              />
+            ))}
+            <polyline
+              fill="none"
+              points={slotLayout.sealedOpening
+                .map((point) => point.join(","))
+                .join(" ")}
+              stroke={grey[600]}
+              strokeDasharray="18 12"
+              strokeWidth={9}
+            />
+          </g>
         </Box>
       </Box>
     </Stack>
