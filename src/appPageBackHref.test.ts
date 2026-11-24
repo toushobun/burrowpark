@@ -10,14 +10,22 @@ import { describe, expect, it } from "vitest";
 const appDirectory = fileURLToPath(new URL("../app/(app)/", import.meta.url));
 
 describe("业务页面底部返回导航", () => {
-  it("主导航页面使用 HomeNavigation，其余业务页面保留底部返回地址", () => {
+  it("主导航页面使用共享布局，其余业务页面保留底部返回地址", () => {
     const navigationPages = new Set([
-      "page.tsx",
-      join("settings", "page.tsx"),
-      join("reminders", "page.tsx"),
+      join("(tabs)", "(parking)", "page.tsx"),
+      join("(tabs)", "settings", "page.tsx"),
+      join("(tabs)", "reminders", "page.tsx"),
     ]);
     const pages = [...globSync("**/page.tsx", { cwd: appDirectory })];
     expect(pages.length).toBeGreaterThan(0);
+    const mainLayout = readFileSync(
+      join(appDirectory, "(tabs)", "layout.tsx"),
+      "utf8",
+    );
+    expect(mainLayout).toContain("<HomeNavigation />");
+    for (const path of navigationPages) {
+      expect(pages).toContain(path);
+    }
 
     const missing: string[] = [];
     for (const path of pages) {
@@ -48,7 +56,14 @@ describe("业务页面底部返回导航", () => {
               property.initializer?.getText(file).includes("<HomeNavigation"),
           );
           if (navigationPages.has(path)) {
-            if (!hasHomeNavigation) missing.push(path);
+            const embedded = node.attributes.properties.some(
+              (property) =>
+                ts.isJsxAttribute(property) &&
+                property.name.getText(file) === "embedded",
+            );
+            if (!embedded || hasHomeNavigation || hasBackHref) {
+              missing.push(path);
+            }
           } else if (!hasBackHref) {
             missing.push(path);
           }

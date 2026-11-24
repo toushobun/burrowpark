@@ -12,6 +12,7 @@ type Props = {
   title?: string;
   rows?: number;
   backHref?: string;
+  embedded?: boolean;
 };
 
 /** 路由切换期间使用统一的页面标题与大块骨架。 */
@@ -19,9 +20,10 @@ export function PageSkeleton({
   title = commonText.loading,
   rows = 4,
   backHref,
+  embedded,
 }: Props) {
   return (
-    <PageShell title={title} backHref={backHref}>
+    <PageShell title={title} backHref={backHref} embedded={embedded}>
       <Stack spacing={3} aria-busy="true">
         <Typography component="h2" variant="h2">
           <Skeleton variant="text" width="55%" />

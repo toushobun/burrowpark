@@ -15,7 +15,6 @@ import {
   undoEndLeaseAction,
 } from "internal/parking/adapter/next/slotOperationsActions";
 import { HomeHeader } from "molecules/navigation/HomeHeader/HomeHeader";
-import { HomeNavigation } from "molecules/navigation/HomeNavigation/HomeNavigation";
 import { OperationMapSection } from "organisms/slots/ParkingSlotMap/OperationMapSection";
 import { ReminderRefresh } from "organisms/slots/SlotReminders/ReminderRefresh";
 import { PageShell } from "templates/layout/PageShell/PageShell";
@@ -47,9 +46,9 @@ export default async function HomePage({
 
   return (
     <PageShell
+      embedded
       title={slotMapText.title}
       headerContent={<HomeHeader hasReminders={reminders.length > 0} />}
-      footer={<HomeNavigation />}
     >
       <Stack spacing={1}>
         <ReminderRefresh />
