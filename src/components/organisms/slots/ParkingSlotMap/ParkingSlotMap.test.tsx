@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { slotLayout } from "config/slotLayout";
+import { slotLayouts } from "config/slotLayout";
 import { theme } from "theme/theme";
 
 const push = vi.fn();
@@ -19,19 +19,104 @@ describe("ParkingSlotMap", () => {
 
     expect(screen.getByRole("group", { name: "车位地图" })).toHaveAttribute(
       "viewBox",
-      "0 0 1695 1329",
+      "0 0 1470 1260",
     );
     const link = screen.getByRole("link", { name: "7号，空" });
     expect(link).toHaveAttribute("href", "/slots/7");
-    expect(link.querySelector("rect")).toHaveAttribute("x", "1143");
-    expect(screen.getAllByRole("link")).toHaveLength(29);
+    expect(link.querySelector("rect")).toHaveAttribute("x", "1188");
+    expect(screen.getAllByRole("link")).toHaveLength(14);
+  });
+
+  it("切换里院后只显示 15～29 号，支持按键和点击返回", () => {
+    render(<ParkingSlotMap slots={slots} />);
+    const viewport = screen.getByTestId("slot-map-viewport");
+    const link = screen.getByRole("link", { name: "7号，空" });
+    link.focus();
+    expect(link).toHaveFocus();
+    fireEvent.keyDown(link, { key: "ArrowRight" });
+    expect(viewport).toHaveFocus();
+    expect(screen.getAllByRole("link")).toHaveLength(15);
+    expect(screen.getByRole("link", { name: "29号，空" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "7号，空" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "切换至外院" }));
+    expect(screen.getAllByRole("link")).toHaveLength(14);
+  });
+
+  it("左右滑动切换，纵向滚动不切换，滑动不误触发车位导航", () => {
+    render(<ParkingSlotMap slots={slots} />);
+    push.mockClear();
+    const viewport = screen.getByTestId("slot-map-viewport");
+    const link = screen.getByRole("link", { name: "7号，空" });
+    fireEvent.touchStart(link, { touches: [{ clientX: 250, clientY: 100 }] });
+    fireEvent.touchEnd(link, {
+      touches: [],
+      changedTouches: [{ clientX: 100, clientY: 105 }],
+    });
+    expect(screen.getAllByRole("link")).toHaveLength(15);
+    const innerLink = screen.getByRole("link", { name: "25号，空" });
+    fireEvent.click(innerLink, { detail: 1 });
+    expect(push).not.toHaveBeenCalled();
+    fireEvent.touchStart(viewport, {
+      touches: [{ clientX: 100, clientY: 100 }],
+    });
+    fireEvent.touchEnd(viewport, {
+      touches: [],
+      changedTouches: [{ clientX: 110, clientY: 250 }],
+    });
+    expect(screen.getAllByRole("link")).toHaveLength(15);
+    fireEvent.touchStart(viewport, {
+      touches: [{ clientX: 100, clientY: 100 }],
+    });
+    fireEvent.touchEnd(viewport, {
+      touches: [],
+      changedTouches: [{ clientX: 250, clientY: 105 }],
+    });
+    expect(screen.getAllByRole("link")).toHaveLength(14);
+  });
+
+  it("双指缩放及取消的触摸不切换院区", () => {
+    render(<ParkingSlotMap slots={slots} />);
+    const viewport = screen.getByTestId("slot-map-viewport");
+    const first = { clientX: 250, clientY: 100 };
+    const second = { clientX: 150, clientY: 100 };
+    fireEvent.touchStart(viewport, { touches: [first] });
+    fireEvent.touchStart(viewport, { touches: [first, second] });
+    fireEvent.touchEnd(viewport, {
+      touches: [],
+      changedTouches: [second],
+    });
+    expect(screen.getAllByRole("link")).toHaveLength(14);
+
+    fireEvent.touchStart(viewport, { touches: [first] });
+    fireEvent.touchCancel(viewport);
+    fireEvent.touchEnd(viewport, {
+      touches: [],
+      changedTouches: [second],
+    });
+    expect(screen.getAllByRole("link")).toHaveLength(14);
+  });
+
+  it("里院操作反馈自动切换并高亮，撤销后保持所选院", () => {
+    const { rerender } = render(<ParkingSlotMap slots={slots} />);
+    rerender(<ParkingSlotMap slots={slots} highlightCode="29" />);
+    const link = screen.getByRole("link", { name: "29号，空" });
+    expect(link.querySelector("rect")).toHaveAttribute(
+      "stroke",
+      theme.palette.error.main,
+    );
+    rerender(<ParkingSlotMap slots={slots} />);
+    expect(screen.getByRole("link", { name: "29号，空" })).toBeInTheDocument();
+    expect(link.querySelector("rect")).not.toHaveAttribute(
+      "stroke",
+      theme.palette.error.main,
+    );
   });
 
   it("地图默认适配整个可用宽度且没有放大按钮", () => {
     render(<ParkingSlotMap slots={slots} />);
     const map = screen.getByRole("group", { name: "车位地图" });
     const viewport = screen.getByTestId("slot-map-viewport");
-    expect(map).toHaveAttribute("viewBox", "0 0 1695 1329");
+    expect(map).toHaveAttribute("viewBox", "0 0 1470 1260");
     expect(map).toHaveStyle({ width: "100%" });
     expect(viewport).toHaveStyle({ width: "100%" });
     const viewportStyle = window.getComputedStyle(viewport);
@@ -39,7 +124,7 @@ describe("ParkingSlotMap", () => {
     // 未绘制边框时，jsdom 仍可能返回默认宽度 medium。
     expect(viewportStyle.borderTopStyle).toMatch(/^(?:none)?$/);
     expect(screen.queryByRole("button", { name: "放大查看" })).toBeNull();
-    expect(screen.getAllByRole("link")).toHaveLength(29);
+    expect(screen.getAllByRole("link")).toHaveLength(14);
   });
 
   it("外墙最后绘制，贴墙车位不覆盖墙线且墙线粗细一致", () => {
@@ -49,11 +134,10 @@ describe("ParkingSlotMap", () => {
     expect(map.lastElementChild).toBe(walls);
     expect(walls).toHaveAttribute("pointer-events", "none");
     const lines = walls.querySelectorAll("polyline");
-    expect(lines).toHaveLength(slotLayout.walls.length + 1);
+    expect(lines).toHaveLength(slotLayouts.outer.walls.length);
     for (const line of lines) {
       expect(line).toHaveAttribute("stroke-width", "9");
     }
-    expect(lines[lines.length - 1]).toHaveAttribute("stroke-dasharray");
   });
 
   it("刚登记的车位红色粗描边并自动滚动到可见位置", () => {
@@ -109,7 +193,7 @@ describe("ParkingSlotMap", () => {
     expect(link).toHaveTextContent("过期");
     expect(link.querySelector("rect")).toHaveAttribute("fill", "#FBDAD6");
     expect(screen.getByText("入口")).toBeInTheDocument();
-    expect(screen.getByText("公厕")).toBeInTheDocument();
+    expect(screen.getByText("楼梯")).toBeInTheDocument();
   });
 
   it("停用或没有配置的车位灰显且不能点击", () => {
@@ -123,7 +207,7 @@ describe("ParkingSlotMap", () => {
       />,
     );
 
-    expect(screen.getAllByRole("link")).toHaveLength(27);
+    expect(screen.getAllByRole("link")).toHaveLength(12);
     const disabledLink = screen.queryByRole("link", { name: /^8号，/ });
     const missingLink = screen.queryByRole("link", { name: /^10号，/ });
     expect(disabledLink).toBeNull();

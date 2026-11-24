@@ -52,3 +52,17 @@ export const Highlighted: Story = {
     ),
   },
 };
+
+export const InnerYard: Story = {
+  args: { highlightCode: "25" },
+};
+
+export const NarrowScreen: Story = {
+  decorators: [
+    (Story) => (
+      <Box sx={{ maxWidth: "100%", width: 360 }}>
+        <Story />
+      </Box>
+    ),
+  ],
+};

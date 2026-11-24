@@ -1,20 +1,23 @@
 "use client";
 
 import Box from "@mui/material/Box";
+import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { slotLayout } from "config/slotLayout";
+import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
+import { slotLayouts } from "config/slotLayout";
 import { slotMapText } from "config/slotMapText";
 import { slotStatusLabels, slotStatusShortLabels } from "config/slotStatusText";
 import type { SlotMapSlot } from "internal/parking";
 import { designTokens } from "theme/designTokens";
-import { slotStatusColors } from "theme/slotStatusTokens";
+import { slotStatusColors, slotStatuses } from "theme/slotStatusTokens";
 import { theme } from "theme/theme";
 
 import { getSlotLabelLayout } from "./getSlotLabelLayout";
+import { useYardNavigation } from "./useYardNavigation";
 
 type ParkingSlotMapProps = {
   slots: SlotMapSlot[];
@@ -24,6 +27,9 @@ type ParkingSlotMapProps = {
 /** 布局坐标完全由定稿 JSON 决定；SVG 统一按 viewBox 等比缩放。 */
 export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
   const router = useRouter();
+  const { yard, setYard, ...gestureHandlers } =
+    useYardNavigation(highlightCode);
+  const slotLayout = slotLayouts[yard];
   const highlightedRef = useRef<SVGGElement>(null);
   const [pressedCode, setPressedCode] = useState<string | null>(null);
   const slotsByCode = new Map(slots.map((slot) => [slot.code, slot]));
@@ -36,7 +42,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
         inline: "center",
       });
     }
-  }, [highlightCode]);
+  }, [highlightCode, yard]);
   return (
     <Stack
       component="section"
@@ -49,26 +55,17 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
         p: 1,
       }}
     >
-      <Stack
-        direction="row"
-        useFlexGap
-        sx={{
-          alignItems: "baseline",
-          flexWrap: "wrap",
-          justifyContent: "space-between",
-        }}
-      >
-        <Typography component="h2" variant="h3">
-          {slotMapText.overview}
-        </Typography>
-        <Typography variant="body2">{slotMapText.counts}</Typography>
-      </Stack>
+      <Typography component="h2" variant="h3">
+        {slotMapText.overview}
+      </Typography>
       <Box
         aria-label={slotMapText.mapTitle}
         data-testid="slot-map-viewport"
         role="region"
         tabIndex={0}
+        {...gestureHandlers}
         sx={{
+          touchAction: "pan-y pinch-zoom",
           minWidth: 0,
           width: "100%",
         }}
@@ -146,15 +143,6 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                 </text>
               </g>
             ))}
-            <rect
-              fill={grey[100]}
-              height={slotLayout.entrance.h}
-              stroke={grey[500]}
-              strokeWidth={3}
-              width={slotLayout.entrance.w}
-              x={slotLayout.entrance.x}
-              y={slotLayout.entrance.y}
-            />
             <text
               dominantBaseline="central"
               fill={grey[800]}
@@ -182,6 +170,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                   : slotMapText.unavailable;
             const labelLayout = getSlotLabelLayout(shape, statusText);
             const highlighted = highlightCode === shape.code && active;
+            const pressed = pressedCode === shape.code;
             const fill = colors?.background ?? grey[300];
             const border = colors?.border ?? grey[600];
             const ink = colors?.text ?? grey[800];
@@ -189,7 +178,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
               <g
                 data-slot-highlight={highlighted ? "true" : undefined}
                 ref={highlighted ? highlightedRef : undefined}
-                opacity={pressedCode === shape.code ? 0.8 : 1}
+                opacity={pressed ? 0.8 : 1}
               >
                 <rect
                   fill={fill}
@@ -199,9 +188,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                   strokeDasharray={
                     colors?.borderStyle === "dashed" ? "12 8" : undefined
                   }
-                  strokeWidth={
-                    highlighted ? 12 : pressedCode === shape.code ? 9 : 5
-                  }
+                  strokeWidth={highlighted ? 12 : pressed ? 9 : 5}
                   width={shape.w}
                   x={shape.x}
                   y={shape.y}
@@ -240,6 +227,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                 key={shape.code}
                 aria-label={slot.name + "，" + slotStatusLabels[slot.status]}
                 href={"/slots/" + encodeURIComponent(shape.code)}
+                tabIndex={0}
                 onPointerDown={(event) => {
                   if (event.button !== 0) return;
                   setPressedCode(shape.code);
@@ -287,18 +275,66 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                 strokeWidth={9}
               />
             ))}
-            <polyline
-              fill="none"
-              points={slotLayout.sealedOpening
-                .map((point) => point.join(","))
-                .join(" ")}
-              stroke={grey[600]}
-              strokeDasharray="18 12"
-              strokeWidth={9}
-            />
           </g>
         </Box>
       </Box>
+      <ButtonBase
+        aria-label={
+          yard === "outer" ? slotMapText.switchInner : slotMapText.switchOuter
+        }
+        onClick={() => setYard(yard === "outer" ? "inner" : "outer")}
+        sx={{
+          alignSelf: "center",
+          flexDirection: "column",
+          gap: 0.5,
+          minHeight: designTokens.size.touchTargetMin,
+          minWidth: designTokens.size.touchTargetMin,
+          color: "primary.main",
+        }}
+      >
+        <Typography variant="h3" component="span">
+          {slotMapText[yard]}
+        </Typography>
+        <Stack direction="row" spacing={1} aria-hidden="true">
+          {(["outer", "inner"] as const).map((page) => (
+            <Box
+              key={page}
+              sx={{
+                bgcolor: page === yard ? "primary.main" : "action.disabled",
+                borderRadius: "50%",
+                width: 10,
+                height: 10,
+              }}
+            />
+          ))}
+        </Stack>
+      </ButtonBase>
+      <Typography
+        variant="body2"
+        color="textSecondary"
+        sx={{ textAlign: "center" }}
+      >
+        {slotMapText.swipeHint}
+      </Typography>
+      <Stack
+        direction="row"
+        spacing={0.5}
+        useFlexGap
+        sx={{ alignItems: "center", flexWrap: "wrap" }}
+      >
+        <Typography variant="body2">{slotMapText.legendTitle}：</Typography>
+        {slotStatuses.map((status) => (
+          <SlotStatusBadge
+            key={status}
+            status={status}
+            label={
+              status === "expiringSoon" || status === "overdue"
+                ? slotStatusLabels[status]
+                : slotStatusShortLabels[status]
+            }
+          />
+        ))}
+      </Stack>
     </Stack>
   );
 }

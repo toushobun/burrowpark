@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { slotLayout } from "config/slotLayout";
+import { slotLayouts } from "config/slotLayout";
 import { slotStatusShortLabels } from "config/slotStatusText";
 
 import { getSlotLabelLayout } from "./getSlotLabelLayout";
+
+const shapes = [...slotLayouts.outer.slots, ...slotLayouts.inner.slots];
 
 type Bounds = { left: number; top: number; right: number; bottom: number };
 type Position = { x: number; y: number; fontSize: number };
@@ -29,7 +31,7 @@ function intersects(a: Bounds, b: Bounds) {
 
 describe("getSlotLabelLayout", () => {
   it("横向和竖向车位均采用号码与状态上下排列", () => {
-    for (const shape of slotLayout.slots) {
+    for (const shape of shapes) {
       const layout = getSlotLabelLayout(shape, slotStatusShortLabels.occupied);
       expect(layout.horizontal).toBe(false);
       expect(layout.number.x).toBe(layout.status.x);
@@ -44,7 +46,7 @@ describe("getSlotLabelLayout", () => {
     allStatuses.add("长租不在");
     allStatuses.add("快到期");
 
-    for (const shape of slotLayout.slots) {
+    for (const shape of shapes) {
       const box = {
         left: shape.x,
         right: shape.x + shape.w,

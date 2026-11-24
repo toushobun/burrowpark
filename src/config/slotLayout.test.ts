@@ -3,10 +3,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { slotLayout } from "./slotLayout";
+import { getSlotYard, slotLayouts } from "./slotLayout";
 
-describe("slotLayout", () => {
-  it("布局中的车位编号与数据库种子恰好一致，均为 1～29 号", () => {
+describe("slotLayouts", () => {
+  it("两院车位与数据库种子一致，1～29 号不重复不缺失", () => {
     const seed = readFileSync(
       new URL(
         "../../supabase/migrations/20261119000000_slots_seed.sql",
@@ -18,54 +18,72 @@ describe("slotLayout", () => {
       seed.matchAll(/\('(\d+)',\s*'\d+号'/g),
       (match) => match[1],
     );
-    const layoutCodes = slotLayout.slots.map((slot) => slot.code);
-    const expected = Array.from({ length: 29 }, (_, index) =>
-      String(index + 1),
+    const { outer, inner } = slotLayouts;
+    expect(outer.slots.map((slot) => slot.code)).toEqual(
+      Array.from({ length: 14 }, (_, i) => String(i + 1)),
     );
-
-    expect(layoutCodes).toEqual(expected);
-    expect(seedCodes).toEqual(expected);
-    expect(new Set(layoutCodes).size).toBe(29);
+    expect(inner.slots.map((slot) => slot.code)).toEqual(
+      Array.from({ length: 15 }, (_, i) => String(i + 15)),
+    );
+    expect([...outer.slots, ...inner.slots].map((slot) => slot.code)).toEqual(
+      seedCodes,
+    );
+    expect(getSlotYard("14")).toBe("outer");
+    expect(getSlotYard("15")).toBe("inner");
+    expect(getSlotYard("29")).toBe("inner");
   });
 
-  it("区域标签的估算字框不覆盖任何车位或障碍物", () => {
-    const fontSize = 84;
-    for (const area of slotLayout.areas) {
-      const left = area.x - (area.label.length * fontSize) / 2;
-      const right = area.x + (area.label.length * fontSize) / 2;
-      const top = area.y - fontSize;
-      const bottom = area.y;
-      for (const rect of [...slotLayout.slots, ...slotLayout.obstacles]) {
-        const overlap =
-          left < rect.x + rect.w &&
-          right > rect.x &&
-          top < rect.y + rect.h &&
-          bottom > rect.y;
-        expect(
-          overlap,
-          area.label + " 覆盖 " + ("code" in rect ? rect.code : rect.label),
-        ).toBe(false);
-      }
+  it("外院楼梯与 11、12 号对齐，两个地图不显示车库", () => {
+    const { outer, inner } = slotLayouts;
+    const stairs = outer.obstacles.find((shape) => shape.label === "楼梯")!;
+    const eleven = outer.slots.find((shape) => shape.code === "11")!;
+    const twelve = outer.slots.find((shape) => shape.code === "12")!;
+    expect(stairs.x).toBe(eleven.x);
+    expect(stairs.w).toBe(eleven.w);
+    expect(stairs.x).toBe(twelve.x);
+    expect(stairs.w).toBe(twelve.w);
+    expect(stairs.y).toBe(twelve.y + twelve.h);
+    expect(
+      [...outer.obstacles, ...inner.obstacles].some((shape) =>
+        shape.label.startsWith("车库"),
+      ),
+    ).toBe(false);
+  });
+
+  it("里院 25 号位于顶部，26～29 沿左墙排列，24 在 23 下方", () => {
+    const shape = (code: number) =>
+      slotLayouts.inner.slots.find((slot) => slot.code === String(code))!;
+    expect(shape(25).x).toBeGreaterThan(shape(26).x);
+    expect(shape(25).y).toBe(shape(26).y);
+    expect(shape(24).x).toBe(shape(23).x);
+    expect(shape(24).y).toBeGreaterThanOrEqual(shape(23).y + shape(23).h);
+    for (let code = 27; code <= 29; code++) {
+      expect(shape(code).x).toBe(shape(26).x);
+      expect(shape(code).y).toBeGreaterThan(shape(code - 1).y);
+    }
+    for (let code = 19; code <= 23; code++) {
+      expect(shape(code).x).toBeLessThan(shape(code - 1).x);
+      expect(shape(code).y).toBe(shape(code - 1).y);
     }
   });
 
-  it("按定稿尺寸和坐标载入入口与封闭出口", () => {
-    expect([slotLayout.width, slotLayout.height]).toEqual([1695, 1329]);
-    expect(slotLayout.entrance).toEqual({ x: 21, y: 450, w: 165, h: 138 });
-    expect(slotLayout.sealedOpening).toEqual([
-      [1677, 792],
-      [1677, 948],
-    ]);
-  });
-  it("里院按新版图排列，24 在 23 下方，25～29 沿左墙排列", () => {
-    const shape = (code: number) =>
-      slotLayout.slots.find((slot) => slot.code === String(code))!;
-    expect(shape(23).x).toBeLessThan(shape(18).x);
-    expect(shape(24).x).toBe(shape(23).x);
-    expect(shape(24).y).toBe(shape(23).y + shape(23).h);
-    for (let code = 26; code <= 29; code++) {
-      expect(shape(code).x).toBe(shape(25).x);
-      expect(shape(code).y).toBeGreaterThan(shape(code - 1).y);
+  it("地图区域标签与车位、参照物不重叠，图块均在画布内", () => {
+    for (const layout of Object.values(slotLayouts)) {
+      for (const rect of [...layout.slots, ...layout.obstacles]) {
+        expect(rect.x).toBeGreaterThanOrEqual(0);
+        expect(rect.y).toBeGreaterThanOrEqual(0);
+        expect(rect.x + rect.w).toBeLessThanOrEqual(layout.width);
+        expect(rect.y + rect.h).toBeLessThanOrEqual(layout.height);
+        for (const area of layout.areas) {
+          const halfWidth = (area.label.length * 84) / 2;
+          const overlap =
+            area.x - halfWidth < rect.x + rect.w &&
+            area.x + halfWidth > rect.x &&
+            area.y - 84 < rect.y + rect.h &&
+            area.y > rect.y;
+          expect(overlap).toBe(false);
+        }
+      }
     }
   });
 });
