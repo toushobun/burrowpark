@@ -8,13 +8,22 @@ describe("SlotCardList", () => {
   it("外院默认 14 个车位，切换后显示 15 个里院车位", () => {
     render(<SlotCardList slots={emptySlotMapSlots} />);
     expect(screen.getAllByRole("link")).toHaveLength(14);
+    expect(
+      screen.getByRole("heading", { name: "当前查看：外院" }),
+    ).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "切换至里院" }));
     expect(screen.getAllByRole("link")).toHaveLength(15);
+    expect(
+      screen.getByRole("heading", { name: "当前查看：里院" }),
+    ).toBeVisible();
+    expect(screen.queryByText(/过渡区/)).toBeNull();
     expect(screen.getByRole("link", { name: "15号，空" })).toHaveAttribute(
       "href",
       "/slots/15",
     );
     expect(screen.queryByRole("link", { name: "1号，空" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "切换至外院" }));
+    expect(screen.getAllByRole("link")).toHaveLength(14);
   });
 
   it("操作高亮时自动切换里院，并显示真实车牌", () => {

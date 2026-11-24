@@ -13,7 +13,7 @@ import { designTokens } from "theme/designTokens";
 
 export function HomeHeader({ hasReminders }: { hasReminders: boolean }) {
   return (
-    <Stack id="top" direction="row" spacing={1} sx={{ alignItems: "center" }}>
+    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
       <Box
         component="img"
         alt=""

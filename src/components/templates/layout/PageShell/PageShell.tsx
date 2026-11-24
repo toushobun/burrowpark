@@ -19,6 +19,7 @@ type PageShellProps = {
   footer?: ReactNode;
   headerAction?: ReactNode;
   headerContent?: ReactNode;
+  embedded?: boolean;
   backHref?: string;
   children: ReactNode;
 };
@@ -30,6 +31,7 @@ export function PageShell({
   footer,
   headerAction,
   headerContent,
+  embedded = false,
   backHref,
   children,
 }: PageShellProps) {
@@ -38,7 +40,9 @@ export function PageShell({
       sx={{
         bgcolor: "background.default",
         maxWidth: designTokens.size.contentMaxWidth,
-        minHeight: "100dvh",
+        minHeight: embedded ? undefined : "100dvh",
+        flex: embedded ? 1 : undefined,
+        width: "100%",
         mx: "auto",
       }}
     >
@@ -81,35 +85,42 @@ export function PageShell({
         {children}
       </Box>
       {(footer || backHref) && (
-        <Box
-          component="footer"
-          sx={{
-            bgcolor: "background.default",
-            bottom: 0,
-            pb: (t) =>
-              `calc(${t.spacing(2)} + env(safe-area-inset-bottom, 0px))`,
-            position: "sticky",
-            pt: 1,
-            px: 2,
-          }}
-        >
-          <Stack spacing={2}>
-            {footer}
-            {backHref && (
-              <Button
-                component={Link}
-                fullWidth
-                href={backHref}
-                size="large"
-                sx={{ minHeight: designTokens.size.touchTargetMin }}
-                variant="outlined"
-              >
-                {commonText.back}
-              </Button>
-            )}
-          </Stack>
-        </Box>
+        <PageFooter>
+          {footer}
+          {backHref && (
+            <Button
+              component={Link}
+              fullWidth
+              href={backHref}
+              size="large"
+              sx={{ minHeight: designTokens.size.touchTargetMin }}
+              variant="outlined"
+            >
+              {commonText.back}
+            </Button>
+          )}
+        </PageFooter>
       )}
     </Stack>
+  );
+}
+
+/** 主导航和业务返回操作共用底部安全区与定位。 */
+export function PageFooter({ children }: { children: ReactNode }) {
+  return (
+    <Box
+      component="footer"
+      sx={{
+        bgcolor: "background.default",
+        bottom: 0,
+        pb: (t) => `calc(${t.spacing(2)} + env(safe-area-inset-bottom, 0px))`,
+        position: "sticky",
+        pt: 1,
+        px: 2,
+        zIndex: 1,
+      }}
+    >
+      <Stack spacing={2}>{children}</Stack>
+    </Box>
   );
 }

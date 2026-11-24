@@ -4,16 +4,15 @@ import Stack from "@mui/material/Stack";
 
 import { slotMapText } from "config/slotMapText";
 import { HomeHeader } from "molecules/navigation/HomeHeader/HomeHeader";
-import { HomeNavigation } from "molecules/navigation/HomeNavigation/HomeNavigation";
 import { PageShell } from "templates/layout/PageShell/PageShell";
 import { designTokens } from "theme/designTokens";
 
 export default function Loading() {
   return (
     <PageShell
+      embedded
       title={slotMapText.title}
       headerContent={<HomeHeader hasReminders={false} />}
-      footer={<HomeNavigation />}
     >
       <Stack spacing={1} aria-busy="true">
         <Skeleton

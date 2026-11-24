@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { designTokens } from "theme/designTokens";
 import { theme } from "theme/theme";
 
-import { PageShell } from "./PageShell";
+import { PageFooter, PageShell } from "./PageShell";
 
 describe("PageShell", () => {
   it("以一级标题显示页面标题并渲染内容", () => {
@@ -108,6 +108,26 @@ describe("PageShell", () => {
     expect(link).toHaveAttribute("href", "/settings");
     expect(screen.getByRole("contentinfo")).toContainElement(link);
     expect(screen.getByRole("banner").querySelector("a")).toBeNull();
+  });
+
+  it("嵌入共享布局时内容不独占整屏，底栏节点不随内容替换", () => {
+    const view = (loading: boolean) => (
+      <>
+        <PageShell embedded title="事项">
+          {loading ? "加载中" : "事项列表"}
+        </PageShell>
+        <PageFooter>主导航</PageFooter>
+      </>
+    );
+    const { rerender } = render(view(true));
+    const footer = screen.getByRole("contentinfo");
+    expect(footer).toHaveTextContent("主导航");
+    expect(screen.getByRole("main").parentElement).toHaveStyle({
+      flexGrow: "1",
+    });
+    rerender(view(false));
+    expect(screen.getByRole("contentinfo")).toBe(footer);
+    expect(screen.getByRole("main")).toHaveTextContent("事项列表");
   });
 
   it("没有底部操作和返回地址时不渲染底部区域", () => {
