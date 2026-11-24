@@ -31,6 +31,7 @@ function makeSession(
     slot_code: "1",
     billing_type: "hotel_daily",
     plate: "粤B12345",
+    phone: null,
     entered_at: "2026-11-19T01:00:00.000Z",
     photo_path: "photo.png",
     borrow_until: null,
@@ -79,6 +80,7 @@ function makeService(rows: SlotFactsRows) {
       .fn()
       .mockResolvedValue("00000000-0000-4000-8000-000000000001"),
     undoCheckIn: vi.fn().mockResolvedValue(undefined),
+    uploadPlatePhoto: vi.fn().mockResolvedValue(undefined),
     savePlatePhoto: vi.fn().mockResolvedValue(undefined),
     deletePlatePhoto: vi.fn().mockResolvedValue(undefined),
     addRenewal: vi
@@ -664,6 +666,56 @@ describe("createParkingService", () => {
     expect(detailRepo.getPhotoSignedUrl).toHaveBeenCalledWith(
       "2026/12/" + sessionId + ".jpg",
     );
+  });
+
+  it("手机号可独立登记且无车牌", async () => {
+    const { service, repository } = makeService(makeRows());
+    await service.checkIn(
+      { slotCode: "1", phone: "13800138000", billingType: "hourly" },
+      now,
+    );
+    expect(repository.checkInVehicle).toHaveBeenCalledWith(
+      expect.objectContaining({ plate: "", phone: "13800138000" }),
+    );
+  });
+
+  it("仅照片登记时先上传再写入停车记录", async () => {
+    const { service, repository } = makeService(makeRows());
+    const photo = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0x00])], {
+      type: "image/jpeg",
+    });
+    const result = await service.checkIn(
+      { slotCode: "1", billingType: "hourly", photo },
+      now,
+    );
+    expect(result.photoSaved).toBe(true);
+    expect(repository.checkInVehicle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plate: "",
+        sessionId: expect.any(String),
+        photoPath: expect.stringMatching(/^2026\/11\/.*\.jpg$/),
+      }),
+    );
+    expect(
+      vi.mocked(repository.uploadPlatePhoto).mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      vi.mocked(repository.checkInVehicle).mock.invocationCallOrder[0],
+    );
+    expect(repository.savePlatePhoto).not.toHaveBeenCalled();
+  });
+
+  it("仅照片登记上传失败时不写入停车记录", async () => {
+    const { service, repository } = makeService(makeRows());
+    const photo = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0x00])], {
+      type: "image/jpeg",
+    });
+    vi.mocked(repository.uploadPlatePhoto).mockRejectedValueOnce(
+      new Error("upload failed"),
+    );
+    await expect(
+      service.checkIn({ slotCode: "1", billingType: "free", photo }, now),
+    ).rejects.toThrow();
+    expect(repository.checkInVehicle).not.toHaveBeenCalled();
   });
 
   it("声明为 JPEG 却没有 FF D8 FF 文件头时忽略照片，登记仍成功", async () => {

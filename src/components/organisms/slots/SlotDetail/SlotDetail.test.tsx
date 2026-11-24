@@ -88,6 +88,20 @@ describe("SlotDetail", () => {
     );
   });
 
+  it("无车牌的车辆显示手机号并仍可离场", () => {
+    renderDetail({
+      ...hourlyDetail,
+      presentVehicle: {
+        ...hourlyDetail.presentVehicle!,
+        plate: null,
+        phone: "13800138000",
+      },
+    });
+    expect(screen.getByText("未登记车牌")).toBeInTheDocument();
+    expect(screen.getByText("13800138000")).toBeInTheDocument();
+    expectActions(["离场"]);
+  });
+
   it("临停和免费有车时只显示离场与已停时间", () => {
     const billingTypes = ["hourly", "free"] as const;
     for (const billingType of billingTypes) {

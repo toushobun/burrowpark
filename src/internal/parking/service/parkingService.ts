@@ -6,6 +6,7 @@ import {
 import type { SlotStatus } from "theme/slotStatusTokens";
 import {
   ConflictError,
+  RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
 
@@ -81,7 +82,8 @@ export type SlotDetail = SlotMapSlot & {
   kind: ParkingSlotKind;
   presentVehicle: {
     sessionId?: string;
-    plate: string;
+    plate: string | null;
+    phone?: string | null;
     billingType: ParkingBillingType;
     enteredAt: string;
     paidUntil: string | null;
@@ -144,7 +146,8 @@ export type CheckOutFormData = {
   code: string;
   name: string;
   sessionId: string;
-  plate: string;
+  plate: string | null;
+  phone?: string | null;
   billingType: ParkingBillingType;
   enteredAt: string;
   now: string;
@@ -400,7 +403,7 @@ export function createParkingService(
             payment.tenantName ??
             (payment.plate
               ? formatPlateForDisplay(payment.plate)
-              : monthlyStatsText.unknownCustomer),
+              : (payment.phone ?? monthlyStatsText.unknownCustomer)),
           amountCents: payment.amountCents,
           method: payment.method,
         })),
@@ -489,18 +492,9 @@ export function createParkingService(
         hotel && pricing
           ? calculateHotelCheckoutAt(now, value.days!, pricing)
           : null;
-      const sessionId = await repository.checkInVehicle({
-        slotCode: value.slotCode,
-        plate: value.plate,
-        billingType: value.billingType,
-        paidUntil,
-        borrowMinutes: value.borrowMinutes ?? null,
-        amountCents: hotel ? parseAmountCents(value.amountYuan!) : null,
-        paymentMethod: hotel ? value.paymentMethod! : null,
-      });
-      let photoSaved = false;
+      const amountCents = hotel ? parseAmountCents(value.amountYuan!) : null;
+      let validPhoto: Blob | undefined;
       if (value.photo) {
-        const path = buildPlatePhotoPath(now, sessionId);
         try {
           const header = new Uint8Array(
             await value.photo.slice(0, 3).arrayBuffer(),
@@ -511,11 +505,74 @@ export function createParkingService(
             header[1] === 0xd8 &&
             header[2] === 0xff
           ) {
-            await repository.savePlatePhoto(sessionId, path, value.photo);
-            photoSaved = true;
+            validPhoto = value.photo;
           }
         } catch {
-          // 照片是可选附件，上传错误已由 Repository 记录警告。
+          // 无效附件不能作为唯一识别信息。
+        }
+      }
+      const photoRequired = !value.plate && !value.phone;
+      if (photoRequired && !validPhoto) {
+        throw new ValidationError(
+          "check_in_invalid",
+          parkingMessages.requiredPhotoFailed,
+        );
+      }
+
+      // 仅照片登记先上传，再由 RPC 原子绑定照片及停车记录。
+      const preparedId = photoRequired ? crypto.randomUUID() : undefined;
+      const preparedPath = preparedId
+        ? buildPlatePhotoPath(now, preparedId)
+        : undefined;
+      if (preparedPath && validPhoto) {
+        try {
+          await repository.uploadPlatePhoto(preparedPath, validPhoto);
+        } catch {
+          throw new RepositoryError(
+            "plate_photo_failed",
+            parkingMessages.requiredPhotoFailed,
+          );
+        }
+      }
+      let sessionId: string;
+      try {
+        sessionId = await repository.checkInVehicle({
+          slotCode: value.slotCode,
+          plate: value.plate,
+          ...(value.phone ? { phone: value.phone } : {}),
+          ...(preparedPath ? { photoPath: preparedPath } : {}),
+          ...(preparedId ? { sessionId: preparedId } : {}),
+          billingType: value.billingType,
+          paidUntil,
+          borrowMinutes: value.borrowMinutes ?? null,
+          amountCents,
+          paymentMethod: hotel ? value.paymentMethod! : null,
+        });
+      } catch (error) {
+        // 业务冲突明确表示未写入；未知数据库异常可能已提交，保留照片避免破坏记录。
+        if (
+          preparedPath &&
+          (error instanceof ConflictError || error instanceof ValidationError)
+        ) {
+          try {
+            await repository.deletePlatePhoto(preparedPath);
+          } catch {
+            // 删除失败已由 Repository 记录。
+          }
+        }
+        throw error;
+      }
+      let photoSaved = Boolean(preparedPath);
+      if (validPhoto && !preparedPath) {
+        try {
+          await repository.savePlatePhoto(
+            sessionId,
+            buildPlatePhotoPath(now, sessionId),
+            validPhoto,
+          );
+          photoSaved = true;
+        } catch {
+          // 有其他识别信息时照片仍为可选附件。
         }
       }
       return { sessionId, plate: value.plate, photoSaved };
@@ -666,6 +723,7 @@ export function createParkingService(
         name: match.slot.name,
         sessionId: vehicle.id,
         plate: vehicle.plate,
+        ...(vehicle.phone ? { phone: vehicle.phone } : {}),
         billingType: vehicle.billing_type,
         enteredAt: vehicle.entered_at,
         now: now.toISOString(),
@@ -926,7 +984,7 @@ export function createParkingService(
             name: slot.name,
             displayName: session?.plate
               ? formatPlateForDisplay(session.plate)
-              : (lease?.tenant_name ?? ""),
+              : (session?.phone ?? lease?.tenant_name ?? ""),
             status,
             deadline,
             description: describeSlotReminder(kind, deadline, now),
@@ -986,6 +1044,7 @@ export function createParkingService(
             ? {
                 sessionId: session.id,
                 plate: session.plate,
+                ...(session.phone ? { phone: session.phone } : {}),
                 billingType: session.billing_type,
                 enteredAt: session.entered_at,
                 paidUntil: sessionPaidUntil,

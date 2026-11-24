@@ -16,6 +16,8 @@ import {
   formatBusinessTime,
   formatElapsed,
   formatPlateForDisplay,
+  formatVehicleIdentity,
+  isValidCheckInPhone,
   getBusinessDate,
   getBusinessDateTime,
   getBusinessMonth,
@@ -163,6 +165,11 @@ describe("车牌格式", () => {
 
   it("短于三位的车牌不插入间隔符", () => {
     expect(formatPlateForDisplay("粤b")).toBe("粤B");
+    expect(formatPlateForDisplay(null)).toBe("");
+    expect(formatVehicleIdentity(null, "13800138000")).toBe("13800138000");
+    expect(formatVehicleIdentity(null)).toBe("未登记车牌");
+    expect(isValidCheckInPhone("13800138000")).toBe(true);
+    expect(isValidCheckInPhone("1-----")).toBe(false);
   });
 });
 

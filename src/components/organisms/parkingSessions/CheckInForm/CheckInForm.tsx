@@ -21,12 +21,14 @@ import {
   checkInText,
   paymentMethodLabels,
 } from "config/checkInText";
+import { commonText } from "config/commonText";
 import { billingTypeLabels } from "config/slotDetailText";
 import type { CheckInFormData, ParkingBillingType } from "internal/parking";
 import {
   calculateHotelCheckoutAt,
   formatBusinessDateTime,
   formatPlateForDisplay,
+  isValidCheckInPhone,
   normalizePlate,
 } from "internal/parking";
 import type { CheckInActionState } from "internal/parking/adapter/next/checkInActions";
@@ -80,6 +82,7 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
   const router = useRouter();
   const [state, submit, isPending] = useActionState(action, initialState ?? {});
   const [plate, setPlate] = useState(form?.defaultLeasePlate ?? "");
+  const [phone, setPhone] = useState("");
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(
@@ -218,6 +221,10 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
         return;
       }
       const normalized = normalizePlate(result);
+      if (normalized.length < 2 || normalized.length > 10) {
+        setRecognitionStatus("failed");
+        return;
+      }
       if (manualPlateEdited.current) {
         setRecognizedPlate(normalized);
         setRecognitionStatus("suggestion");
@@ -290,6 +297,9 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
   const normalizedPlate = normalizePlate(plate);
   const validPlate =
     normalizedPlate.length >= 2 && normalizedPlate.length <= 10;
+  const normalizedPhone = phone.trim();
+  const validPhone = isValidCheckInPhone(normalizedPhone);
+  const hasPhoto = Boolean(photo || (storyPhoto && photoUrl));
   const validAmount =
     /^(?:0|[1-9]\d{0,7})(?:\.\d{1,2})?$/.test(amountYuan) &&
     Number(amountYuan) > 0 &&
@@ -299,7 +309,9 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
     !isCompressing &&
     !form.occupied &&
     form.isActive &&
-    validPlate &&
+    (!normalizedPlate || validPlate) &&
+    (!normalizedPhone || validPhone) &&
+    (validPlate || validPhone || hasPhoto) &&
     (!isPrivate || borrowMinutes !== null) &&
     (!isHotel || (validDays && method !== null && validAmount));
 
@@ -328,6 +340,7 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
                     {checkInText.hasReservation}
                   </Typography>
                 )}
+                <Typography>{checkInText.identityHint}</Typography>
                 <input
                   accept="image/*"
                   capture="environment"
@@ -462,6 +475,15 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
                     },
                   }}
                   value={plate}
+                />
+                <TextField
+                  fullWidth
+                  label={commonText.phone}
+                  name="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  slotProps={{ htmlInput: { maxLength: 21 } }}
                 />
                 <Typography component="h3" variant="h3">
                   {checkInText.billingType}

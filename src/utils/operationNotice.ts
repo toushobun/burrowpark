@@ -1,6 +1,6 @@
 import { operationText } from "config/operationText";
 import type { SlotDetail } from "internal/parking";
-import { formatPlateForDisplay } from "internal/parking";
+import { formatVehicleIdentity } from "internal/parking";
 
 import type { OperationParams } from "./operationParams";
 
@@ -36,7 +36,7 @@ export function resolveOperationNotice(
       id: params.id,
       message: operationText.checkedIn(
         detail.name,
-        formatPlateForDisplay(vehicle.plate),
+        formatVehicleIdentity(vehicle.plate, vehicle.phone),
       ),
       photoSaved: params.photo !== "0",
     };

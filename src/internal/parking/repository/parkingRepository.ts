@@ -36,6 +36,7 @@ export type SlotFactsRows = {
     | "borrow_until"
     | "lease_id"
     | "plate"
+    | "phone"
     | "entered_at"
     | "photo_path"
   > & {
@@ -70,6 +71,9 @@ export type SlotFactsRows = {
 export type CheckInRpcInput = {
   slotCode: string;
   plate: string;
+  phone?: string;
+  photoPath?: string;
+  sessionId?: string;
   billingType: ParkingBillingType;
   paidUntil: string | null;
   borrowMinutes: number | null;
@@ -78,7 +82,7 @@ export type CheckInRpcInput = {
 };
 
 const recordSessionColumns =
-  "id,slot_code,plate,billing_type,entered_at,left_at,session_payments:payments!payments_session_id_fkey(id,amount_cents,method,purpose,paid_at,paid_until)" as const;
+  "id,slot_code,plate,phone,billing_type,entered_at,left_at,session_payments:payments!payments_session_id_fkey(id,amount_cents,method,purpose,paid_at,paid_until)" as const;
 
 const checkInBusinessCodes = {
   SLOT_OCCUPIED: "slot_occupied",
@@ -123,6 +127,7 @@ export interface ParkingRepository {
   getPricingSettings(): Promise<ParkingPricingSettings>;
   updatePricingSettings(input: ParkingPricingSettings): Promise<void>;
   checkInVehicle(input: CheckInRpcInput): Promise<string>;
+  uploadPlatePhoto(path: string, photo: Blob): Promise<void>;
   savePlatePhoto(sessionId: string, path: string, photo: Blob): Promise<void>;
   deletePlatePhoto(path: string): Promise<void>;
   undoCheckIn(sessionId: string): Promise<void>;
@@ -214,6 +219,18 @@ export function createParkingRepository(
       "plate_photo_failed",
       parkingMessages.unavailable,
     );
+  }
+
+  async function uploadPlatePhoto(path: string, photo: Blob): Promise<void> {
+    try {
+      const { error } = await supabase.storage
+        .from("plate-photos")
+        .upload(path, photo, { contentType: "image/jpeg", upsert: false });
+      if (error) return photoFailure("upload", error);
+    } catch (error) {
+      if (error instanceof RepositoryError) throw error;
+      return photoFailure("upload", error);
+    }
   }
 
   async function signPhotoUrl(photoPath: string): Promise<string | null> {
@@ -559,6 +576,9 @@ export function createParkingRepository(
         const { data, error } = await supabase.rpc("check_in_vehicle", {
           p_slot_code: input.slotCode,
           p_plate: input.plate,
+          ...(input.phone ? { p_phone: input.phone } : {}),
+          ...(input.photoPath ? { p_photo_path: input.photoPath } : {}),
+          ...(input.sessionId ? { p_session_id: input.sessionId } : {}),
           p_billing_type: input.billingType,
           ...(input.paidUntil !== null
             ? { p_paid_until: input.paidUntil }
@@ -613,12 +633,10 @@ export function createParkingRepository(
         return fail("checkInVehicle", error);
       }
     },
+    uploadPlatePhoto,
     async savePlatePhoto(sessionId, path, photo) {
       try {
-        const { error: uploadError } = await supabase.storage
-          .from("plate-photos")
-          .upload(path, photo, { contentType: "image/jpeg", upsert: false });
-        if (uploadError) return photoFailure("upload", uploadError);
+        await uploadPlatePhoto(path, photo);
 
         let linked = false;
         let linkError: unknown = null;
@@ -1003,7 +1021,7 @@ export function createParkingRepository(
         const { data, error } = await supabase
           .from("payments")
           .select(
-            "id,amount_cents,method,purpose,paid_at,lease_id,parking_sessions:parking_sessions!payments_session_id_fkey(slot_code,plate,billing_type),leases:leases!payments_lease_id_fkey(slot_code,tenant_name)",
+            "id,amount_cents,method,purpose,paid_at,lease_id,parking_sessions:parking_sessions!payments_session_id_fkey(slot_code,plate,phone,billing_type),leases:leases!payments_lease_id_fkey(slot_code,tenant_name)",
           )
           .gte("paid_at", start)
           .lt("paid_at", end)
@@ -1020,6 +1038,9 @@ export function createParkingRepository(
           slotCode:
             row.leases?.slot_code ?? row.parking_sessions?.slot_code ?? null,
           plate: row.parking_sessions?.plate ?? null,
+          ...(row.parking_sessions?.phone
+            ? { phone: row.parking_sessions.phone }
+            : {}),
           tenantName: row.leases?.tenant_name ?? null,
           billingType: row.parking_sessions?.billing_type ?? null,
         }));
@@ -1066,7 +1087,7 @@ export function createParkingRepository(
           supabase
             .from("parking_sessions")
             .select(
-              "id,slot_code,billing_type,borrow_until,lease_id,plate,entered_at,photo_path,session_payments:payments!payments_session_id_fkey(id,amount_cents,purpose,paid_at,paid_until)",
+              "id,slot_code,billing_type,borrow_until,lease_id,plate,entered_at,photo_path,phone,session_payments:payments!payments_session_id_fkey(id,amount_cents,purpose,paid_at,paid_until)",
             )
             .is("left_at", null),
           supabase

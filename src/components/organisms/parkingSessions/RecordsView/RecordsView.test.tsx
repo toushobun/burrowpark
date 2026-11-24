@@ -68,6 +68,30 @@ describe("RecordsView", () => {
     expect(screen.getByText("30.00 元", { exact: false })).toBeInTheDocument();
     expect(screen.queryByText("后一天")).toBeNull();
   });
+  it("无车牌的停车记录展示手机号并可补录车牌", () => {
+    render(
+      <RecordsView
+        filter={{ kind: "date", date: "2026-11-21" }}
+        records={{
+          ...records,
+          sessions: [
+            {
+              ...records.sessions[0],
+              plate: null,
+              phone: "13800138000",
+            },
+          ],
+        }}
+        previousDate="2026-11-20"
+        nextDate={null}
+        action={action}
+      />,
+    );
+    expect(screen.getByText("1号 · 未登记车牌")).toBeInTheDocument();
+    expect(screen.getByText("手机号：13800138000")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "改车牌" }));
+    expect(screen.getByRole("textbox", { name: "车牌" })).toHaveValue("");
+  });
   it("390px 按车牌展示搜索框和记录", () => {
     mount(true);
     expect(screen.getByRole("textbox", { name: "车牌" })).toHaveValue(

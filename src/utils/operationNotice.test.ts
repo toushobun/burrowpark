@@ -38,6 +38,26 @@ describe("resolveOperationNotice", () => {
     expect(resolveOperationNotice(wrongId, detail)).toBeNull();
   });
 
+  it("登记提示优先使用真实手机号而不是虚构车牌", () => {
+    const detail = {
+      ...emptyDetail,
+      presentVehicle: {
+        sessionId: id,
+        plate: null,
+        phone: "13800138000",
+        billingType: "hourly" as const,
+        enteredAt: "2026-11-19T03:00:00.000Z",
+        paidUntil: null,
+        borrowUntil: null,
+        photoUrl: null,
+      },
+    };
+    expect(
+      resolveOperationNotice({ done: "checkin", slot: "7", id }, detail)
+        ?.message,
+    ).toBe("已登记 7号 13800138000");
+  });
+
   it("预留和长租按照 ID 复核并使用真实姓名", () => {
     const reserve = { done: "reserve" as const, slot: "7", id };
     const reservation = { id, guestName: " 张三 ", note: null };

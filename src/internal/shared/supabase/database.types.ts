@@ -102,8 +102,9 @@ export type Database = {
           lease_id: string | null;
           left_at: string | null;
           note: string | null;
+          phone: string | null;
           photo_path: string | null;
-          plate: string;
+          plate: string | null;
           slot_code: string;
           updated_at: string;
         };
@@ -117,8 +118,9 @@ export type Database = {
           lease_id?: string | null;
           left_at?: string | null;
           note?: string | null;
+          phone?: string | null;
           photo_path?: string | null;
-          plate: string;
+          plate?: string | null;
           slot_code: string;
           updated_at?: string;
         };
@@ -131,8 +133,9 @@ export type Database = {
           lease_id?: string | null;
           left_at?: string | null;
           note?: string | null;
+          phone?: string | null;
           photo_path?: string | null;
-          plate?: string;
+          plate?: string | null;
           slot_code?: string;
           updated_at?: string;
         };
@@ -326,7 +329,10 @@ export type Database = {
           p_borrow_minutes?: number;
           p_paid_until?: string;
           p_payment_method?: Database["public"]["Enums"]["payment_method"];
+          p_phone?: string;
+          p_photo_path?: string;
           p_plate: string;
+          p_session_id?: string;
           p_slot_code: string;
         };
         Returns: string;

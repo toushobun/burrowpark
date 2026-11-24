@@ -7,9 +7,14 @@ import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 
+import { commonText } from "config/commonText";
 import { checkOutText } from "config/renewAndCheckOutText";
 import type { CheckOutFormData } from "internal/parking";
-import { formatElapsed, formatPlateForDisplay } from "internal/parking";
+import {
+  formatElapsed,
+  formatPlateForDisplay,
+  formatVehicleIdentity,
+} from "internal/parking";
 import type { CheckOutActionState } from "internal/parking/adapter/next/checkOutActions";
 import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/FailureFeedbackDialog";
 import { OperationRedirecting } from "molecules/feedback/OperationRedirecting/OperationRedirecting";
@@ -59,7 +64,10 @@ export function CheckOutForm({
       kind: "checkout",
       code: form.code,
       id: sessionId,
-      message: checkOutText.success + "：" + formatPlateForDisplay(form.plate),
+      message:
+        checkOutText.success +
+        "：" +
+        formatVehicleIdentity(form.plate, form.phone),
     });
     router.replace("/");
   }, [form, router, sessionId, showNotice]);
@@ -83,8 +91,14 @@ export function CheckOutForm({
           {form.name}
         </Typography>
         <Typography variant="h3">
-          {checkOutText.plate}：{formatPlateForDisplay(form.plate)}
+          {checkOutText.plate}：
+          {formatPlateForDisplay(form.plate) || commonText.noPlate}
         </Typography>
+        {form.phone && (
+          <Typography variant="body1">
+            {commonText.phone}：{form.phone}
+          </Typography>
+        )}
         <Typography variant="body1">
           {formatElapsed(form.enteredAt, form.now)}
         </Typography>

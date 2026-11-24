@@ -8,7 +8,10 @@ export type RecordPayment = Pick<
 export type RecordSession = Pick<
   Tables<"parking_sessions">,
   "id" | "slot_code" | "plate" | "billing_type" | "entered_at" | "left_at"
-> & { session_payments: RecordPayment[] };
+> & {
+  phone?: Tables<"parking_sessions">["phone"];
+  session_payments: RecordPayment[];
+};
 
 export type RecordLeasePayment = RecordPayment & {
   leases: { slot_code: string; tenant_name: string; plate: string | null };
