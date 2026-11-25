@@ -13,7 +13,7 @@ const push = vi.fn();
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }) }));
 
-import { SlotDetail } from "./SlotDetail";
+import { SlotDetail, type SlotFormAction } from "./SlotDetail";
 import {
   detailDisplay,
   emptyDetail,
@@ -315,10 +315,10 @@ describe("SlotDetail 预留、退租和成功结果", () => {
   });
 
   it("退租提交期间不能关闭确认框或触发其他车位操作", async () => {
-    let finish: (state: object) => void = () => {};
-    const end = vi.fn(
+    let finish: (state: Awaited<ReturnType<SlotFormAction>>) => void = () => {};
+    const end = vi.fn<SlotFormAction>(
       () =>
-        new Promise<object>((resolve) => {
+        new Promise((resolve) => {
           finish = resolve;
         }),
     );
@@ -332,7 +332,7 @@ describe("SlotDetail 预留、退租和成功结果", () => {
           reserve: noop,
           cancelReservation: noop,
           extendBorrow: noop,
-          end,
+          endLease: end,
         }}
       />,
     );
