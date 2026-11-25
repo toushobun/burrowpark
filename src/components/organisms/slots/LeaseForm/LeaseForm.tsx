@@ -34,6 +34,7 @@ import {
   usePlatePhotoInput,
   type PlatePhotoStory,
 } from "organisms/parkingSessions/PlatePhotoInput/usePlatePhotoInput";
+import { useSlotOperationPending } from "organisms/slots/SlotOperationDialog/slotOperationDialogContext";
 import { designTokens } from "theme/designTokens";
 
 type FormAction = (
@@ -67,6 +68,7 @@ export function LeaseForm({
     action,
     initialState ?? ({} as SlotActionState),
   );
+  const dialog = useSlotOperationPending(isPending);
   const redirectedLease = useRef<string | null>(null);
   const [tenantName, setTenantName] = useState(detail?.lease?.tenantName ?? "");
   const [phone, setPhone] = useState(detail?.lease?.phone ?? "");
@@ -98,8 +100,9 @@ export function LeaseForm({
       slot: detail.code,
       id,
     });
-    router.push("/?" + params.toString());
-  }, [creating, detail, router, state.result?.id, state.success]);
+    if (dialog) router.replace("/?" + params.toString());
+    else router.push("/?" + params.toString());
+  }, [creating, detail, router, state.result?.id, state.success, dialog]);
 
   useEffect(() => {
     if (

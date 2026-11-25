@@ -8,7 +8,7 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
 import { slotLayouts } from "config/slotLayout";
@@ -16,6 +16,7 @@ import { slotMapText } from "config/slotMapText";
 import { slotStatusLabels, slotStatusShortLabels } from "config/slotStatusText";
 import type { SlotMapSlot } from "internal/parking";
 import { designTokens } from "theme/designTokens";
+import { slotLegendGridSx } from "theme/slotLegendLayout";
 import { slotStatusColors, slotStatuses } from "theme/slotStatusTokens";
 import { theme } from "theme/theme";
 
@@ -29,7 +30,6 @@ const slideTransition = theme.transitions.create("transform", {
 const reducedMotion = {
   "@media (prefers-reduced-motion: reduce)": { transition: "none" },
 };
-const legendRows = [slotStatuses.slice(0, 4), slotStatuses.slice(4)];
 
 type ParkingSlotMapProps = {
   slots: SlotMapSlot[];
@@ -39,6 +39,7 @@ type ParkingSlotMapProps = {
 /** 布局坐标完全由定稿 JSON 决定；SVG 统一按 viewBox 等比缩放。 */
 export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
   const router = useRouter();
+  const [opening, startOpening] = useTransition();
   const { yard, setYard, ...gestureHandlers } =
     useYardNavigation(highlightCode);
   const yardIndex = yards.indexOf(yard);
@@ -349,8 +350,13 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                             }
                             event.preventDefault();
                             setPressedCode(null);
-                            router.push(
-                              "/slots/" + encodeURIComponent(shape.code),
+                            if (opening) return;
+                            event.currentTarget.focus({ preventScroll: true });
+                            startOpening(() =>
+                              router.push(
+                                "/slots/" + encodeURIComponent(shape.code),
+                                { scroll: false },
+                              ),
                             );
                           }}
                         >
@@ -435,36 +441,32 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
           </Typography>
         </Stack>
         <Stack role="group" aria-label={slotMapText.legendTitle} spacing={0.5}>
-          {legendRows.map((row, index) => (
-            <Stack
-              key={row[0]}
-              direction="row"
-              spacing={0.5}
-              useFlexGap
-              sx={{
-                alignItems: "center",
-                flexWrap: "wrap",
-                "& > span": { px: 0.5, whiteSpace: "nowrap" },
-              }}
-            >
-              {index === 0 && (
-                <Typography variant="body2">
-                  {slotMapText.legendTitle}：
-                </Typography>
-              )}
-              {row.map((status) => (
-                <SlotStatusBadge
-                  key={status}
-                  status={status}
-                  label={
-                    status === "expiringSoon" || status === "overdue"
-                      ? slotStatusLabels[status]
-                      : slotStatusShortLabels[status]
-                  }
-                />
-              ))}
-            </Stack>
-          ))}
+          <Typography variant="body2">{slotMapText.legendTitle}：</Typography>
+          <Box
+            data-testid="slot-legend-grid"
+            sx={{
+              ...slotLegendGridSx,
+              "& > span": {
+                minWidth: 0,
+                justifyContent: "center",
+                textAlign: "center",
+                overflowWrap: "anywhere",
+                px: 0.5,
+              },
+            }}
+          >
+            {slotStatuses.map((status) => (
+              <SlotStatusBadge
+                key={status}
+                status={status}
+                label={
+                  status === "expiringSoon" || status === "overdue"
+                    ? slotStatusLabels[status]
+                    : slotStatusShortLabels[status]
+                }
+              />
+            ))}
+          </Box>
         </Stack>
       </Stack>
     </Stack>

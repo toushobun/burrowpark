@@ -12,7 +12,14 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 
 import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
 import { paymentMethodLabels } from "config/checkInText";
@@ -29,6 +36,8 @@ import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/
 import { OperationRedirecting } from "molecules/feedback/OperationRedirecting/OperationRedirecting";
 import { useOperationFeedback } from "providers/OperationFeedbackProvider";
 import { designTokens } from "theme/designTokens";
+
+import { useSlotOperationPending } from "../SlotOperationDialog/slotOperationDialogContext";
 
 export type SlotDetailDisplay = {
   enteredAt: string | null;
@@ -50,12 +59,22 @@ export type SlotDetailOperations = {
   endLease: SlotFormAction;
 };
 
+type SlotDetailStep =
+  | "check-in"
+  | "renew"
+  | "check-out"
+  | "lease/new"
+  | "lease/edit";
+
+export type SlotDetailModalForms = Partial<Record<SlotDetailStep, ReactNode>>;
+
 type SlotDetailProps = {
   detail: SlotDetailData | null;
   display: SlotDetailDisplay | null;
   today?: string;
   now?: string;
   operations?: SlotDetailOperations;
+  modalForms?: SlotDetailModalForms;
   initialState?: {
     reserve?: SlotActionState;
     cancel?: SlotActionState;
@@ -94,13 +113,18 @@ export function SlotDetail({
   today = "",
   now = "",
   operations,
+  modalForms,
   initialState,
 }: SlotDetailProps) {
   const router = useRouter();
+  const inModal = Boolean(modalForms);
   const { showNotice } = useOperationFeedback();
   const redirectedOperation = useRef<string | null>(null);
   const redirectedReservation = useRef<string | null>(null);
   const [reserveOpen, setReserveOpen] = useState(false);
+  const [modalStep, setModalStep] = useState<SlotDetailStep | null>(null);
+  const [guestName, setGuestName] = useState("");
+  const [reservationNote, setReservationNote] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
   const [endDate, setEndDate] = useState(today);
@@ -120,6 +144,10 @@ export function SlotDetail({
     operations?.endLease ?? unavailableAction,
     initialState?.end ?? ({} as SlotActionState),
   );
+
+  const detailPending =
+    reservePending || cancelPending || extendPending || endPending;
+  const dialog = useSlotOperationPending(detailPending);
 
   const completed =
     (cancelState.result
@@ -147,8 +175,9 @@ export function SlotDetail({
       slot: detail.code,
       id,
     });
-    router.push("/?" + params.toString());
-  }, [detail, reserveState.result?.id, reserveState.success, router]);
+    if (inModal) router.replace("/?" + params.toString());
+    else router.push("/?" + params.toString());
+  }, [detail, inModal, reserveState.result?.id, reserveState.success, router]);
 
   const completionId = completed?.result.id;
   const completionKind = completed?.kind;
@@ -219,7 +248,7 @@ export function SlotDetail({
     Date.parse(now) >= Date.parse(vehicle.borrowUntil);
   const reserved = !vehicle && Boolean(detail.reservation);
   const leaseAway = !vehicle && Boolean(detail.lease);
-  const links: { label: string; href: string }[] = [];
+  const links: { label: string; operation: SlotDetailStep }[] = [];
   if (detail.isActive) {
     if (vehicle) {
       if (
@@ -232,22 +261,22 @@ export function SlotDetail({
             vehicle.billingType === "lease"
               ? slotDetailText.renewLease
               : slotDetailText.renew,
-          href: `/slots/${detail.code}/renew`,
+          operation: "renew",
         });
       }
       links.push({
         label: slotDetailText.leave,
-        href: `/slots/${detail.code}/check-out`,
+        operation: "check-out",
       });
     } else {
       links.push({
         label: slotDetailText.enter,
-        href: `/slots/${detail.code}/check-in`,
+        operation: "check-in",
       });
       if (leaseAway)
         links.push({
           label: slotDetailText.renewLease,
-          href: `/slots/${detail.code}/renew`,
+          operation: "renew",
         });
     }
   }
@@ -258,6 +287,10 @@ export function SlotDetail({
     !detail.lease &&
     !detail.reservation;
   const showNewLease = showReserve;
+  const reserveStep = inModal && reserveOpen && showReserve;
+  const reserveBackLabel = inModal
+    ? slotDetailText.backToActions
+    : slotDetailText.cancel;
   const showEditLease = detail.isActive && Boolean(detail.lease?.id);
   const showEndLease = showEditLease && !vehicle;
   const hasMore = showEditLease || showEndLease || privateBorrowed;
@@ -268,6 +301,29 @@ export function SlotDetail({
       : extendState.error
         ? extendState
         : endState;
+
+  const openOperation = (event: MouseEvent, step: SlotDetailStep) => {
+    if (!modalForms) return;
+    event.preventDefault();
+    if (!detailPending && !dialog?.pending) setModalStep(step);
+  };
+
+  if (modalForms && modalStep) {
+    return (
+      <Stack spacing={2}>
+        {modalForms[modalStep]}
+        <Button
+          fullWidth
+          disabled={dialog?.pending}
+          size="large"
+          sx={buttonSx}
+          onClick={() => setModalStep(null)}
+        >
+          {slotDetailText.backToActions}
+        </Button>
+      </Stack>
+    );
+  }
 
   return (
     <Stack spacing={3}>
@@ -287,7 +343,8 @@ export function SlotDetail({
         />
       </Stack>
 
-      {detail.isActive &&
+      {!reserveStep &&
+        detail.isActive &&
         Boolean(
           vehicle ||
           detail.lease ||
@@ -429,7 +486,7 @@ export function SlotDetail({
           </Paper>
         )}
 
-      {detail.isActive && (
+      {detail.isActive && !reserveStep && (
         <Stack spacing={2}>
           {privateBorrowed && vehicle?.sessionId && (
             <form action={submitExtend}>
@@ -440,19 +497,21 @@ export function SlotDetail({
                 size="large"
                 sx={buttonSx}
                 variant="contained"
-                disabled={extendPending}
+                disabled={detailPending}
                 type="submit"
               >
                 {slotDetailText.borrow10}
               </Button>
             </form>
           )}
-          {links.map(({ label, href }, index) => (
+          {links.map(({ label, operation }, index) => (
             <Button
-              key={href}
+              key={operation}
+              disabled={detailPending}
               component={Link}
               fullWidth
-              href={href}
+              href={`/slots/${detail.code}/${operation}`}
+              onClick={(event) => openOperation(event, operation)}
               size="large"
               sx={buttonSx}
               variant={
@@ -468,6 +527,7 @@ export function SlotDetail({
               size="large"
               sx={buttonSx}
               variant="outlined"
+              disabled={detailPending}
               onClick={() => setReserveOpen(true)}
             >
               {slotDetailText.reserve}
@@ -478,6 +538,8 @@ export function SlotDetail({
               component={Link}
               fullWidth
               href={`/slots/${detail.code}/lease/new`}
+              disabled={detailPending}
+              onClick={(event) => openOperation(event, "lease/new")}
               size="large"
               sx={buttonSx}
               variant="outlined"
@@ -491,6 +553,7 @@ export function SlotDetail({
               size="large"
               sx={buttonSx}
               variant="outlined"
+              disabled={detailPending}
               onClick={() => setCancelOpen(true)}
             >
               {slotDetailText.cancelReservation}
@@ -499,7 +562,7 @@ export function SlotDetail({
         </Stack>
       )}
 
-      {hasMore && (
+      {hasMore && !reserveStep && (
         <Stack spacing={1}>
           <Typography component="h3" variant="body1">
             {slotDetailText.moreActions}
@@ -509,6 +572,8 @@ export function SlotDetail({
               component={Link}
               fullWidth
               href={`/slots/${detail.code}/lease/edit`}
+              disabled={detailPending}
+              onClick={(event) => openOperation(event, "lease/edit")}
               sx={buttonSx}
               variant="text"
             >
@@ -520,6 +585,7 @@ export function SlotDetail({
               fullWidth
               sx={buttonSx}
               variant="text"
+              disabled={detailPending}
               onClick={() => setEndOpen(true)}
             >
               {slotDetailText.endLease}
@@ -534,7 +600,7 @@ export function SlotDetail({
                 sx={buttonSx}
                 variant="text"
                 type="submit"
-                disabled={extendPending}
+                disabled={detailPending}
               >
                 {slotDetailText.borrow30}
               </Button>
@@ -551,6 +617,8 @@ export function SlotDetail({
                 name="guestName"
                 fullWidth
                 label={slotDetailText.guestName}
+                value={guestName}
+                onChange={(event) => setGuestName(event.target.value)}
               />
               <TextField
                 name="note"
@@ -558,6 +626,8 @@ export function SlotDetail({
                 multiline
                 minRows={2}
                 label={slotDetailText.note}
+                value={reservationNote}
+                onChange={(event) => setReservationNote(event.target.value)}
               />
               <input type="hidden" name="slotCode" value={detail.code} />
               <Button
@@ -579,20 +649,30 @@ export function SlotDetail({
                 sx={buttonSx}
                 onClick={() => setReserveOpen(false)}
               >
-                {slotDetailText.cancel}
+                {reserveBackLabel}
               </Button>
             </Stack>
           </form>
         </Paper>
       )}
 
-      <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} fullWidth>
+      <Dialog
+        open={cancelOpen}
+        onClose={() => {
+          if (!cancelPending) setCancelOpen(false);
+        }}
+        fullWidth
+      >
         <DialogTitle>{slotDetailText.cancelReservationQuestion}</DialogTitle>
         <DialogContent>
           <Typography variant="body1">{detail.name}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button sx={buttonSx} onClick={() => setCancelOpen(false)}>
+          <Button
+            sx={buttonSx}
+            disabled={cancelPending}
+            onClick={() => setCancelOpen(false)}
+          >
             {slotDetailText.keep}
           </Button>
           <form action={submitCancel}>
@@ -607,7 +687,13 @@ export function SlotDetail({
           </form>
         </DialogActions>
       </Dialog>
-      <Dialog open={endOpen} onClose={() => setEndOpen(false)} fullWidth>
+      <Dialog
+        open={endOpen}
+        onClose={() => {
+          if (!endPending) setEndOpen(false);
+        }}
+        fullWidth
+      >
         <DialogTitle>
           {slotDetailText.endLeaseQuestion(detail.lease?.tenantName ?? "")}
         </DialogTitle>
@@ -618,6 +704,7 @@ export function SlotDetail({
               type="date"
               label={slotDetailText.endDate}
               value={endDate}
+              disabled={endPending}
               onChange={(event) => setEndDate(event.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
             />
@@ -629,7 +716,11 @@ export function SlotDetail({
             <input type="hidden" name="endedOn" value={endDate} />
           </DialogContent>
           <DialogActions>
-            <Button sx={buttonSx} onClick={() => setEndOpen(false)}>
+            <Button
+              sx={buttonSx}
+              disabled={endPending}
+              onClick={() => setEndOpen(false)}
+            >
               {slotDetailText.keep}
             </Button>
             <Button sx={buttonSx} type="submit" disabled={endPending}>

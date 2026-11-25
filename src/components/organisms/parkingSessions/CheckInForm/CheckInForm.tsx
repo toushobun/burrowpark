@@ -31,6 +31,7 @@ import {
 } from "internal/parking";
 import type { CheckInActionState } from "internal/parking/adapter/next/checkInActions";
 import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/FailureFeedbackDialog";
+import { useSlotOperationPending } from "organisms/slots/SlotOperationDialog/slotOperationDialogContext";
 import { designTokens } from "theme/designTokens";
 
 import { PlatePhotoInput } from "../PlatePhotoInput/PlatePhotoInput";
@@ -83,6 +84,7 @@ function ChoiceButton({
 export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
   const router = useRouter();
   const [state, submit, isPending] = useActionState(action, initialState ?? {});
+  const dialog = useSlotOperationPending(isPending);
   const capture = usePlatePhotoInput(form?.defaultLeasePlate ?? "", storyPhoto);
   const { plate, photo, photoUrl, isCompressing, markSubmitted } = capture;
   const [phone, setPhone] = useState("");
@@ -101,8 +103,9 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
     });
     // 未拍照时 photoSaved 也为 false，不能误报为照片上传失败。
     if (photoUploadFailed(photo, result.photoSaved)) params.set("photo", "0");
-    router.push("/?" + params.toString());
-  }, [state.result, form, photo, router]);
+    if (dialog) router.replace("/?" + params.toString());
+    else router.push("/?" + params.toString());
+  }, [state.result, form, photo, router, dialog]);
 
   const [billingType, setBillingType] = useState<ParkingBillingType>(
     form?.kind === "private"

@@ -1,3 +1,4 @@
+import Box from "@mui/material/Box";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 
@@ -5,6 +6,8 @@ import { slotMapText } from "config/slotMapText";
 import { HomeHeader } from "molecules/navigation/HomeHeader/HomeHeader";
 import { PageShell } from "templates/layout/PageShell/PageShell";
 import { designTokens } from "theme/designTokens";
+import { slotLegendGridSx } from "theme/slotLegendLayout";
+import { slotStatuses } from "theme/slotStatusTokens";
 
 export default function Loading() {
   return (
@@ -37,8 +40,21 @@ export default function Loading() {
             height={designTokens.size.touchTargetMin}
           />
         </Stack>
-        <Skeleton variant="text" width="100%" />
-        <Skeleton variant="text" width="100%" />
+        <Stack spacing={0.5} sx={{ px: 1 }}>
+          <Skeleton variant="text" width="40%" />
+          <Box sx={slotLegendGridSx}>
+            {slotStatuses.map((status) => (
+              <Skeleton
+                key={status}
+                variant="rounded"
+                sx={{
+                  borderRadius: `${designTokens.radius.full}px`,
+                  height: "2.1rem",
+                }}
+              />
+            ))}
+          </Box>
+        </Stack>
       </Stack>
     </PageShell>
   );

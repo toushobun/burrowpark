@@ -79,9 +79,16 @@ describe("ParkingSlotMap", () => {
     expect(screen.getAllByRole("link")).toHaveLength(14);
     expect(track.children[0]).not.toHaveAttribute("inert");
     expect(track.children[1]).toHaveAttribute("inert");
+  });
 
+  it("八种状态按固定顺序填满等宽网格，标题不占用列", () => {
+    render(<ParkingSlotMap slots={slots} />);
     const legend = within(screen.getByRole("group", { name: "状态图例" }));
-    for (const label of [
+    const grid = legend.getByTestId("slot-legend-grid");
+
+    expect(grid).toHaveStyle({ display: "grid", gridAutoRows: "1fr" });
+    expect(grid).not.toContainElement(legend.getByText("状态图例："));
+    expect(Array.from(grid.children, (badge) => badge.textContent)).toEqual([
       "空",
       "有车",
       "快到期",
@@ -90,8 +97,9 @@ describe("ParkingSlotMap", () => {
       "外出",
       "私位",
       "借用",
-    ]) {
-      expect(legend.getByText(label)).toBeInTheDocument();
+    ]);
+    for (const badge of Array.from(grid.children)) {
+      expect(badge).toHaveStyle({ justifyContent: "center" });
     }
   });
 
@@ -227,7 +235,7 @@ describe("ParkingSlotMap", () => {
     expect(prefetch).toHaveBeenCalledWith("/slots/7");
     expect(link.querySelector("g")).toHaveAttribute("opacity", "0.8");
     fireEvent.click(link);
-    expect(push).toHaveBeenCalledWith("/slots/7");
+    expect(push).toHaveBeenCalledWith("/slots/7", { scroll: false });
     expect(link.querySelector("g")).toHaveAttribute("opacity", "1");
   });
 
