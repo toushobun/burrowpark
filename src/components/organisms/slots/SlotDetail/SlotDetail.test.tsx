@@ -1,4 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SlotDetail as SlotDetailData } from "internal/parking";
@@ -306,6 +312,38 @@ describe("SlotDetail 预留、退租和成功结果", () => {
     expect(
       screen.getByRole("button", { name: "确定退租" }),
     ).toBeInTheDocument();
+  });
+
+  it("退租提交期间不能关闭确认框或触发其他车位操作", async () => {
+    let finish: (state: object) => void = () => {};
+    const end = vi.fn(
+      () =>
+        new Promise<object>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const noop = async () => ({});
+    render(
+      <SlotDetail
+        detail={leaseAwayDetail}
+        display={detailDisplay}
+        today="2026-11-19"
+        operations={{
+          reserve: noop,
+          cancelReservation: noop,
+          extendBorrow: noop,
+          end,
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "退租" }));
+    fireEvent.click(screen.getByRole("button", { name: "确定退租" }));
+    await waitFor(() => expect(end).toHaveBeenCalledOnce());
+    expect(screen.getByRole("button", { name: "返回" })).toBeDisabled();
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await act(async () => finish({}));
+    expect(screen.getByRole("button", { name: "返回" })).toBeEnabled();
   });
 
   it("取消预留必须先经过 Dialog", () => {

@@ -73,7 +73,7 @@ export async function SlotDetailContent({
 
   return (
     <>
-      {detail?.kind === "private" && detail.presentVehicle && (
+      {!modal && detail?.kind === "private" && detail.presentVehicle && (
         <ReminderRefresh />
       )}
       <SlotDetail
