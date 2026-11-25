@@ -16,6 +16,7 @@ import { slotMapText } from "config/slotMapText";
 import { slotStatusLabels, slotStatusShortLabels } from "config/slotStatusText";
 import type { SlotMapSlot } from "internal/parking";
 import { designTokens } from "theme/designTokens";
+import { slotLegendGridSx } from "theme/slotLegendLayout";
 import { slotStatusColors, slotStatuses } from "theme/slotStatusTokens";
 import { theme } from "theme/theme";
 
@@ -29,7 +30,6 @@ const slideTransition = theme.transitions.create("transform", {
 const reducedMotion = {
   "@media (prefers-reduced-motion: reduce)": { transition: "none" },
 };
-const legendRows = [slotStatuses.slice(0, 4), slotStatuses.slice(4)];
 
 type ParkingSlotMapProps = {
   slots: SlotMapSlot[];
@@ -435,36 +435,32 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
           </Typography>
         </Stack>
         <Stack role="group" aria-label={slotMapText.legendTitle} spacing={0.5}>
-          {legendRows.map((row, index) => (
-            <Stack
-              key={row[0]}
-              direction="row"
-              spacing={0.5}
-              useFlexGap
-              sx={{
-                alignItems: "center",
-                flexWrap: "wrap",
-                "& > span": { px: 0.5, whiteSpace: "nowrap" },
-              }}
-            >
-              {index === 0 && (
-                <Typography variant="body2">
-                  {slotMapText.legendTitle}：
-                </Typography>
-              )}
-              {row.map((status) => (
-                <SlotStatusBadge
-                  key={status}
-                  status={status}
-                  label={
-                    status === "expiringSoon" || status === "overdue"
-                      ? slotStatusLabels[status]
-                      : slotStatusShortLabels[status]
-                  }
-                />
-              ))}
-            </Stack>
-          ))}
+          <Typography variant="body2">{slotMapText.legendTitle}：</Typography>
+          <Box
+            data-testid="slot-legend-grid"
+            sx={{
+              ...slotLegendGridSx,
+              "& > span": {
+                minWidth: 0,
+                justifyContent: "center",
+                textAlign: "center",
+                overflowWrap: "anywhere",
+                px: 0.5,
+              },
+            }}
+          >
+            {slotStatuses.map((status) => (
+              <SlotStatusBadge
+                key={status}
+                status={status}
+                label={
+                  status === "expiringSoon" || status === "overdue"
+                    ? slotStatusLabels[status]
+                    : slotStatusShortLabels[status]
+                }
+              />
+            ))}
+          </Box>
         </Stack>
       </Stack>
     </Stack>
