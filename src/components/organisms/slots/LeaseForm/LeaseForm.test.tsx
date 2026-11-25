@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { recognizePlate } from "internal/plateRecognition";
@@ -154,6 +160,35 @@ describe("LeaseForm", () => {
     const submitted = action.mock.calls[0][1];
     expect(submitted.get("plate")).toBe("粤B11111");
     expect(submitted.has("photo")).toBe(false);
+  });
+
+  it("提交失败后停止识别提示，迟到结果不覆盖已提交车牌", async () => {
+    let finish: (plate: string | null) => void = () => {};
+    vi.mocked(recognizePlate).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { container } = renderCreate();
+    const plate = screen.getByRole("textbox", { name: "常停车牌" });
+    fireEvent.change(plate, { target: { value: "粤B11111" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "租户名" }), {
+      target: { value: "王先生" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "实收金额（元）" }), {
+      target: { value: "100.00" },
+    });
+    choosePhoto(container);
+    await waitFor(() => expect(recognizePlate).toHaveBeenCalledOnce());
+    expect(screen.getByText("正在识别车牌…")).toBeInTheDocument();
+
+    action.mockResolvedValueOnce({ error: "登记失败", errorKey: "failed" });
+    fireEvent.click(screen.getByRole("button", { name: "确认建立长租" }));
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
+    await act(async () => finish("辽A12345"));
+    expect(screen.queryByText("正在识别车牌…")).toBeNull();
+    expect(plate).toHaveValue("粤B11111");
   });
 
   it("长租识别失败或删除照片仍可手工填写，编辑长租不显示拍照入口", async () => {

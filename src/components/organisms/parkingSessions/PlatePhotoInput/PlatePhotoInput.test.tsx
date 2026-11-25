@@ -22,12 +22,10 @@ function Example({ purpose }: { purpose: "checkin" | "lease" }) {
 describe("PlatePhotoInput", () => {
   it("根据业务用途提示识别失败后的不同处理方式", () => {
     const { rerender } = render(<Example purpose="checkin" />);
-    expect(
-      screen.getByText("没认出来，可直接使用照片登记"),
-    ).toBeInTheDocument();
+    const checkInHint = screen.getByText("没认出来，可直接使用照片登记");
+    expect(checkInHint).toBeInTheDocument();
     rerender(<Example purpose="lease" />);
-    expect(
-      screen.getByText("没认出来，可手动填写车牌"),
-    ).toBeInTheDocument();
+    const leaseHint = screen.getByText("没认出来，可手动填写车牌");
+    expect(leaseHint).toBeInTheDocument();
   });
 });

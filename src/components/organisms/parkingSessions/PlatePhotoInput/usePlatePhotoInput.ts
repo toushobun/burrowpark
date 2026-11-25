@@ -178,6 +178,11 @@ export function usePlatePhotoInput(
 
   const markSubmitted = () => {
     photoSubmitted.current = true;
+    setIsCompressing(false);
+    // 提交时停止识别回写，提交失败后也不能一直显示识别中。
+    setRecognitionStatus((status) =>
+      status === "loading" || status === "recognizing" ? "idle" : status,
+    );
   };
 
   return {
