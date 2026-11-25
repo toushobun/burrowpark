@@ -20,9 +20,15 @@ import { slotStatusColors, slotStatuses } from "theme/slotStatusTokens";
 import { theme } from "theme/theme";
 
 import { getSlotLabelLayout } from "./getSlotLabelLayout";
-import { useYardNavigation } from "./useYardNavigation";
+import { useYardNavigation, yards } from "./useYardNavigation";
 
-const yards = ["inner", "outer"] as const;
+const slideTransition = theme.transitions.create("transform", {
+  duration: theme.transitions.duration.standard,
+  easing: theme.transitions.easing.easeInOut,
+});
+const reducedMotion = {
+  "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+};
 const legendRows = [slotStatuses.slice(0, 4), slotStatuses.slice(4)];
 
 type ParkingSlotMapProps = {
@@ -35,6 +41,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
   const router = useRouter();
   const { yard, setYard, ...gestureHandlers } =
     useYardNavigation(highlightCode);
+  const yardIndex = yards.indexOf(yard);
   const highlightedRef = useRef<SVGGElement>(null);
   const [pressedCode, setPressedCode] = useState<string | null>(null);
   const slotsByCode = new Map(slots.map((slot) => [slot.code, slot]));
@@ -60,8 +67,27 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
           boxShadow: 1,
           border: 4,
           borderColor: "background.paper",
+          position: "relative",
+          isolation: "isolate",
         }}
       >
+        <Box
+          aria-hidden="true"
+          data-testid="yard-selection-indicator"
+          style={{ transform: `translateX(${yardIndex * 100}%)` }}
+          sx={{
+            position: "absolute",
+            top: 0,
+            bottom: 0,
+            left: 0,
+            width: "50%",
+            borderRadius: `${designTokens.radius.full}px`,
+            bgcolor: designTokens.color.brand.green,
+            pointerEvents: "none",
+            transition: slideTransition,
+            ...reducedMotion,
+          }}
+        />
         {yards.map((page) => (
           <ButtonBase
             key={page}
@@ -71,8 +97,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
               flex: 1,
               minHeight: designTokens.size.touchTargetMin,
               borderRadius: `${designTokens.radius.full}px`,
-              bgcolor:
-                yard === page ? designTokens.color.brand.green : "transparent",
+              zIndex: 1,
               color: yard === page ? "common.white" : "text.secondary",
               typography: "h3",
               "&.Mui-focusVisible": {
@@ -115,17 +140,13 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
           <Box
             data-testid="slot-map-track"
             style={{
-              transform:
-                yard === "inner" ? "translateX(0%)" : "translateX(-100%)",
+              transform: `translateX(${yardIndex * -100}%)`,
             }}
             sx={{
               display: "flex",
               width: "100%",
-              transition: theme.transitions.create("transform", {
-                duration: theme.transitions.duration.standard,
-                easing: theme.transitions.easing.easeInOut,
-              }),
-              "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+              transition: slideTransition,
+              ...reducedMotion,
             }}
           >
             {yards.map((page) => {

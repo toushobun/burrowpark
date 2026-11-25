@@ -53,7 +53,7 @@ export const Highlighted: Story = {
   },
 };
 
-/** 默认外院，展示右侧边界；通过任一切换控件可查看里院。 */
+/** 默认左侧外院，展示滑动选中底块及左侧边界；通过任一切换控件可查看里院。 */
 export const YardNavigation: Story = {};
 
 export const InnerYard: Story = {

@@ -33,7 +33,7 @@ describe("ParkingSlotMap", () => {
     const link = screen.getByRole("link", { name: "7号，空" });
     link.focus();
     expect(link).toHaveFocus();
-    fireEvent.keyDown(link, { key: "ArrowLeft" });
+    fireEvent.keyDown(link, { key: "ArrowRight" });
     expect(viewport).toHaveFocus();
     expect(screen.getAllByRole("link")).toHaveLength(15);
     expect(screen.getByRole("link", { name: "29号，空" })).toBeInTheDocument();
@@ -46,26 +46,32 @@ describe("ParkingSlotMap", () => {
     render(<ParkingSlotMap slots={slots} />);
     const inner = screen.getByRole("button", { name: "里院" });
     const outer = screen.getByRole("button", { name: "外院" });
-    const left = screen.getByRole("button", { name: "切换至里院" });
-    const right = screen.getByRole("button", { name: "切换至外院" });
+    const left = screen.getByRole("button", { name: "切换至外院" });
+    const right = screen.getByRole("button", { name: "切换至里院" });
     const track = screen.getByTestId("slot-map-track");
+    const indicator = screen.getByTestId("yard-selection-indicator");
+    const navigation = screen.getByRole("group", { name: "院区切换" });
+    expect(within(navigation).getAllByRole("button")).toEqual([outer, inner]);
     expect(outer).toHaveAttribute("aria-pressed", "true");
-    expect(right).toBeDisabled();
-    expect(left).toBeEnabled();
-    expect(track).toHaveStyle({ transform: "translateX(-100%)" });
+    expect(left).toBeDisabled();
+    expect(right).toBeEnabled();
+    expect(track).toHaveStyle({ transform: "translateX(0%)" });
+    expect(indicator).toHaveStyle({ transform: "translateX(0%)" });
 
     fireEvent.click(inner);
     expect(inner).toHaveAttribute("aria-pressed", "true");
     expect(outer).toHaveAttribute("aria-pressed", "false");
-    expect(left).toBeDisabled();
-    expect(right).toBeEnabled();
-    expect(track).toHaveStyle({ transform: "translateX(0%)" });
+    expect(right).toBeDisabled();
+    expect(left).toBeEnabled();
+    expect(track).toHaveStyle({ transform: "translateX(-100%)" });
+    expect(indicator).toHaveStyle({ transform: "translateX(100%)" });
     expect(screen.getAllByRole("link")).toHaveLength(15);
 
-    fireEvent.click(right);
-    expect(outer).toHaveAttribute("aria-pressed", "true");
-    expect(track).toHaveStyle({ transform: "translateX(-100%)" });
     fireEvent.click(left);
+    expect(outer).toHaveAttribute("aria-pressed", "true");
+    expect(track).toHaveStyle({ transform: "translateX(0%)" });
+    expect(indicator).toHaveStyle({ transform: "translateX(0%)" });
+    fireEvent.click(right);
     expect(inner).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(outer);
     expect(screen.getAllByRole("link")).toHaveLength(14);
@@ -93,12 +99,15 @@ describe("ParkingSlotMap", () => {
     push.mockClear();
     const viewport = screen.getByTestId("slot-map-viewport");
     const link = screen.getByRole("link", { name: "7号，空" });
-    fireEvent.touchStart(link, { touches: [{ clientX: 100, clientY: 100 }] });
+    fireEvent.touchStart(link, { touches: [{ clientX: 250, clientY: 100 }] });
     fireEvent.touchEnd(link, {
       touches: [],
-      changedTouches: [{ clientX: 250, clientY: 105 }],
+      changedTouches: [{ clientX: 100, clientY: 105 }],
     });
     expect(screen.getAllByRole("link")).toHaveLength(15);
+    expect(screen.getByTestId("yard-selection-indicator")).toHaveStyle({
+      transform: "translateX(100%)",
+    });
     const innerLink = screen.getByRole("link", { name: "25号，空" });
     fireEvent.click(innerLink, { detail: 1 });
     expect(push).not.toHaveBeenCalled();
@@ -111,11 +120,11 @@ describe("ParkingSlotMap", () => {
     });
     expect(screen.getAllByRole("link")).toHaveLength(15);
     fireEvent.touchStart(viewport, {
-      touches: [{ clientX: 250, clientY: 100 }],
+      touches: [{ clientX: 100, clientY: 100 }],
     });
     fireEvent.touchEnd(viewport, {
       touches: [],
-      changedTouches: [{ clientX: 100, clientY: 105 }],
+      changedTouches: [{ clientX: 250, clientY: 105 }],
     });
     expect(screen.getAllByRole("link")).toHaveLength(14);
   });
@@ -150,6 +159,9 @@ describe("ParkingSlotMap", () => {
       "aria-pressed",
       "true",
     );
+    expect(screen.getByTestId("yard-selection-indicator")).toHaveStyle({
+      transform: "translateX(100%)",
+    });
     expect(link.querySelector("rect")).toHaveAttribute(
       "stroke",
       theme.palette.error.main,
