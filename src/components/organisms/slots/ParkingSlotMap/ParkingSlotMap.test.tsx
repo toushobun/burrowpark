@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { slotLayouts } from "config/slotLayout";
@@ -33,7 +33,7 @@ describe("ParkingSlotMap", () => {
     const link = screen.getByRole("link", { name: "7号，空" });
     link.focus();
     expect(link).toHaveFocus();
-    fireEvent.keyDown(link, { key: "ArrowRight" });
+    fireEvent.keyDown(link, { key: "ArrowLeft" });
     expect(viewport).toHaveFocus();
     expect(screen.getAllByRole("link")).toHaveLength(15);
     expect(screen.getByRole("link", { name: "29号，空" })).toBeInTheDocument();
@@ -42,15 +42,61 @@ describe("ParkingSlotMap", () => {
     expect(screen.getAllByRole("link")).toHaveLength(14);
   });
 
+  it("分段按钮、箭头与地图位移保持同步，边界不可循环", () => {
+    render(<ParkingSlotMap slots={slots} />);
+    const inner = screen.getByRole("button", { name: "里院" });
+    const outer = screen.getByRole("button", { name: "外院" });
+    const left = screen.getByRole("button", { name: "切换至里院" });
+    const right = screen.getByRole("button", { name: "切换至外院" });
+    const track = screen.getByTestId("slot-map-track");
+    expect(outer).toHaveAttribute("aria-pressed", "true");
+    expect(right).toBeDisabled();
+    expect(left).toBeEnabled();
+    expect(track).toHaveStyle({ transform: "translateX(-100%)" });
+
+    fireEvent.click(inner);
+    expect(inner).toHaveAttribute("aria-pressed", "true");
+    expect(outer).toHaveAttribute("aria-pressed", "false");
+    expect(left).toBeDisabled();
+    expect(right).toBeEnabled();
+    expect(track).toHaveStyle({ transform: "translateX(0%)" });
+    expect(screen.getAllByRole("link")).toHaveLength(15);
+
+    fireEvent.click(right);
+    expect(outer).toHaveAttribute("aria-pressed", "true");
+    expect(track).toHaveStyle({ transform: "translateX(-100%)" });
+    fireEvent.click(left);
+    expect(inner).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(outer);
+    expect(screen.getAllByRole("link")).toHaveLength(14);
+    expect(track.querySelector("[aria-hidden='true']")).toHaveAttribute(
+      "inert",
+    );
+
+    const legend = within(screen.getByRole("group", { name: "状态图例" }));
+    for (const label of [
+      "空",
+      "有车",
+      "快到期",
+      "已过期",
+      "预留",
+      "外出",
+      "私位",
+      "借用",
+    ]) {
+      expect(legend.getByText(label)).toBeInTheDocument();
+    }
+  });
+
   it("左右滑动切换，纵向滚动不切换，滑动不误触发车位导航", () => {
     render(<ParkingSlotMap slots={slots} />);
     push.mockClear();
     const viewport = screen.getByTestId("slot-map-viewport");
     const link = screen.getByRole("link", { name: "7号，空" });
-    fireEvent.touchStart(link, { touches: [{ clientX: 250, clientY: 100 }] });
+    fireEvent.touchStart(link, { touches: [{ clientX: 100, clientY: 100 }] });
     fireEvent.touchEnd(link, {
       touches: [],
-      changedTouches: [{ clientX: 100, clientY: 105 }],
+      changedTouches: [{ clientX: 250, clientY: 105 }],
     });
     expect(screen.getAllByRole("link")).toHaveLength(15);
     const innerLink = screen.getByRole("link", { name: "25号，空" });
@@ -65,11 +111,11 @@ describe("ParkingSlotMap", () => {
     });
     expect(screen.getAllByRole("link")).toHaveLength(15);
     fireEvent.touchStart(viewport, {
-      touches: [{ clientX: 100, clientY: 100 }],
+      touches: [{ clientX: 250, clientY: 100 }],
     });
     fireEvent.touchEnd(viewport, {
       touches: [],
-      changedTouches: [{ clientX: 250, clientY: 105 }],
+      changedTouches: [{ clientX: 100, clientY: 105 }],
     });
     expect(screen.getAllByRole("link")).toHaveLength(14);
   });
@@ -77,8 +123,8 @@ describe("ParkingSlotMap", () => {
   it("双指缩放及取消的触摸不切换院区", () => {
     render(<ParkingSlotMap slots={slots} />);
     const viewport = screen.getByTestId("slot-map-viewport");
-    const first = { clientX: 250, clientY: 100 };
-    const second = { clientX: 150, clientY: 100 };
+    const first = { clientX: 150, clientY: 100 };
+    const second = { clientX: 250, clientY: 100 };
     fireEvent.touchStart(viewport, { touches: [first] });
     fireEvent.touchStart(viewport, { touches: [first, second] });
     fireEvent.touchEnd(viewport, {
@@ -100,6 +146,10 @@ describe("ParkingSlotMap", () => {
     const { rerender } = render(<ParkingSlotMap slots={slots} />);
     rerender(<ParkingSlotMap slots={slots} highlightCode="29" />);
     const link = screen.getByRole("link", { name: "29号，空" });
+    expect(screen.getByRole("button", { name: "里院" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(link.querySelector("rect")).toHaveAttribute(
       "stroke",
       theme.palette.error.main,
@@ -192,8 +242,9 @@ describe("ParkingSlotMap", () => {
     const link = screen.getByRole("link", { name: "9号，已过期" });
     expect(link).toHaveTextContent("过期");
     expect(link.querySelector("rect")).toHaveAttribute("fill", "#FBDAD6");
-    expect(screen.getByText("入口")).toBeInTheDocument();
-    expect(screen.getByText("楼梯")).toBeInTheDocument();
+    const map = within(screen.getByRole("group", { name: "车位地图" }));
+    expect(map.getByText("入口")).toBeInTheDocument();
+    expect(map.getByText("楼梯")).toBeInTheDocument();
   });
 
   it("停用或没有配置的车位灰显且不能点击", () => {
