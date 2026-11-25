@@ -18,6 +18,7 @@ export type {
   ParkingService,
   SlotDetail,
   SlotMapSlot,
+  SlotOperationView,
   SlotSettingsRow,
   SlotReminder,
   MonthlyStats,

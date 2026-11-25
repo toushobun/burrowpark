@@ -126,6 +126,13 @@ export type CheckInFormData = {
   now: string;
 };
 
+export type SlotOperationView = {
+  detail: SlotDetail;
+  checkIn: CheckInFormData | null;
+  checkOut: CheckOutFormData | null;
+  renew: RenewFormData | null;
+};
+
 export type CheckInResult = {
   sessionId: string;
   plate: string;
@@ -195,6 +202,7 @@ export interface ParkingService {
   correctPayment(input: unknown): Promise<void>;
   deletePayment(input: unknown): Promise<void>;
   getSlotMap(now: Date): Promise<SlotMapSlot[]>;
+  getSlotOperationViews(now: Date): Promise<SlotOperationView[]>;
   getMonthlyStats(month: string): Promise<MonthlyStats>;
   getReminders(now: Date): Promise<SlotReminder[]>;
   getSlotDetail(code: string, now: Date): Promise<SlotDetail | null>;
@@ -295,6 +303,181 @@ function assembleSlotFacts(facts: SlotFactsRows) {
       statusFacts,
     };
   });
+}
+
+type AssembledSlot = ReturnType<typeof assembleSlotFacts>[number];
+
+function buildCheckInForm(
+  match: AssembledSlot,
+  pricing: ParkingPricingSettings,
+  now: Date,
+): CheckInFormData {
+  return {
+    code: match.slot.code,
+    name: match.slot.name,
+    kind: match.slot.kind,
+    isActive: match.slot.is_active,
+    occupied: Boolean(match.session),
+    hasLease: Boolean(match.lease),
+    ...(match.lease?.plate ? { defaultLeasePlate: match.lease.plate } : {}),
+    hasReservation: Boolean(match.reservation),
+    pricing,
+    now: now.toISOString(),
+  };
+}
+
+function buildRenewForm(
+  match: AssembledSlot,
+  pricing: ParkingPricingSettings,
+): RenewFormData | null {
+  if (!match.slot.is_active || match.slot.kind === "private")
+    return null;
+  const hotel = match.session?.billing_type === "hotel_daily";
+  const lease =
+    match.lease &&
+    (!match.session || match.session.billing_type === "lease");
+  const paidUntil = hotel
+    ? match.sessionPaidUntil
+    : lease
+      ? match.leasePaidUntil
+      : null;
+  if (!paidUntil) return null;
+  return {
+    code: match.slot.code,
+    name: match.slot.name,
+    mode: hotel ? "hotel_daily" : "lease",
+    sessionId: hotel ? (match.session?.id ?? null) : null,
+    leaseId: lease ? (match.lease?.id ?? null) : null,
+    paidUntil,
+    defaultEndDate: lease ? nextLeaseRenewDate(paidUntil) : null,
+    hotelDailyPriceCents: pricing.hotel_daily_price_cents,
+    plate: match.session?.plate ?? null,
+  };
+}
+
+function buildCheckOutForm(
+  match: AssembledSlot,
+  pricing: ParkingPricingSettings,
+  now: Date,
+): CheckOutFormData | null {
+  if (!match.slot.is_active || !match.session) return null;
+  const vehicle = match.session;
+  const minutes = Math.max(
+    0,
+    (now.getTime() - Date.parse(vehicle.entered_at)) / 60000,
+  );
+  const overstay =
+    vehicle.billing_type === "hotel_daily" && match.sessionPaidUntil
+      ? calculateHotelOverstay(
+          match.sessionPaidUntil,
+          now,
+          pricing.hotel_daily_price_cents,
+        )
+      : null;
+  return {
+    code: match.slot.code,
+    name: match.slot.name,
+    sessionId: vehicle.id,
+    plate: vehicle.plate,
+    ...(vehicle.phone ? { phone: vehicle.phone } : {}),
+    billingType: vehicle.billing_type,
+    enteredAt: vehicle.entered_at,
+    now: now.toISOString(),
+    paidUntil: match.sessionPaidUntil,
+    totalPaidCents:
+      vehicle.billing_type === "lease"
+        ? null
+        : vehicle.session_payments
+            .filter(
+              (p) => p.purpose === "prepay" || p.purpose === "renewal",
+            )
+            .reduce((sum, p) => sum + (p.amount_cents ?? 0), 0),
+    suggestedAmountCents:
+      match.slot.kind === "private"
+        ? 0
+        : vehicle.billing_type === "hourly"
+          ? calculateHourlySuggestedAmountCents(minutes, pricing)
+          : (overstay?.suggestedCents ?? 0),
+    overstayHours: overstay?.hours ?? 0,
+  };
+}
+
+async function buildSlotDetail(
+  match: AssembledSlot,
+  now: Date,
+  repository: ParkingRepository,
+): Promise<SlotDetail> {
+  const photoUrl =
+    match.slot.is_active && match.session?.photo_path
+      ? await repository.getPhotoSignedUrl(match.session.photo_path)
+      : null;
+  const {
+    slot,
+    session,
+    reservation,
+    lease,
+    sessionPaidUntil,
+    leasePaidUntil,
+    statusFacts,
+  } = match;
+  return {
+    code: slot.code,
+    name: slot.name,
+    isActive: slot.is_active,
+    status: deriveSlotStatus(statusFacts, now),
+    kind: slot.kind,
+    presentVehicle:
+      slot.is_active && session
+        ? {
+            sessionId: session.id,
+            plate: session.plate,
+            ...(session.phone ? { phone: session.phone } : {}),
+            billingType: session.billing_type,
+            enteredAt: session.entered_at,
+            paidUntil: sessionPaidUntil,
+            borrowUntil: session.borrow_until,
+            photoUrl,
+          }
+        : null,
+    reservation:
+      slot.is_active && reservation
+        ? {
+            id: reservation.id ?? null,
+            guestName: reservation.guest_name,
+            note: reservation.note,
+          }
+        : null,
+    lease:
+      slot.is_active && lease
+        ? {
+            id: lease.id,
+            startsOn: lease.starts_on ?? null,
+            plate: lease.plate ?? null,
+            note: lease.note ?? null,
+            recentPayments: lease.lease_payments
+              .filter(
+                (payment) =>
+                  payment.id &&
+                  payment.paid_at &&
+                  payment.amount_cents &&
+                  payment.method,
+              )
+              .sort((a, b) =>
+                (b.paid_at ?? "").localeCompare(a.paid_at ?? ""),
+              )
+              .slice(0, 3)
+              .map((payment) => ({
+                id: payment.id!,
+                paidAt: payment.paid_at!,
+                amountCents: payment.amount_cents!,
+                method: payment.method!,
+              })),
+            tenantName: lease.tenant_name,
+            phone: lease.phone,
+            paidUntil: leasePaidUntil,
+          }
+        : null,
+  };
 }
 
 export function createParkingService(
@@ -469,19 +652,7 @@ export function createParkingService(
       const match = assembleSlotFacts(facts).find(
         ({ slot }) => slot.code === code,
       );
-      if (!match) return null;
-      return {
-        code: match.slot.code,
-        name: match.slot.name,
-        kind: match.slot.kind,
-        isActive: match.slot.is_active,
-        occupied: Boolean(match.session),
-        hasLease: Boolean(match.lease),
-        ...(match.lease?.plate ? { defaultLeasePlate: match.lease.plate } : {}),
-        hasReservation: Boolean(match.reservation),
-        pricing,
-        now: now.toISOString(),
-      };
+      return match ? buildCheckInForm(match, pricing, now) : null;
     },
 
     async checkIn(input, now) {
@@ -607,29 +778,7 @@ export function createParkingService(
       const match = assembleSlotFacts(facts).find(
         ({ slot }) => slot.code === code,
       );
-      if (!match || !match.slot.is_active || match.slot.kind === "private")
-        return null;
-      const hotel = match.session?.billing_type === "hotel_daily";
-      const lease =
-        match.lease &&
-        (!match.session || match.session.billing_type === "lease");
-      const paidUntil = hotel
-        ? match.sessionPaidUntil
-        : lease
-          ? match.leasePaidUntil
-          : null;
-      if (!paidUntil) return null;
-      return {
-        code,
-        name: match.slot.name,
-        mode: hotel ? "hotel_daily" : "lease",
-        sessionId: hotel ? (match.session?.id ?? null) : null,
-        leaseId: lease ? (match.lease?.id ?? null) : null,
-        paidUntil,
-        defaultEndDate: lease ? nextLeaseRenewDate(paidUntil) : null,
-        hotelDailyPriceCents: pricing.hotel_daily_price_cents,
-        plate: match.session?.plate ?? null,
-      };
+      return match ? buildRenewForm(match, pricing) : null;
     },
 
     async renew(input) {
@@ -705,46 +854,7 @@ export function createParkingService(
       const match = assembleSlotFacts(facts).find(
         ({ slot }) => slot.code === code,
       );
-      if (!match?.slot.is_active || !match.session) return null;
-      const vehicle = match.session;
-      const minutes = Math.max(
-        0,
-        (now.getTime() - Date.parse(vehicle.entered_at)) / 60000,
-      );
-      const overstay =
-        vehicle.billing_type === "hotel_daily" && match.sessionPaidUntil
-          ? calculateHotelOverstay(
-              match.sessionPaidUntil,
-              now,
-              pricing.hotel_daily_price_cents,
-            )
-          : null;
-      return {
-        code,
-        name: match.slot.name,
-        sessionId: vehicle.id,
-        plate: vehicle.plate,
-        ...(vehicle.phone ? { phone: vehicle.phone } : {}),
-        billingType: vehicle.billing_type,
-        enteredAt: vehicle.entered_at,
-        now: now.toISOString(),
-        paidUntil: match.sessionPaidUntil,
-        totalPaidCents:
-          vehicle.billing_type === "lease"
-            ? null
-            : vehicle.session_payments
-                .filter(
-                  (p) => p.purpose === "prepay" || p.purpose === "renewal",
-                )
-                .reduce((sum, p) => sum + (p.amount_cents ?? 0), 0),
-        suggestedAmountCents:
-          match.slot.kind === "private"
-            ? 0
-            : vehicle.billing_type === "hourly"
-              ? calculateHourlySuggestedAmountCents(minutes, pricing)
-              : (overstay?.suggestedCents ?? 0),
-        overstayHours: overstay?.hours ?? 0,
-      };
+      return match ? buildCheckOutForm(match, pricing, now) : null;
     },
 
     async checkOut(input) {
@@ -1031,80 +1141,24 @@ export function createParkingService(
       const match = assembleSlotFacts(facts).find(
         ({ slot }) => slot.code === code,
       );
-      if (!match) return null;
-
-      const {
-        slot,
-        session,
-        reservation,
-        lease,
-        sessionPaidUntil,
-        leasePaidUntil,
-        statusFacts,
-      } = match;
-      // 首页不会请求照片签名；详情只签当前车位的在场车辆。
-      const photoUrl =
-        slot.is_active && session?.photo_path
-          ? await repository.getPhotoSignedUrl(session.photo_path)
-          : null;
-      return {
-        code: slot.code,
-        name: slot.name,
-        isActive: slot.is_active,
-        status: deriveSlotStatus(statusFacts, now),
-        kind: slot.kind,
-        presentVehicle:
-          slot.is_active && session
-            ? {
-                sessionId: session.id,
-                plate: session.plate,
-                ...(session.phone ? { phone: session.phone } : {}),
-                billingType: session.billing_type,
-                enteredAt: session.entered_at,
-                paidUntil: sessionPaidUntil,
-                borrowUntil: session.borrow_until,
-                photoUrl,
-              }
+      return match ? buildSlotDetail(match, now, repository) : null;
+    },
+    async getSlotOperationViews(now) {
+      await requireAuthenticatedUserId(getAuth);
+      const [facts, pricing] = await Promise.all([
+        repository.readSlotFacts(),
+        repository.getPricingSettings(),
+      ]);
+      return Promise.all(
+        assembleSlotFacts(facts).map(async (match) => ({
+          detail: await buildSlotDetail(match, now, repository),
+          checkIn: match.slot.is_active
+            ? buildCheckInForm(match, pricing, now)
             : null,
-        reservation:
-          slot.is_active && reservation
-            ? {
-                id: reservation.id ?? null,
-                guestName: reservation.guest_name,
-                note: reservation.note,
-              }
-            : null,
-        lease:
-          slot.is_active && lease
-            ? {
-                id: lease.id,
-                startsOn: lease.starts_on ?? null,
-                plate: lease.plate ?? null,
-                note: lease.note ?? null,
-                recentPayments: lease.lease_payments
-                  .filter(
-                    (payment) =>
-                      payment.id &&
-                      payment.paid_at &&
-                      payment.amount_cents &&
-                      payment.method,
-                  )
-                  .sort((a, b) =>
-                    (b.paid_at ?? "").localeCompare(a.paid_at ?? ""),
-                  )
-                  .slice(0, 3)
-                  .map((payment) => ({
-                    id: payment.id!,
-                    paidAt: payment.paid_at!,
-                    amountCents: payment.amount_cents!,
-                    method: payment.method!,
-                  })),
-                tenantName: lease.tenant_name,
-                phone: lease.phone,
-                paidUntil: leasePaidUntil,
-              }
-            : null,
-      };
+          checkOut: buildCheckOutForm(match, pricing, now),
+          renew: buildRenewForm(match, pricing),
+        })),
+      );
     },
   };
 }

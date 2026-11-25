@@ -147,6 +147,25 @@ describe("createParkingService", () => {
     expect(repository.getPhotoSignedUrl).not.toHaveBeenCalled();
   });
 
+  it("首页操作数据只读取一次事实和收费设置，停用车位不暴露表单", async () => {
+    const { service, repository } = makeService(
+      makeRows({ sessions: [makeSession()] }),
+    );
+    const views = await service.getSlotOperationViews(now);
+    expect(repository.readSlotFacts).toHaveBeenCalledOnce();
+    expect(repository.getPricingSettings).toHaveBeenCalledOnce();
+    expect(views[0].detail.presentVehicle?.plate).toBe("粤B12345");
+    expect(views[0].checkOut?.sessionId).toBe("session-1");
+    expect(views[0].checkIn?.pricing.hourly_price_cents).toBe(500);
+    expect(views[1]).toMatchObject({
+      detail: { isActive: false, presentVehicle: null },
+      checkIn: null,
+      checkOut: null,
+      renew: null,
+    });
+    expect(repository.getPhotoSignedUrl).toHaveBeenCalledOnce();
+  });
+
   it("详情只签当前车位照片，忽略其他在场车位", async () => {
     const { service, repository } = makeService(
       makeRows({

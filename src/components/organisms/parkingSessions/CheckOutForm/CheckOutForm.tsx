@@ -47,7 +47,7 @@ export function CheckOutForm({
   const { showNotice } = useOperationFeedback();
   const redirected = useRef<string | null>(null);
   const [state, submit, isPending] = useActionState(action, initialState ?? {});
-  useSlotOperationPending(isPending);
+  const complete = useSlotOperationPending(isPending)?.complete;
   const [initialForm] = useState(currentForm);
   // 离场成功后车位已清空，跳转前仍保留提交时的车牌和车位。
   const form = currentForm ?? (state.result ? initialForm : null);
@@ -71,8 +71,9 @@ export function CheckOutForm({
         "：" +
         formatVehicleIdentity(form.plate, form.phone),
     });
+    complete?.();
     router.replace("/");
-  }, [form, router, sessionId, showNotice]);
+  }, [complete, form, router, sessionId, showNotice]);
 
   if (state.result) {
     return <OperationRedirecting />;

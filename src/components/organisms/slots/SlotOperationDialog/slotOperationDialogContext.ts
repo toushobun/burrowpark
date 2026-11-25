@@ -5,6 +5,7 @@ import { createContext, useContext, useEffect } from "react";
 type SlotOperationDialogState = {
   pending: boolean;
   setPending: (pending: boolean) => void;
+  complete?: () => void;
 };
 
 export const SlotOperationDialogContext =

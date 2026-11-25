@@ -6,12 +6,10 @@ import {
   formatBusinessTime,
   formatElapsed,
   getBusinessDate,
+  type SlotOperationView,
 } from "internal/parking";
 import { checkInAction } from "internal/parking/adapter/next/checkInActions";
 import { checkOutAction } from "internal/parking/adapter/next/checkOutActions";
-import { loadCheckInForm } from "internal/parking/adapter/next/loadCheckInForm";
-import { loadCheckOutForm } from "internal/parking/adapter/next/loadCheckOutForm";
-import { loadRenewForm } from "internal/parking/adapter/next/loadRenewForm";
 import { loadSlotDetail } from "internal/parking/adapter/next/loadSlotDetail";
 import { renewAction } from "internal/parking/adapter/next/renewActions";
 import {
@@ -27,18 +25,19 @@ import { CheckInForm } from "organisms/parkingSessions/CheckInForm/CheckInForm";
 import { CheckOutForm } from "organisms/parkingSessions/CheckOutForm/CheckOutForm";
 import { RenewForm } from "organisms/parkingSessions/RenewForm/RenewForm";
 import { LeaseForm } from "organisms/slots/LeaseForm/LeaseForm";
-import { SlotOperationDialog } from "organisms/slots/SlotOperationDialog/SlotOperationDialog";
 import { SlotDetail } from "./SlotDetail";
 
 export async function SlotDetailContent({
   code,
-  modal = false,
+  now = new Date(),
+  operation,
 }: {
   code: string;
-  modal?: boolean;
+  now?: Date;
+  operation?: SlotOperationView;
 }) {
-  const now = new Date();
-  const detail = await loadSlotDetail(code, now);
+  const modal = Boolean(operation);
+  const detail = operation ? operation.detail : await loadSlotDetail(code, now);
   const vehicle = detail?.presentVehicle;
 
   const display = detail
@@ -60,19 +59,13 @@ export async function SlotDetailContent({
     : null;
 
   const today = getBusinessDate(now);
-  const canRenew =
-    detail?.kind === "regular" &&
-    (detail.lease || vehicle?.billingType === "hotel_daily");
-  const [checkIn, checkOut, renew] =
-    modal && detail?.isActive
-      ? await Promise.all([
-          loadCheckInForm(code, now),
-          vehicle ? loadCheckOutForm(code) : null,
-          canRenew ? loadRenewForm(code) : null,
-        ])
-      : [null, null, null];
+  const { checkIn, checkOut, renew } = operation ?? {
+    checkIn: null,
+    checkOut: null,
+    renew: null,
+  };
 
-  const content = (
+  return (
     <>
       {!modal && detail?.kind === "private" && detail.presentVehicle && (
         <ReminderRefresh />
@@ -119,12 +112,5 @@ export async function SlotDetailContent({
         }}
       />
     </>
-  );
-
-  // 详情和表单读取完成后才挂载 Dialog，避免先播放骨架屏的进入动画。
-  return modal ? (
-    <SlotOperationDialog code={code}>{content}</SlotOperationDialog>
-  ) : (
-    content
   );
 }

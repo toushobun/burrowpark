@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { HomeNavigation } from "molecules/navigation/HomeNavigation/HomeNavigation";
 import {
   OperationFeedbackProvider,
   useOperationFeedback,
@@ -15,8 +16,18 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("./ParkingSlotMap", () => ({
-  ParkingSlotMap: ({ highlightCode }: { highlightCode?: string }) => (
-    <div data-testid="map" data-highlight={highlightCode ?? ""} />
+  ParkingSlotMap: ({
+    highlightCode,
+    onSlotOpen,
+  }: {
+    highlightCode?: string;
+    onSlotOpen?: (code: string, origin: string) => void;
+  }) => (
+    <div data-testid="map" data-highlight={highlightCode ?? ""}>
+      <button onClick={() => onSlotOpen?.("7", "100px 200px")}>
+        打开车位
+      </button>
+    </div>
   ),
 }));
 
@@ -72,6 +83,30 @@ describe("OperationMapSection", () => {
   beforeEach(() => {
     navigation.pathname = "/";
     replace.mockClear();
+  });
+
+  it("立即打开真实本地菜单并保持车位选中，关闭不导航", async () => {
+    render(
+      <>
+        <HomeNavigation />
+        <OperationMapSection
+          slots={[]}
+          notice={null}
+          undoActions={undoActions}
+          slotOperations={{ "7": <div>登记进场</div> }}
+        />
+      </>,
+    );
+    const tab = screen.getByRole("link", { name: "车位" });
+    const map = screen.getByTestId("map");
+    fireEvent.click(screen.getByRole("button", { name: "打开车位" }));
+    expect(screen.getByRole("dialog")).toHaveTextContent("登记进场");
+    expect(tab).toHaveAttribute("aria-current", "page");
+    fireEvent.click(screen.getByRole("button", { name: "返回地图" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(tab).toHaveAttribute("aria-current", "page");
+    expect(screen.getByTestId("map")).toBe(map);
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it("消费 URL 成功提示后清理历史参数，离开再返回不会重新出现", () => {

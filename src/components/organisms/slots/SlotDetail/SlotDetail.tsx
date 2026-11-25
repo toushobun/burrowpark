@@ -148,6 +148,7 @@ export function SlotDetail({
   const detailPending =
     reservePending || cancelPending || extendPending || endPending;
   const dialog = useSlotOperationPending(detailPending);
+  const complete = dialog?.complete;
 
   const completed =
     (cancelState.result
@@ -175,9 +176,17 @@ export function SlotDetail({
       slot: detail.code,
       id,
     });
+    complete?.();
     if (inModal) router.replace("/?" + params.toString());
     else router.push("/?" + params.toString());
-  }, [detail, inModal, reserveState.result?.id, reserveState.success, router]);
+  }, [
+    complete,
+    detail,
+    inModal,
+    reserveState.result?.id,
+    reserveState.success,
+    router,
+  ]);
 
   const completionId = completed?.result.id;
   const completionKind = completed?.kind;
@@ -208,8 +217,10 @@ export function SlotDetail({
           }
         : {}),
     });
+    complete?.();
     router.replace("/");
   }, [
+    complete,
     completionCurrent,
     completionId,
     completionKind,

@@ -10,7 +10,8 @@ const meta = {
   component: SlotOperationDialog,
   title: "Organisms/Slots/SlotOperationDialog",
   args: {
-    code: "7",
+    origin: "280px 100px",
+    onClosed: () => {},
     children: (
       <SlotDetail
         detail={emptyDetail}
@@ -34,10 +35,7 @@ export const FromMapPosition: Story = {
     (Story) => (
       <>
         <svg width="100%" height="240" aria-label="车位地图">
-          <a
-            href={"/slots/" + meta.args.code}
-            data-slot-operation-origin="280px 100px"
-          >
+          <g>
             <rect
               x="240"
               y="70"
@@ -48,7 +46,7 @@ export const FromMapPosition: Story = {
             <text x="280" y="105" textAnchor="middle">
               7
             </text>
-          </a>
+          </g>
         </svg>
         <Story />
       </>

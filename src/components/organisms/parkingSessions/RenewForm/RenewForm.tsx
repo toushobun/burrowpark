@@ -45,7 +45,7 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
   const { showNotice } = useOperationFeedback();
   const redirected = useRef<string | null>(null);
   const [state, submit, isPending] = useActionState(action, initialState ?? {});
-  useSlotOperationPending(isPending);
+  const complete = useSlotOperationPending(isPending)?.complete;
   const [initialForm] = useState(currentForm);
   // 续费完成后页面可能重读出不再可续费的状态，跳转前保留提交时的事实。
   const form = currentForm ?? (state.result ? initialForm : null);
@@ -75,8 +75,9 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
       id: paymentId,
       message: `${title}，交到 ${formattedDate}`,
     });
+    complete?.();
     router.replace("/");
-  }, [form, router, showNotice, state.result]);
+  }, [complete, form, router, showNotice, state.result]);
 
   if (!form) {
     return (
