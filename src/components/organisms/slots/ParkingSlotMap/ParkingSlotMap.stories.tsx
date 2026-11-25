@@ -28,6 +28,16 @@ type Story = StoryObj<typeof meta>;
 
 export const Empty: Story = {};
 
+export const HomeDesign: Story = {
+  args: {
+    slots: emptySlots.map((slot) =>
+      slot.code === "6" || slot.code === "7"
+        ? { ...slot, status: "privateIdle" }
+        : slot,
+    ),
+  },
+};
+
 export const Full: Story = {
   args: {
     slots: emptySlots.map((slot) => ({ ...slot, status: "occupied" })),
@@ -63,7 +73,7 @@ export const InnerYard: Story = {
 export const NarrowScreen: Story = {
   decorators: [
     (Story) => (
-      <Box sx={{ maxWidth: "100%", width: 360 }}>
+      <Box sx={{ maxWidth: "100%", px: 2, width: 360 }}>
         <Story />
       </Box>
     ),

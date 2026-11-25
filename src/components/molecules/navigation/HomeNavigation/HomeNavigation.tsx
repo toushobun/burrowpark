@@ -28,6 +28,10 @@ export function HomeNavigation() {
         display: "grid",
         gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
         gap: 0.5,
+        bgcolor: "background.paper",
+        borderRadius: `${designTokens.radius.full}px`,
+        boxShadow: 1,
+        p: 0.5,
       }}
     >
       {destinations.map(({ key, href, icon: Icon }) => {
@@ -41,12 +45,13 @@ export function HomeNavigation() {
             sx={{
               bgcolor: current ? "primary.light" : "transparent",
               color: "primary.dark",
-              borderRadius: designTokens.radius.lg + "px",
+              borderRadius: `${designTokens.radius.full}px`,
               flexDirection: "column",
+              gap: 0.25,
               minHeight: designTokens.size.touchTargetMin,
             }}
           >
-            <Icon />
+            <Icon fontSize="medium" />
             <Typography variant="body2" sx={{ fontWeight: 700 }}>
               {slotMapText[key]}
             </Typography>
