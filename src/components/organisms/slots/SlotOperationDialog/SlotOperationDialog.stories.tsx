@@ -34,7 +34,10 @@ export const FromMapPosition: Story = {
     (Story) => (
       <>
         <svg width="100%" height="240" aria-label="车位地图">
-          <a href="/slots/7" data-slot-operation-origin="280px 100px">
+          <a
+            href={"/slots/" + meta.args.code}
+            data-slot-operation-origin="280px 100px"
+          >
             <rect
               x="240"
               y="70"

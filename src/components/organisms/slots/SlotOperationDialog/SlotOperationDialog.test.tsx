@@ -22,29 +22,17 @@ describe("SlotOperationDialog", () => {
     expect(refresh).not.toHaveBeenCalled();
     expect(screen.getByTestId("background-map")).toBe(map);
   });
+
   it("弹窗缩放使用点击位置而非车位中心，关闭时保留同一原点", () => {
-    const { container, rerender } = render(
+    const code = "7";
+    render(
       <>
         <svg>
-          <a href="/slots/7" data-slot-operation-origin="310px 115px">
+          <a href={"/slots/" + code} data-slot-operation-origin="310px 115px">
             <rect x="240" y="100" width="80" height="60" />
           </a>
         </svg>
-      </>,
-    );
-    const anchor = container.querySelector("a");
-    if (!anchor) throw new Error("缺少车位链接");
-    vi.spyOn(anchor, "getBoundingClientRect").mockReturnValue(
-      new DOMRect(240, 100, 80, 60),
-    );
-    rerender(
-      <>
-        <svg>
-          <a href="/slots/7" data-slot-operation-origin="310px 115px">
-            <rect x="240" y="100" width="80" height="60" />
-          </a>
-        </svg>
-        <SlotOperationDialog code="7">操作内容</SlotOperationDialog>
+        <SlotOperationDialog code={code}>操作内容</SlotOperationDialog>
       </>,
     );
     const transition = screen
