@@ -47,7 +47,6 @@ export default async function HomePage({
   return (
     <PageShell
       embedded
-      appearance="home"
       title={slotMapText.title}
       headerContent={<HomeHeader hasReminders={reminders.length > 0} />}
     >
