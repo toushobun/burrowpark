@@ -12,7 +12,7 @@ import { designTokens } from "theme/designTokens";
 
 export function HomeHeader({ hasReminders }: { hasReminders: boolean }) {
   return (
-    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", py: 0.5 }}>
+    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
       <Box component="h1" sx={{ flex: 1, minWidth: 0, m: 0 }}>
         <Box
           component="img"
@@ -30,16 +30,13 @@ export function HomeHeader({ hasReminders }: { hasReminders: boolean }) {
         sx={{
           bgcolor: "background.paper",
           boxShadow: 1,
-          border: 1,
-          borderColor: "divider",
-          color: "primary.dark",
           flexShrink: 0,
           width: designTokens.size.touchTargetMin,
           height: designTokens.size.touchTargetMin,
         }}
       >
         <Badge color="error" variant="dot" invisible={!hasReminders}>
-          <NotificationsNoneIcon fontSize="large" />
+          <NotificationsNoneIcon />
         </Badge>
       </IconButton>
     </Stack>

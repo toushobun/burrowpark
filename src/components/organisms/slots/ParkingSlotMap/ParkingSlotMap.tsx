@@ -2,16 +2,15 @@
 
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import DirectionsCarOutlinedIcon from "@mui/icons-material/DirectionsCarOutlined";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
-import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
 import { slotLayouts } from "config/slotLayout";
 import { slotMapText } from "config/slotMapText";
 import { slotStatusLabels, slotStatusShortLabels } from "config/slotStatusText";
@@ -21,7 +20,6 @@ import { slotStatusColors, slotStatuses } from "theme/slotStatusTokens";
 import { theme } from "theme/theme";
 
 import { getSlotLabelLayout } from "./getSlotLabelLayout";
-import { legendCardSx, legendGridSx, mapCardSx } from "./parkingMapStyles";
 import { useYardNavigation, yards } from "./useYardNavigation";
 
 const slideTransition = theme.transitions.create("transform", {
@@ -31,6 +29,7 @@ const slideTransition = theme.transitions.create("transform", {
 const reducedMotion = {
   "@media (prefers-reduced-motion: reduce)": { transition: "none" },
 };
+const legendRows = [slotStatuses.slice(0, 4), slotStatuses.slice(4)];
 
 type ParkingSlotMapProps = {
   slots: SlotMapSlot[];
@@ -57,7 +56,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
     }
   }, [highlightCode, yard]);
   return (
-    <Stack spacing={1.5}>
+    <Stack spacing={1}>
       <Stack
         direction="row"
         role="group"
@@ -65,8 +64,8 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
         sx={{
           bgcolor: designTokens.color.background.subtle,
           borderRadius: `${designTokens.radius.full}px`,
-          boxShadow: 2,
-          border: 3,
+          boxShadow: 1,
+          border: 4,
           borderColor: "background.paper",
           position: "relative",
           isolation: "isolate",
@@ -111,24 +110,20 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
           </ButtonBase>
         ))}
       </Stack>
-      <Stack component="section" spacing={1} sx={mapCardSx}>
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ alignItems: "center", py: 0.5 }}
-        >
-          <DirectionsCarOutlinedIcon
-            aria-hidden="true"
-            sx={{ color: "primary.dark", fontSize: "1.75rem" }}
-          />
-          <Typography
-            component="h2"
-            variant="h3"
-            sx={{ borderLeft: 2, borderColor: "divider", pl: 1 }}
-          >
-            {slotMapText.overview}
-          </Typography>
-        </Stack>
+      <Stack
+        component="section"
+        spacing={1}
+        sx={{
+          minWidth: 0,
+          bgcolor: "background.paper",
+          borderRadius: designTokens.radius.lg + "px",
+          boxShadow: 1,
+          p: 1,
+        }}
+      >
+        <Typography component="h2" variant="h3">
+          {slotMapText.overview}
+        </Typography>
         <Box
           aria-label={slotMapText.mapTitle}
           data-testid="slot-map-viewport"
@@ -414,16 +409,8 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                 onClick={() => setYard(page)}
                 sx={{
                   order: index === 0 ? 0 : 2,
-                  bgcolor:
-                    page === yard
-                      ? "background.paper"
-                      : alpha(designTokens.color.brand.green, 0.08),
+                  bgcolor: "background.paper",
                   color: designTokens.color.brand.green,
-                  border: 1,
-                  borderColor:
-                    page === yard
-                      ? "divider"
-                      : alpha(designTokens.color.brand.green, 0.3),
                   boxShadow: 1,
                   flexShrink: 0,
                 }}
@@ -440,73 +427,44 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
               bgcolor: designTokens.color.background.subtle,
               borderRadius: `${designTokens.radius.full}px`,
               px: 1,
-              py: 0.75,
+              py: 0.5,
               textAlign: "center",
             }}
           >
             {slotMapText.swipeHint}
           </Typography>
         </Stack>
-        <Stack
-          role="group"
-          aria-label={slotMapText.legendTitle}
-          spacing={0.5}
-          sx={legendCardSx}
-        >
-          <Typography component="h3" variant="body2" sx={{ fontWeight: 700 }}>
-            {slotMapText.legendTitle}：
-          </Typography>
-          <Box
-            component="ul"
-            sx={{ ...legendGridSx, listStyle: "none", p: 0, m: 0 }}
-          >
-            {slotStatuses.map((status) => {
-              const colors = slotStatusColors[status];
-              const label =
-                status === "expiringSoon" || status === "overdue"
-                  ? slotStatusLabels[status]
-                  : slotStatusShortLabels[status];
-              return (
-                <Box
-                  component="li"
+        <Stack role="group" aria-label={slotMapText.legendTitle} spacing={0.5}>
+          {legendRows.map((row, index) => (
+            <Stack
+              key={row[0]}
+              direction="row"
+              spacing={0.5}
+              useFlexGap
+              sx={{
+                alignItems: "center",
+                flexWrap: "wrap",
+                "& > span": { px: 0.5, whiteSpace: "nowrap" },
+              }}
+            >
+              {index === 0 && (
+                <Typography variant="body2">
+                  {slotMapText.legendTitle}：
+                </Typography>
+              )}
+              {row.map((status) => (
+                <SlotStatusBadge
                   key={status}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 0.25,
-                    minWidth: 0,
-                    bgcolor: colors.background,
-                    color: colors.text,
-                    border: 1,
-                    borderColor: alpha(colors.border, 0.45),
-                    borderRadius: `${designTokens.radius.full}px`,
-                    typography: "body2",
-                    fontWeight: 700,
-                    px: 0.25,
-                    py: 0.5,
-                  }}
-                >
-                  <Box
-                    component="span"
-                    aria-hidden="true"
-                    data-testid={`legend-swatch-${status}`}
-                    sx={{
-                      width: "0.875em",
-                      height: "0.875em",
-                      flexShrink: 0,
-                      border: `2px ${colors.borderStyle} ${colors.border}`,
-                      borderRadius: `${designTokens.radius.sm / 2}px`,
-                      bgcolor: colors.background,
-                    }}
-                  />
-                  <Box component="span" sx={{ overflowWrap: "anywhere" }}>
-                    {label}
-                  </Box>
-                </Box>
-              );
-            })}
-          </Box>
+                  status={status}
+                  label={
+                    status === "expiringSoon" || status === "overdue"
+                      ? slotStatusLabels[status]
+                      : slotStatusShortLabels[status]
+                  }
+                />
+              ))}
+            </Stack>
+          ))}
         </Stack>
       </Stack>
     </Stack>
