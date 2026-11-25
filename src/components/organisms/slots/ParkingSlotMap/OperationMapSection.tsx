@@ -2,7 +2,13 @@
 
 import Box from "@mui/material/Box";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import type { SlotMapSlot } from "internal/parking";
 import { useOperationFeedback } from "providers/OperationFeedbackProvider";
@@ -10,12 +16,14 @@ import {
   OperationToast,
   type OperationUndoActions,
 } from "organisms/slots/OperationToast/OperationToast";
+import { SlotOperationDialog } from "organisms/slots/SlotOperationDialog/SlotOperationDialog";
 import type { OperationNotice } from "utils/operationNotice";
 
 import { ParkingSlotMap } from "./ParkingSlotMap";
 
 type Props = {
   slots: SlotMapSlot[];
+  slotOperations?: Record<string, ReactNode>;
   notice: OperationNotice | null;
   queryId?: string | null;
   undoActions: OperationUndoActions;
@@ -23,11 +31,17 @@ type Props = {
 
 export function OperationMapSection({
   slots,
+  slotOperations,
   notice,
   queryId,
   undoActions,
 }: Props) {
   const router = useRouter();
+  const [selection, setSelection] = useState<{
+    code: string;
+    origin: string;
+  } | null>(null);
+  const closeOperation = useCallback(() => setSelection(null), []);
   const consumedUrlNotice = useRef<string | null>(null);
   const {
     notice: submittedNotice,
@@ -80,7 +94,25 @@ export function OperationMapSection({
 
   return (
     <Box sx={{ pb: visibleNotice ? 24 : 0 }}>
-      <ParkingSlotMap highlightCode={highlightCode} slots={slots} />
+      <ParkingSlotMap
+        highlightCode={highlightCode}
+        slots={slots}
+        onSlotOpen={
+          slotOperations
+            ? (code, origin) =>
+                setSelection((current) => current ?? { code, origin })
+            : undefined
+        }
+      />
+      {selection && slotOperations?.[selection.code] && (
+        <SlotOperationDialog
+          key={selection.code}
+          origin={selection.origin}
+          onClosed={closeOperation}
+        >
+          {slotOperations[selection.code]}
+        </SlotOperationDialog>
+      )}
       {visibleNotice && (
         <OperationToast
           key={`${visibleNotice.kind}:${visibleNotice.id}:${toastSequence}`}

@@ -100,6 +100,7 @@ export function LeaseForm({
       slot: detail.code,
       id,
     });
+    dialog?.complete?.();
     if (dialog) router.replace("/?" + params.toString());
     else router.push("/?" + params.toString());
   }, [creating, detail, router, state.result?.id, state.success, dialog]);
@@ -120,8 +121,9 @@ export function LeaseForm({
       id: detail.lease.id,
       message: leaseText.editSuccess,
     });
+    dialog?.complete?.();
     router.replace("/");
-  }, [creating, detail, router, showNotice, state.success]);
+  }, [creating, detail, dialog, router, showNotice, state.success]);
 
   // 成功后服务端重新验证时车位已有长租，不能先按新建权限拦截成功状态。
   if (creating && state.success) {

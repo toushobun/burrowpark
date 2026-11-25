@@ -27,23 +27,8 @@ describe("业务页面底部返回导航", () => {
       expect(pages).toContain(path);
     }
 
-    const modalPages = new Set([
-      join("(tabs)", "(parking)", "@operation", "page.tsx"),
-      join(
-        "(tabs)",
-        "(parking)",
-        "@operation",
-        "(.)slots",
-        "[code]",
-        "page.tsx",
-      ),
-    ]);
-    for (const path of modalPages) expect(pages).toContain(path);
-
     const missing: string[] = [];
     for (const path of pages) {
-      // 弹窗路由由共享 Dialog 提供返回地图入口，不再嵌套 PageShell。
-      if (modalPages.has(path)) continue;
       const source = readFileSync(join(appDirectory, path), "utf8");
       const file = ts.createSourceFile(
         path,
@@ -93,26 +78,12 @@ describe("业务页面底部返回导航", () => {
 });
 
 describe("车位操作弹窗加载边界", () => {
-  it("弹窗路由不显示骨架屏，保留首页首次加载骨架", () => {
+  it("移除车位拦截路由，保留首页首次加载骨架", () => {
     const parking = join(appDirectory, "(tabs)", "(parking)");
-    const operation = join(parking, "@operation", "(.)slots", "[code]");
     expect(existsSync(join(parking, "loading.tsx"))).toBe(true);
-    expect(existsSync(join(operation, "loading.tsx"))).toBe(false);
-    expect(existsSync(join(operation, "layout.tsx"))).toBe(false);
-    const page = readFileSync(join(operation, "page.tsx"), "utf8");
-    expect(page).toContain("<Suspense fallback={null}>");
-    expect(page).toContain("<SlotDetailContent code={code} modal />");
-    const detail = readFileSync(
-      new URL(
-        "./components/organisms/slots/SlotDetail/SlotDetailContent.tsx",
-        import.meta.url,
-      ),
-      "utf8",
-    );
-    expect(detail).toContain("await loadSlotDetail");
-    expect(detail).toContain("await Promise.all");
-    expect(detail).toContain(
-      "<SlotOperationDialog code={code}>{content}</SlotOperationDialog>",
-    );
+    expect(existsSync(join(parking, "@operation"))).toBe(false);
+    const page = readFileSync(join(parking, "page.tsx"), "utf8");
+    expect(page).toContain("loadSlotOperationViews(now)");
+    expect(page).toContain("slotOperations={slotOperations}");
   });
 });

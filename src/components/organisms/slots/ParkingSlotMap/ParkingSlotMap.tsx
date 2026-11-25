@@ -34,10 +34,15 @@ const reducedMotion = {
 type ParkingSlotMapProps = {
   slots: SlotMapSlot[];
   highlightCode?: string;
+  onSlotOpen?: (code: string, origin: string) => void;
 };
 
 /** 布局坐标完全由定稿 JSON 决定；SVG 统一按 viewBox 等比缩放。 */
-export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
+export function ParkingSlotMap({
+  slots,
+  highlightCode,
+  onSlotOpen,
+}: ParkingSlotMapProps) {
   const router = useRouter();
   const [opening, startOpening] = useTransition();
   const { yard, setYard, ...gestureHandlers } =
@@ -331,9 +336,11 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                           onPointerDown={(event) => {
                             if (event.button !== 0) return;
                             setPressedCode(shape.code);
-                            router.prefetch(
-                              "/slots/" + encodeURIComponent(shape.code),
-                            );
+                            if (!onSlotOpen) {
+                              router.prefetch(
+                                "/slots/" + encodeURIComponent(shape.code),
+                              );
+                            }
                           }}
                           onPointerUp={() => setPressedCode(null)}
                           onPointerLeave={() => setPressedCode(null)}
@@ -362,11 +369,11 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                               event.detail === 0
                                 ? rect.top + rect.height / 2
                                 : event.clientY;
-                            anchor.setAttribute(
-                              "data-slot-operation-origin",
-                              `${x}px ${y}px`,
-                            );
                             anchor.focus({ preventScroll: true });
+                            if (onSlotOpen) {
+                              onSlotOpen(shape.code, `${x}px ${y}px`);
+                              return;
+                            }
                             startOpening(() =>
                               router.push(
                                 "/slots/" + encodeURIComponent(shape.code),

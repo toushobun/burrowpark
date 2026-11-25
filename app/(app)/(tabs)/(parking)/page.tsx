@@ -5,8 +5,7 @@ import { undoCheckInAction } from "internal/parking/adapter/next/checkInActions"
 import { undoCheckOutAction } from "internal/parking/adapter/next/checkOutActions";
 import { undoRenewalAction } from "internal/parking/adapter/next/renewActions";
 import { loadReminders } from "internal/parking/adapter/next/loadReminders";
-import { loadSlotDetail } from "internal/parking/adapter/next/loadSlotDetail";
-import { loadSlotMap } from "internal/parking/adapter/next/loadSlotMap";
+import { loadSlotOperationViews } from "internal/parking/adapter/next/loadSlotMap";
 import {
   undoCreateLeaseAction,
   undoReservationAction,
@@ -16,6 +15,7 @@ import {
 } from "internal/parking/adapter/next/slotOperationsActions";
 import { HomeHeader } from "molecules/navigation/HomeHeader/HomeHeader";
 import { OperationMapSection } from "organisms/slots/ParkingSlotMap/OperationMapSection";
+import { SlotDetailContent } from "organisms/slots/SlotDetail/SlotDetailContent";
 import { ReminderRefresh } from "organisms/slots/SlotReminders/ReminderRefresh";
 import { PageShell } from "templates/layout/PageShell/PageShell";
 import { resolveOperationNotice } from "utils/operationNotice";
@@ -32,16 +32,33 @@ export default async function HomePage({
   }>;
 }) {
   const now = new Date();
-  const [slots, reminders] = await Promise.all([
-    loadSlotMap(now),
+  const [views, reminders] = await Promise.all([
+    loadSlotOperationViews(now),
     loadReminders(now),
   ]);
-
+  const slots = views.map(({ detail: { code, name, isActive, status } }) => ({
+    code,
+    name,
+    isActive,
+    status,
+  }));
   const parsed = parseOperationParams(
     await searchParams,
     slots.map((slot) => slot.code),
   );
-  const detail = parsed ? await loadSlotDetail(parsed.slot, now) : null;
+  const detail =
+    views.find(({ detail }) => detail.code === parsed?.slot)?.detail ?? null;
+  const slotOperations = Object.fromEntries(
+    views.map((view) => [
+      view.detail.code,
+      <SlotDetailContent
+        key={view.detail.code}
+        code={view.detail.code}
+        now={now}
+        operation={view}
+      />,
+    ]),
+  );
   const notice = resolveOperationNotice(parsed, detail);
 
   return (
@@ -56,6 +73,7 @@ export default async function HomePage({
           notice={notice}
           queryId={parsed?.id}
           slots={slots}
+          slotOperations={slotOperations}
           undoActions={{
             checkin: undoCheckInAction,
             reserve: undoReservationAction,

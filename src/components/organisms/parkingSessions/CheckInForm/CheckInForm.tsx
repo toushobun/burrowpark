@@ -103,6 +103,7 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
     });
     // 未拍照时 photoSaved 也为 false，不能误报为照片上传失败。
     if (photoUploadFailed(photo, result.photoSaved)) params.set("photo", "0");
+    dialog?.complete?.();
     if (dialog) router.replace("/?" + params.toString());
     else router.push("/?" + params.toString());
   }, [state.result, form, photo, router, dialog]);
