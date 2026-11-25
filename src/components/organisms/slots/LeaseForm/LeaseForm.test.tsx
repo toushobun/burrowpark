@@ -1,18 +1,55 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { recognizePlate } from "internal/plateRecognition";
+import {
+  choosePhoto,
+  resetPlatePhotoMocks,
+} from "organisms/parkingSessions/PlatePhotoInput/platePhotoTestHelpers";
 import {
   emptyDetail,
   leaseAwayDetail,
 } from "../SlotDetail/SlotDetail.fixtures";
 import { LeaseForm } from "./LeaseForm";
 
-const action = vi.fn(async () => ({}));
+const action = vi.fn<(state: unknown, data: FormData) => Promise<object>>(
+  async () => ({}),
+);
 const push = vi.fn();
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }) }));
+vi.mock("internal/plateRecognition", () => ({
+  recognizePlate: vi.fn(),
+  preloadPlateModels: vi.fn(),
+  isPlateModelsReady: vi.fn(),
+}));
+vi.mock("organisms/parkingSessions/PlatePhotoInput/compressPhoto", () => ({
+  compressPhoto: vi.fn(),
+}));
 
 describe("LeaseForm", () => {
-  beforeEach(() => push.mockClear());
+  beforeEach(() => {
+    push.mockClear();
+    action.mockClear();
+    resetPlatePhotoMocks();
+  });
+
+  function renderCreate() {
+    return render(
+      <LeaseForm
+        mode="create"
+        detail={emptyDetail}
+        today="2026-11-19"
+        action={action}
+      />,
+    );
+  }
   it("新建长租必须填写租户和首笔预交才能提交", () => {
     render(
       <LeaseForm
@@ -96,6 +133,89 @@ describe("LeaseForm", () => {
     expect(replace).toHaveBeenCalledWith("/");
     expect(screen.getByText("正在返回地图…")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "返回" })).toBeNull();
+  });
+
+  it("长租拍照后识别车牌、手工更正并提交，不上传照片", async () => {
+    vi.mocked(recognizePlate).mockResolvedValue("辽a·12345");
+    const { container } = renderCreate();
+    const input = container.querySelector('input[type="file"]');
+    expect(input).toHaveAttribute("capture", "environment");
+    choosePhoto(container);
+
+    const plate = screen.getByRole("textbox", { name: "常停车牌" });
+    await waitFor(() => expect(plate).toHaveValue("辽A12345"));
+    expect(screen.getByRole("img", { name: "车头照片" })).toBeInTheDocument();
+    fireEvent.change(plate, { target: { value: "粤b11111" } });
+    expect(plate).toHaveValue("粤B11111");
+    expect(screen.getByRole("img", { name: "车头照片" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "租户名" }), {
+      target: { value: "王先生" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "实收金额（元）" }), {
+      target: { value: "100.00" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "确认建立长租" }));
+    await waitFor(() => expect(action).toHaveBeenCalled());
+    const submitted = action.mock.calls[0][1];
+    expect(submitted.get("plate")).toBe("粤B11111");
+    expect(submitted.has("photo")).toBe(false);
+  });
+
+  it("提交失败后停止识别提示，迟到结果不覆盖已提交车牌", async () => {
+    let finish: (plate: string | null) => void = () => {};
+    vi.mocked(recognizePlate).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { container } = renderCreate();
+    const plate = screen.getByRole("textbox", { name: "常停车牌" });
+    fireEvent.change(plate, { target: { value: "粤B11111" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "租户名" }), {
+      target: { value: "王先生" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "实收金额（元）" }), {
+      target: { value: "100.00" },
+    });
+    choosePhoto(container);
+    await waitFor(() => expect(recognizePlate).toHaveBeenCalledOnce());
+    expect(screen.getByText("正在识别车牌…")).toBeInTheDocument();
+
+    action.mockResolvedValueOnce({ error: "登记失败", errorKey: "failed" });
+    fireEvent.click(screen.getByRole("button", { name: "确认建立长租" }));
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
+    await act(async () => finish("辽A12345"));
+    expect(screen.queryByText("正在识别车牌…")).toBeNull();
+    expect(plate).toHaveValue("粤B11111");
+  });
+
+  it("长租识别失败或删除照片仍可手工填写，编辑长租不显示拍照入口", async () => {
+    vi.mocked(recognizePlate).mockResolvedValue(null);
+    const { container, rerender } = renderCreate();
+    choosePhoto(container);
+    await waitFor(() =>
+      expect(screen.getByText("没认出来，可手动填写车牌")).toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "删除照片" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "常停车牌" }), {
+      target: { value: "京a88888" },
+    });
+    expect(screen.getByRole("textbox", { name: "常停车牌" })).toHaveValue(
+      "京A88888",
+    );
+
+    rerender(
+      <LeaseForm
+        mode="edit"
+        detail={leaseAwayDetail}
+        today="2026-11-19"
+        action={action}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "拍照" })).toBeNull();
   });
 
   it("私人位无法建立长租", () => {

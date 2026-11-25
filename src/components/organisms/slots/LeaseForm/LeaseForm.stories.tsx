@@ -4,6 +4,7 @@ import {
   emptyDetail,
   leaseAwayDetail,
 } from "../SlotDetail/SlotDetail.fixtures";
+import { photoPreview } from "organisms/parkingSessions/PlatePhotoInput/PlatePhotoInput.fixtures";
 import { LeaseForm } from "./LeaseForm";
 
 const action = async () => ({
@@ -46,4 +47,12 @@ export const CreateSuccess: Story = {
 export const Edit: Story = { args: { mode: "edit", detail: leaseAwayDetail } };
 export const Unavailable: Story = {
   args: { detail: { ...emptyDetail, kind: "private", status: "privateIdle" } },
+};
+
+export const PhotoRecognizing: Story = {
+  args: { storyPhoto: { previewUrl: photoPreview, status: "loading" } },
+};
+
+export const PhotoRecognitionFailed: Story = {
+  args: { storyPhoto: { previewUrl: photoPreview, status: "failed" } },
 };
