@@ -79,9 +79,14 @@ describe("ParkingSlotMap", () => {
     expect(screen.getAllByRole("link")).toHaveLength(14);
     expect(track.children[0]).not.toHaveAttribute("inert");
     expect(track.children[1]).toHaveAttribute("inert");
+  });
 
+  it("图例按固定顺序显示八种状态并保留实线和虚线色块", () => {
+    render(<ParkingSlotMap slots={slots} />);
     const legend = within(screen.getByRole("group", { name: "状态图例" }));
-    for (const label of [
+    expect(
+      legend.getAllByRole("listitem").map((item) => item.textContent),
+    ).toEqual([
       "空",
       "有车",
       "快到期",
@@ -90,8 +95,15 @@ describe("ParkingSlotMap", () => {
       "外出",
       "私位",
       "借用",
-    ]) {
-      expect(legend.getByText(label)).toBeInTheDocument();
+    ]);
+    expect(legend.queryByRole("button")).toBeNull();
+    expect(legend.getByTestId("legend-swatch-empty")).toHaveStyle({
+      borderStyle: "solid",
+    });
+    for (const status of ["reserved", "leaseAway"]) {
+      expect(legend.getByTestId(`legend-swatch-${status}`)).toHaveStyle({
+        borderStyle: "dashed",
+      });
     }
   });
 

@@ -20,6 +20,7 @@ type PageShellProps = {
   headerAction?: ReactNode;
   headerContent?: ReactNode;
   embedded?: boolean;
+  appearance?: "home" | "default";
   backHref?: string;
   children: ReactNode;
 };
@@ -32,6 +33,7 @@ export function PageShell({
   headerAction,
   headerContent,
   embedded = false,
+  appearance = "default",
   backHref,
   children,
 }: PageShellProps) {
@@ -39,6 +41,10 @@ export function PageShell({
     <Stack
       sx={{
         bgcolor: "background.default",
+        backgroundImage:
+          appearance === "home"
+            ? `radial-gradient(ellipse at top right, ${designTokens.color.background.subtle}, transparent 45%)`
+            : undefined,
         maxWidth: designTokens.size.contentMaxWidth,
         minHeight: embedded ? undefined : "100dvh",
         flex: embedded ? 1 : undefined,
