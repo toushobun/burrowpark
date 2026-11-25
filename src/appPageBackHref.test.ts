@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { globSync, readFileSync } from "node:fs";
+import { existsSync, globSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -89,5 +89,30 @@ describe("业务页面底部返回导航", () => {
       if (!hasPageShell) missing.push(path + "（未使用 PageShell）");
     }
     expect(missing).toEqual([]);
+  });
+});
+
+describe("车位操作弹窗加载边界", () => {
+  it("弹窗路由不显示骨架屏，保留首页首次加载骨架", () => {
+    const parking = join(appDirectory, "(tabs)", "(parking)");
+    const operation = join(parking, "@operation", "(.)slots", "[code]");
+    expect(existsSync(join(parking, "loading.tsx"))).toBe(true);
+    expect(existsSync(join(operation, "loading.tsx"))).toBe(false);
+    expect(existsSync(join(operation, "layout.tsx"))).toBe(false);
+    const page = readFileSync(join(operation, "page.tsx"), "utf8");
+    expect(page).toContain("<Suspense fallback={null}>");
+    expect(page).toContain("<SlotDetailContent code={code} modal />");
+    const detail = readFileSync(
+      new URL(
+        "./components/organisms/slots/SlotDetail/SlotDetailContent.tsx",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    expect(detail).toContain("await loadSlotDetail");
+    expect(detail).toContain("await Promise.all");
+    expect(detail).toContain(
+      "<SlotOperationDialog code={code}>{content}</SlotOperationDialog>",
+    );
   });
 });
