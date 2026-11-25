@@ -351,7 +351,22 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                             event.preventDefault();
                             setPressedCode(null);
                             if (opening) return;
-                            event.currentTarget.focus({ preventScroll: true });
+                            const anchor = event.currentTarget;
+                            // 键盘触发没有点击坐标，使用车位中心。
+                            const rect = anchor.getBoundingClientRect();
+                            const x =
+                              event.detail === 0
+                                ? rect.left + rect.width / 2
+                                : event.clientX;
+                            const y =
+                              event.detail === 0
+                                ? rect.top + rect.height / 2
+                                : event.clientY;
+                            anchor.setAttribute(
+                              "data-slot-operation-origin",
+                              `${x}px ${y}px`,
+                            );
+                            anchor.focus({ preventScroll: true });
                             startOpening(() =>
                               router.push(
                                 "/slots/" + encodeURIComponent(shape.code),
