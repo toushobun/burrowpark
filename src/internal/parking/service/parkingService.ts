@@ -330,12 +330,10 @@ function buildRenewForm(
   match: AssembledSlot,
   pricing: ParkingPricingSettings,
 ): RenewFormData | null {
-  if (!match.slot.is_active || match.slot.kind === "private")
-    return null;
+  if (!match.slot.is_active || match.slot.kind === "private") return null;
   const hotel = match.session?.billing_type === "hotel_daily";
   const lease =
-    match.lease &&
-    (!match.session || match.session.billing_type === "lease");
+    match.lease && (!match.session || match.session.billing_type === "lease");
   const paidUntil = hotel
     ? match.sessionPaidUntil
     : lease
@@ -388,9 +386,7 @@ function buildCheckOutForm(
       vehicle.billing_type === "lease"
         ? null
         : vehicle.session_payments
-            .filter(
-              (p) => p.purpose === "prepay" || p.purpose === "renewal",
-            )
+            .filter((p) => p.purpose === "prepay" || p.purpose === "renewal")
             .reduce((sum, p) => sum + (p.amount_cents ?? 0), 0),
     suggestedAmountCents:
       match.slot.kind === "private"
@@ -462,9 +458,7 @@ async function buildSlotDetail(
                   payment.amount_cents &&
                   payment.method,
               )
-              .sort((a, b) =>
-                (b.paid_at ?? "").localeCompare(a.paid_at ?? ""),
-              )
+              .sort((a, b) => (b.paid_at ?? "").localeCompare(a.paid_at ?? ""))
               .slice(0, 3)
               .map((payment) => ({
                 id: payment.id!,

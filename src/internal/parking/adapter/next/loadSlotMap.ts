@@ -12,5 +12,6 @@ export async function loadSlotMap(now: Date) {
 /** 首页一次准备全部车位的操作数据，点击时无需请求详情。 */
 export async function loadSlotOperationViews(now: Date) {
   const dependencies = await createServerRequestDependencies();
-  return createRequestContainer(dependencies).parking.getSlotOperationViews(now);
+  const { parking } = createRequestContainer(dependencies);
+  return parking.getSlotOperationViews(now);
 }

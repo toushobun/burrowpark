@@ -24,9 +24,7 @@ vi.mock("./ParkingSlotMap", () => ({
     onSlotOpen?: (code: string, origin: string) => void;
   }) => (
     <div data-testid="map" data-highlight={highlightCode ?? ""}>
-      <button onClick={() => onSlotOpen?.("7", "100px 200px")}>
-        打开车位
-      </button>
+      <button onClick={() => onSlotOpen?.("7", "100px 200px")}>打开</button>
     </div>
   ),
 }));
@@ -99,7 +97,7 @@ describe("OperationMapSection", () => {
     );
     const tab = screen.getByRole("link", { name: "车位" });
     const map = screen.getByTestId("map");
-    fireEvent.click(screen.getByRole("button", { name: "打开车位" }));
+    fireEvent.click(screen.getByRole("button", { name: "打开" }));
     expect(screen.getByRole("dialog")).toHaveTextContent("登记进场");
     expect(tab).toHaveAttribute("aria-current", "page");
     fireEvent.click(screen.getByRole("button", { name: "返回地图" }));
