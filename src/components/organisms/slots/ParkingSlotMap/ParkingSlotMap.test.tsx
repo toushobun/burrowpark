@@ -44,8 +44,8 @@ describe("ParkingSlotMap", () => {
 
   it("分段按钮、箭头与地图位移保持同步，边界不可循环", () => {
     render(<ParkingSlotMap slots={slots} />);
-    const inner = screen.getByRole("button", { name: "里院", exact: true });
-    const outer = screen.getByRole("button", { name: "外院", exact: true });
+    const inner = screen.getByRole("button", { name: "里院" });
+    const outer = screen.getByRole("button", { name: "外院" });
     const left = screen.getByRole("button", { name: "切换至里院" });
     const right = screen.getByRole("button", { name: "切换至外院" });
     const track = screen.getByTestId("slot-map-track");
@@ -69,7 +69,9 @@ describe("ParkingSlotMap", () => {
     expect(inner).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(outer);
     expect(screen.getAllByRole("link")).toHaveLength(14);
-    expect(track.querySelector("[aria-hidden='true']")).toHaveAttribute("inert");
+    expect(track.querySelector("[aria-hidden='true']")).toHaveAttribute(
+      "inert",
+    );
 
     const legend = within(screen.getByRole("group", { name: "状态图例" }));
     for (const label of [
@@ -144,7 +146,7 @@ describe("ParkingSlotMap", () => {
     const { rerender } = render(<ParkingSlotMap slots={slots} />);
     rerender(<ParkingSlotMap slots={slots} highlightCode="29" />);
     const link = screen.getByRole("link", { name: "29号，空" });
-    expect(screen.getByRole("button", { name: "里院", exact: true })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "里院" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );

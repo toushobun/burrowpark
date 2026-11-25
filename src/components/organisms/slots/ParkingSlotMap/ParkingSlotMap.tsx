@@ -23,6 +23,7 @@ import { getSlotLabelLayout } from "./getSlotLabelLayout";
 import { useYardNavigation } from "./useYardNavigation";
 
 const yards = ["inner", "outer"] as const;
+const legendRows = [slotStatuses.slice(0, 4), slotStatuses.slice(4)];
 
 type ParkingSlotMapProps = {
   slots: SlotMapSlot[];
@@ -114,7 +115,8 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
           <Box
             data-testid="slot-map-track"
             style={{
-              transform: yard === "inner" ? "translateX(0%)" : "translateX(-100%)",
+              transform:
+                yard === "inner" ? "translateX(0%)" : "translateX(-100%)",
             }}
             sx={{
               display: "flex",
@@ -136,214 +138,232 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                   inert={!visible}
                   sx={{ flex: "0 0 100%", minWidth: 0 }}
                 >
-                    <Box
-                      aria-label={slotMapText.mapTitle}
-                      component="svg"
-                      preserveAspectRatio="xMidYMid meet"
-                      role="group"
-                      sx={{
-                        display: "block",
-                        height: "auto",
-                        width: "100%",
-                        "@keyframes slot-highlight-pulse": {
-                          "0%, 100%": { strokeOpacity: 1 },
-                          "50%": { strokeOpacity: 0.35 },
+                  <Box
+                    aria-label={slotMapText.mapTitle}
+                    component="svg"
+                    preserveAspectRatio="xMidYMid meet"
+                    role="group"
+                    sx={{
+                      display: "block",
+                      height: "auto",
+                      width: "100%",
+                      "@keyframes slot-highlight-pulse": {
+                        "0%, 100%": { strokeOpacity: 1 },
+                        "50%": { strokeOpacity: 0.35 },
+                      },
+                      "@media (prefers-reduced-motion: no-preference)": {
+                        "& [data-slot-highlight='true'] > rect": {
+                          animation:
+                            "slot-highlight-pulse 1s ease-in-out infinite",
                         },
-                        "@media (prefers-reduced-motion: no-preference)": {
-                          "& [data-slot-highlight='true'] > rect": {
-                            animation: "slot-highlight-pulse 1s ease-in-out infinite",
-                          },
-                        },
-                      }}
-                      viewBox={"0 0 " + slotLayout.width + " " + slotLayout.height}
-                    >
-                      <rect
-                        fill={designTokens.color.background.app}
-                        height={slotLayout.height}
-                        width={slotLayout.width}
-                        x={0}
-                        y={0}
-                      />
+                      },
+                    }}
+                    viewBox={
+                      "0 0 " + slotLayout.width + " " + slotLayout.height
+                    }
+                  >
+                    <rect
+                      fill={designTokens.color.background.app}
+                      height={slotLayout.height}
+                      width={slotLayout.width}
+                      x={0}
+                      y={0}
+                    />
 
-                      <g aria-hidden="true" pointerEvents="none">
-                        {slotLayout.areas.map((area) => (
-                          <text
-                            key={area.label}
-                            fill={grey[700]}
-                            fontFamily={designTokens.typography.fontFamily}
-                            fontSize={84}
-                            fontWeight={700}
-                            textAnchor="middle"
-                            x={area.x}
-                            y={area.y}
-                          >
-                            {area.label}
-                          </text>
-                        ))}
-                        {slotLayout.obstacles.map((obstacle) => (
-                          <g key={obstacle.label}>
-                            <rect
-                              fill={grey[200]}
-                              height={obstacle.h}
-                              rx={designTokens.radius.sm}
-                              stroke={grey[500]}
-                              strokeWidth={3}
-                              width={obstacle.w}
-                              x={obstacle.x}
-                              y={obstacle.y}
-                            />
-                            <text
-                              dominantBaseline="central"
-                              fill={grey[800]}
-                              fontFamily={designTokens.typography.fontFamily}
-                              fontSize={Math.min(
-                                45,
-                                (obstacle.w - 8) / obstacle.label.length,
-                              )}
-                              fontWeight={700}
-                              textAnchor="middle"
-                              x={obstacle.x + obstacle.w / 2}
-                              y={obstacle.y + obstacle.h / 2}
-                            >
-                              {obstacle.label}
-                            </text>
-                          </g>
-                        ))}
+                    <g aria-hidden="true" pointerEvents="none">
+                      {slotLayout.areas.map((area) => (
                         <text
-                          dominantBaseline="central"
-                          fill={grey[800]}
+                          key={area.label}
+                          fill={grey[700]}
                           fontFamily={designTokens.typography.fontFamily}
-                          fontSize={62}
+                          fontSize={84}
                           fontWeight={700}
                           textAnchor="middle"
-                          x={slotLayout.entrance.x + slotLayout.entrance.w / 2}
-                          y={slotLayout.entrance.y + slotLayout.entrance.h / 2}
+                          x={area.x}
+                          y={area.y}
                         >
-                          {slotMapText.entrance}
+                          {area.label}
                         </text>
-                      </g>
-
-                      {slotLayout.slots.map((shape) => {
-                        const slot = slotsByCode.get(shape.code);
-                        const active = Boolean(slot?.isActive);
-                        const colors =
-                          active && slot ? slotStatusColors[slot.status] : null;
-                        const statusText =
-                          active && slot
-                            ? slotStatusShortLabels[slot.status]
-                            : slot
-                              ? slotMapText.inactive
-                              : slotMapText.unavailable;
-                        const labelLayout = getSlotLabelLayout(shape, statusText);
-                        const highlighted =
-                          visible && highlightCode === shape.code && active;
-                        const pressed = pressedCode === shape.code;
-                        const fill = colors?.background ?? grey[300];
-                        const border = colors?.border ?? grey[600];
-                        const ink = colors?.text ?? grey[800];
-                        const drawing = (
-                          <g
-                            data-slot-highlight={highlighted ? "true" : undefined}
-                            ref={highlighted ? highlightedRef : undefined}
-                            opacity={pressed ? 0.8 : 1}
-                          >
-                            <rect
-                              fill={fill}
-                              height={shape.h}
-                              rx={designTokens.radius.sm}
-                              stroke={highlighted ? theme.palette.error.main : border}
-                              strokeDasharray={
-                                colors?.borderStyle === "dashed" ? "12 8" : undefined
-                              }
-                              strokeWidth={highlighted ? 12 : pressed ? 9 : 5}
-                              width={shape.w}
-                              x={shape.x}
-                              y={shape.y}
-                            />
-                            <text
-                              dominantBaseline="central"
-                              fill={ink}
-                              fontFamily={designTokens.typography.fontFamily}
-                              fontSize={labelLayout.number.fontSize}
-                              fontWeight={900}
-                              pointerEvents="none"
-                              textAnchor="middle"
-                              x={labelLayout.number.x}
-                              y={labelLayout.number.y}
-                            >
-                              {shape.code}
-                            </text>
-                            <text
-                              dominantBaseline="central"
-                              fill={ink}
-                              fontFamily={designTokens.typography.fontFamily}
-                              fontSize={labelLayout.status.fontSize}
-                              fontWeight={700}
-                              pointerEvents="none"
-                              textAnchor="middle"
-                              x={labelLayout.status.x}
-                              y={labelLayout.status.y}
-                            >
-                              {statusText}
-                            </text>
-                          </g>
-                        );
-
-                        return active && slot ? (
-                          <a
-                            key={shape.code}
-                            aria-label={slot.name + "，" + slotStatusLabels[slot.status]}
-                            href={"/slots/" + encodeURIComponent(shape.code)}
-                            tabIndex={visible ? 0 : -1}
-                            onPointerDown={(event) => {
-                              if (event.button !== 0) return;
-                              setPressedCode(shape.code);
-                              router.prefetch("/slots/" + encodeURIComponent(shape.code));
-                            }}
-                            onPointerUp={() => setPressedCode(null)}
-                            onPointerLeave={() => setPressedCode(null)}
-                            onPointerCancel={() => setPressedCode(null)}
-                            onClick={(event) => {
-                              if (
-                                event.button !== 0 ||
-                                event.metaKey ||
-                                event.ctrlKey ||
-                                event.shiftKey ||
-                                event.altKey
-                              ) {
-                                return;
-                              }
-                              event.preventDefault();
-                              setPressedCode(null);
-                              router.push("/slots/" + encodeURIComponent(shape.code));
-                            }}
-                          >
-                            {drawing}
-                          </a>
-                        ) : (
-                          <g key={shape.code} data-testid={"inactive-slot-" + shape.code}>
-                            {drawing}
-                          </g>
-                        );
-                      })}
-                      <g
-                        aria-hidden="true"
-                        pointerEvents="none"
-                        data-testid={visible ? "slot-map-walls" : undefined}
-                      >
-                        {slotLayout.walls.map((wall, index) => (
-                          <polyline
-                            key={index}
-                            fill="none"
-                            points={wall.map((point) => point.join(",")).join(" ")}
-                            stroke={grey[600]}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={9}
+                      ))}
+                      {slotLayout.obstacles.map((obstacle) => (
+                        <g key={obstacle.label}>
+                          <rect
+                            fill={grey[200]}
+                            height={obstacle.h}
+                            rx={designTokens.radius.sm}
+                            stroke={grey[500]}
+                            strokeWidth={3}
+                            width={obstacle.w}
+                            x={obstacle.x}
+                            y={obstacle.y}
                           />
-                        ))}
-                      </g>
-                    </Box>
+                          <text
+                            dominantBaseline="central"
+                            fill={grey[800]}
+                            fontFamily={designTokens.typography.fontFamily}
+                            fontSize={Math.min(
+                              45,
+                              (obstacle.w - 8) / obstacle.label.length,
+                            )}
+                            fontWeight={700}
+                            textAnchor="middle"
+                            x={obstacle.x + obstacle.w / 2}
+                            y={obstacle.y + obstacle.h / 2}
+                          >
+                            {obstacle.label}
+                          </text>
+                        </g>
+                      ))}
+                      <text
+                        dominantBaseline="central"
+                        fill={grey[800]}
+                        fontFamily={designTokens.typography.fontFamily}
+                        fontSize={62}
+                        fontWeight={700}
+                        textAnchor="middle"
+                        x={slotLayout.entrance.x + slotLayout.entrance.w / 2}
+                        y={slotLayout.entrance.y + slotLayout.entrance.h / 2}
+                      >
+                        {slotMapText.entrance}
+                      </text>
+                    </g>
+
+                    {slotLayout.slots.map((shape) => {
+                      const slot = slotsByCode.get(shape.code);
+                      const active = Boolean(slot?.isActive);
+                      const colors =
+                        active && slot ? slotStatusColors[slot.status] : null;
+                      const statusText =
+                        active && slot
+                          ? slotStatusShortLabels[slot.status]
+                          : slot
+                            ? slotMapText.inactive
+                            : slotMapText.unavailable;
+                      const labelLayout = getSlotLabelLayout(shape, statusText);
+                      const highlighted =
+                        visible && highlightCode === shape.code && active;
+                      const pressed = pressedCode === shape.code;
+                      const fill = colors?.background ?? grey[300];
+                      const border = colors?.border ?? grey[600];
+                      const ink = colors?.text ?? grey[800];
+                      const drawing = (
+                        <g
+                          data-slot-highlight={highlighted ? "true" : undefined}
+                          ref={highlighted ? highlightedRef : undefined}
+                          opacity={pressed ? 0.8 : 1}
+                        >
+                          <rect
+                            fill={fill}
+                            height={shape.h}
+                            rx={designTokens.radius.sm}
+                            stroke={
+                              highlighted ? theme.palette.error.main : border
+                            }
+                            strokeDasharray={
+                              colors?.borderStyle === "dashed"
+                                ? "12 8"
+                                : undefined
+                            }
+                            strokeWidth={highlighted ? 12 : pressed ? 9 : 5}
+                            width={shape.w}
+                            x={shape.x}
+                            y={shape.y}
+                          />
+                          <text
+                            dominantBaseline="central"
+                            fill={ink}
+                            fontFamily={designTokens.typography.fontFamily}
+                            fontSize={labelLayout.number.fontSize}
+                            fontWeight={900}
+                            pointerEvents="none"
+                            textAnchor="middle"
+                            x={labelLayout.number.x}
+                            y={labelLayout.number.y}
+                          >
+                            {shape.code}
+                          </text>
+                          <text
+                            dominantBaseline="central"
+                            fill={ink}
+                            fontFamily={designTokens.typography.fontFamily}
+                            fontSize={labelLayout.status.fontSize}
+                            fontWeight={700}
+                            pointerEvents="none"
+                            textAnchor="middle"
+                            x={labelLayout.status.x}
+                            y={labelLayout.status.y}
+                          >
+                            {statusText}
+                          </text>
+                        </g>
+                      );
+
+                      return active && slot ? (
+                        <a
+                          key={shape.code}
+                          aria-label={
+                            slot.name + "，" + slotStatusLabels[slot.status]
+                          }
+                          href={"/slots/" + encodeURIComponent(shape.code)}
+                          tabIndex={visible ? 0 : -1}
+                          onPointerDown={(event) => {
+                            if (event.button !== 0) return;
+                            setPressedCode(shape.code);
+                            router.prefetch(
+                              "/slots/" + encodeURIComponent(shape.code),
+                            );
+                          }}
+                          onPointerUp={() => setPressedCode(null)}
+                          onPointerLeave={() => setPressedCode(null)}
+                          onPointerCancel={() => setPressedCode(null)}
+                          onClick={(event) => {
+                            if (
+                              event.button !== 0 ||
+                              event.metaKey ||
+                              event.ctrlKey ||
+                              event.shiftKey ||
+                              event.altKey
+                            ) {
+                              return;
+                            }
+                            event.preventDefault();
+                            setPressedCode(null);
+                            router.push(
+                              "/slots/" + encodeURIComponent(shape.code),
+                            );
+                          }}
+                        >
+                          {drawing}
+                        </a>
+                      ) : (
+                        <g
+                          key={shape.code}
+                          data-testid={"inactive-slot-" + shape.code}
+                        >
+                          {drawing}
+                        </g>
+                      );
+                    })}
+                    <g
+                      aria-hidden="true"
+                      pointerEvents="none"
+                      data-testid={visible ? "slot-map-walls" : undefined}
+                    >
+                      {slotLayout.walls.map((wall, index) => (
+                        <polyline
+                          key={index}
+                          fill="none"
+                          points={wall
+                            .map((point) => point.join(","))
+                            .join(" ")}
+                          stroke={grey[600]}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={9}
+                        />
+                      ))}
+                    </g>
+                  </Box>
                 </Box>
               );
             })}
@@ -356,7 +376,9 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
         >
           {yards.map((page, index) => {
             const label =
-              page === "inner" ? slotMapText.switchInner : slotMapText.switchOuter;
+              page === "inner"
+                ? slotMapText.switchInner
+                : slotMapText.switchOuter;
             const Arrow = index === 0 ? ArrowBackIcon : ArrowForwardIcon;
             return (
               <IconButton
@@ -392,7 +414,7 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
           </Typography>
         </Stack>
         <Stack role="group" aria-label={slotMapText.legendTitle} spacing={0.5}>
-          {[slotStatuses.slice(0, 4), slotStatuses.slice(4)].map((row, index) => (
+          {legendRows.map((row, index) => (
             <Stack
               key={row[0]}
               direction="row"
@@ -405,7 +427,9 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
               }}
             >
               {index === 0 && (
-                <Typography variant="body2">{slotMapText.legendTitle}：</Typography>
+                <Typography variant="body2">
+                  {slotMapText.legendTitle}：
+                </Typography>
               )}
               {row.map((status) => (
                 <SlotStatusBadge
