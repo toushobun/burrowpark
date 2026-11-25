@@ -237,6 +237,31 @@ describe("SlotDetail", () => {
     expect(screen.queryByText("功能开发中")).toBeNull();
   });
 
+  it("弹窗内选择操作显示第二步，返回后恢复原有操作", () => {
+    render(
+      <SlotDetail
+        detail={emptyDetail}
+        display={detailDisplay}
+        modalForms={{
+          "check-in": <div>登记表单</div>,
+          "lease/new": <div>长租表单</div>,
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "登记进场" }));
+    expect(screen.getByText("登记表单")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "登记进场" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "返回上一步" }));
+    fireEvent.click(screen.getByRole("button", { name: "预留" }));
+    expect(screen.getByRole("textbox", { name: "预留人" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "设为长租" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "返回上一步" }));
+    fireEvent.click(screen.getByRole("link", { name: "设为长租" }));
+    expect(screen.getByText("长租表单")).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("私人位再借10分钟和再借30分钟分别位于主操作和更多操作", () => {
     renderDetail(privateBorrowedDetail);
     expect(

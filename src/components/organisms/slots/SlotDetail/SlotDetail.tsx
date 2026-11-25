@@ -12,7 +12,14 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 
 import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
 import { paymentMethodLabels } from "config/checkInText";
@@ -29,6 +36,8 @@ import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/
 import { OperationRedirecting } from "molecules/feedback/OperationRedirecting/OperationRedirecting";
 import { useOperationFeedback } from "providers/OperationFeedbackProvider";
 import { designTokens } from "theme/designTokens";
+
+import { useSlotOperationPending } from "../SlotOperationDialog/slotOperationDialogContext";
 
 export type SlotDetailDisplay = {
   enteredAt: string | null;
@@ -50,12 +59,22 @@ export type SlotDetailOperations = {
   endLease: SlotFormAction;
 };
 
+type SlotDetailStep =
+  | "check-in"
+  | "renew"
+  | "check-out"
+  | "lease/new"
+  | "lease/edit";
+
+export type SlotDetailModalForms = Partial<Record<SlotDetailStep, ReactNode>>;
+
 type SlotDetailProps = {
   detail: SlotDetailData | null;
   display: SlotDetailDisplay | null;
   today?: string;
   now?: string;
   operations?: SlotDetailOperations;
+  modalForms?: SlotDetailModalForms;
   initialState?: {
     reserve?: SlotActionState;
     cancel?: SlotActionState;
@@ -94,6 +113,7 @@ export function SlotDetail({
   today = "",
   now = "",
   operations,
+  modalForms,
   initialState,
 }: SlotDetailProps) {
   const router = useRouter();
@@ -101,6 +121,9 @@ export function SlotDetail({
   const redirectedOperation = useRef<string | null>(null);
   const redirectedReservation = useRef<string | null>(null);
   const [reserveOpen, setReserveOpen] = useState(false);
+  const [modalStep, setModalStep] = useState<SlotDetailStep | null>(null);
+  const [guestName, setGuestName] = useState("");
+  const [reservationNote, setReservationNote] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
   const [endDate, setEndDate] = useState(today);
@@ -119,6 +142,10 @@ export function SlotDetail({
   const [endState, submitEnd, endPending] = useActionState(
     operations?.endLease ?? unavailableAction,
     initialState?.end ?? ({} as SlotActionState),
+  );
+
+  const dialog = useSlotOperationPending(
+    reservePending || cancelPending || extendPending || endPending,
   );
 
   const completed =
@@ -147,8 +174,9 @@ export function SlotDetail({
       slot: detail.code,
       id,
     });
-    router.push("/?" + params.toString());
-  }, [detail, reserveState.result?.id, reserveState.success, router]);
+    if (modalForms) router.replace("/?" + params.toString());
+    else router.push("/?" + params.toString());
+  }, [detail, modalForms, reserveState.result?.id, reserveState.success, router]);
 
   const completionId = completed?.result.id;
   const completionKind = completed?.kind;
@@ -219,7 +247,7 @@ export function SlotDetail({
     Date.parse(now) >= Date.parse(vehicle.borrowUntil);
   const reserved = !vehicle && Boolean(detail.reservation);
   const leaseAway = !vehicle && Boolean(detail.lease);
-  const links: { label: string; href: string }[] = [];
+  const links: { label: string; operation: SlotDetailStep }[] = [];
   if (detail.isActive) {
     if (vehicle) {
       if (
@@ -232,22 +260,22 @@ export function SlotDetail({
             vehicle.billingType === "lease"
               ? slotDetailText.renewLease
               : slotDetailText.renew,
-          href: `/slots/${detail.code}/renew`,
+          operation: "renew",
         });
       }
       links.push({
         label: slotDetailText.leave,
-        href: `/slots/${detail.code}/check-out`,
+        operation: "check-out",
       });
     } else {
       links.push({
         label: slotDetailText.enter,
-        href: `/slots/${detail.code}/check-in`,
+        operation: "check-in",
       });
       if (leaseAway)
         links.push({
           label: slotDetailText.renewLease,
-          href: `/slots/${detail.code}/renew`,
+          operation: "renew",
         });
     }
   }
@@ -269,6 +297,29 @@ export function SlotDetail({
         ? extendState
         : endState;
 
+  const openOperation = (event: MouseEvent, step: SlotDetailStep) => {
+    if (!modalForms) return;
+    event.preventDefault();
+    if (!dialog?.pending) setModalStep(step);
+  };
+
+  if (modalForms && modalStep) {
+    return (
+      <Stack spacing={2}>
+        {modalForms[modalStep]}
+        <Button
+          fullWidth
+          disabled={dialog?.pending}
+          size="large"
+          sx={buttonSx}
+          onClick={() => setModalStep(null)}
+        >
+          {slotDetailText.backToActions}
+        </Button>
+      </Stack>
+    );
+  }
+
   return (
     <Stack spacing={3}>
       <Stack
@@ -287,7 +338,8 @@ export function SlotDetail({
         />
       </Stack>
 
-      {detail.isActive &&
+      {!(modalForms && reserveOpen) &&
+        detail.isActive &&
         Boolean(
           vehicle ||
           detail.lease ||
@@ -429,7 +481,7 @@ export function SlotDetail({
           </Paper>
         )}
 
-      {detail.isActive && (
+      {detail.isActive && !(modalForms && reserveOpen) && (
         <Stack spacing={2}>
           {privateBorrowed && vehicle?.sessionId && (
             <form action={submitExtend}>
@@ -447,12 +499,13 @@ export function SlotDetail({
               </Button>
             </form>
           )}
-          {links.map(({ label, href }, index) => (
+          {links.map(({ label, operation }, index) => (
             <Button
-              key={href}
+              key={operation}
               component={Link}
               fullWidth
-              href={href}
+              href={`/slots/${detail.code}/${operation}`}
+              onClick={(event) => openOperation(event, operation)}
               size="large"
               sx={buttonSx}
               variant={
@@ -478,6 +531,7 @@ export function SlotDetail({
               component={Link}
               fullWidth
               href={`/slots/${detail.code}/lease/new`}
+              onClick={(event) => openOperation(event, "lease/new")}
               size="large"
               sx={buttonSx}
               variant="outlined"
@@ -499,7 +553,7 @@ export function SlotDetail({
         </Stack>
       )}
 
-      {hasMore && (
+      {hasMore && !(modalForms && reserveOpen) && (
         <Stack spacing={1}>
           <Typography component="h3" variant="body1">
             {slotDetailText.moreActions}
@@ -509,6 +563,7 @@ export function SlotDetail({
               component={Link}
               fullWidth
               href={`/slots/${detail.code}/lease/edit`}
+              onClick={(event) => openOperation(event, "lease/edit")}
               sx={buttonSx}
               variant="text"
             >
@@ -551,6 +606,8 @@ export function SlotDetail({
                 name="guestName"
                 fullWidth
                 label={slotDetailText.guestName}
+                value={guestName}
+                onChange={(event) => setGuestName(event.target.value)}
               />
               <TextField
                 name="note"
@@ -558,6 +615,8 @@ export function SlotDetail({
                 multiline
                 minRows={2}
                 label={slotDetailText.note}
+                value={reservationNote}
+                onChange={(event) => setReservationNote(event.target.value)}
               />
               <input type="hidden" name="slotCode" value={detail.code} />
               <Button
@@ -579,7 +638,9 @@ export function SlotDetail({
                 sx={buttonSx}
                 onClick={() => setReserveOpen(false)}
               >
-                {slotDetailText.cancel}
+                {modalForms
+                  ? slotDetailText.backToActions
+                  : slotDetailText.cancel}
               </Button>
             </Stack>
           </form>

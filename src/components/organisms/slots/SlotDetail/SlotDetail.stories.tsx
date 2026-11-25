@@ -154,3 +154,12 @@ export const EndLeaseRedirecting: Story = {
     },
   },
 };
+
+export const ModalActions: Story = {
+  args: {
+    modalForms: {
+      "check-in": <div>登记进场表单</div>,
+      "lease/new": <div>长租表单</div>,
+    },
+  },
+};
