@@ -17,6 +17,7 @@ export const designTokens = {
       main: "#7A4A1E",
       dark: "#5C3614",
       light: "#F1D9B5",
+      green: "#246653",
     },
     text: {
       primary: "#2A2118",

@@ -37,7 +37,7 @@ export function useYardNavigation(highlightCode?: string) {
     if (Math.abs(dx) < swipeThreshold || Math.abs(dx) <= Math.abs(dy)) return;
     // 滑动即使发生在车位上，也不得触发随后的点击导航。
     suppressClickUntil.current = Date.now() + 500;
-    setYard(dx < 0 ? "inner" : "outer");
+    setYard(dx > 0 ? "inner" : "outer");
   }
 
   function onTouchCancel() {
@@ -54,9 +54,9 @@ export function useYardNavigation(highlightCode?: string) {
   function onKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
     event.preventDefault();
-    const nextYard = event.key === "ArrowRight" ? "inner" : "outer";
+    const nextYard = event.key === "ArrowLeft" ? "inner" : "outer";
     if (nextYard === yard) return;
-    // 原院车位切换后会卸载，将键盘焦点保留在地图区域。
+    // 原院车位切换后不可交互，将键盘焦点保留在地图区域。
     event.currentTarget.focus();
     setYard(nextYard);
   }
