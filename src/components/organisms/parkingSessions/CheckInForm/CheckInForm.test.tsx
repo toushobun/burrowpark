@@ -12,7 +12,7 @@ import {
   preloadPlateModels,
   isPlateModelsReady,
 } from "internal/plateRecognition";
-import { compressPhoto } from "./compressPhoto";
+import { compressPhoto } from "../PlatePhotoInput/compressPhoto";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
@@ -22,10 +22,14 @@ vi.mock("internal/plateRecognition", () => ({
   preloadPlateModels: vi.fn(),
   isPlateModelsReady: vi.fn(),
 }));
-vi.mock("./compressPhoto", () => ({ compressPhoto: vi.fn() }));
+vi.mock("../PlatePhotoInput/compressPhoto", () => ({ compressPhoto: vi.fn() }));
 
 import type { CheckInFormData } from "internal/parking";
 
+import {
+  choosePhoto,
+  resetPlatePhotoMocks,
+} from "../PlatePhotoInput/platePhotoTestHelpers";
 import { CheckInForm } from "./CheckInForm";
 
 const form: CheckInFormData = {
@@ -71,33 +75,8 @@ describe("CheckInForm", () => {
     push.mockReset();
     action.mockReset();
     action.mockResolvedValue({});
-    vi.mocked(recognizePlate).mockReset();
-    vi.mocked(preloadPlateModels).mockReset();
-    vi.mocked(preloadPlateModels).mockResolvedValue(true);
-    vi.mocked(isPlateModelsReady).mockReturnValue(true);
-    vi.mocked(compressPhoto).mockReset();
-    vi.mocked(compressPhoto).mockResolvedValue(
-      new Blob(["jpeg"], { type: "image/jpeg" }),
-    );
-    Object.defineProperty(URL, "createObjectURL", {
-      configurable: true,
-      value: vi.fn(() => "blob:test-photo"),
-    });
-    Object.defineProperty(URL, "revokeObjectURL", {
-      configurable: true,
-      value: vi.fn(),
-    });
+    resetPlatePhotoMocks();
   });
-
-  function choosePhoto(container: HTMLElement) {
-    const input = container.querySelector('input[type="file"]');
-    if (!input) throw new Error("缺少拍照输入框");
-    fireEvent.change(input, {
-      target: {
-        files: [new File(["photo"], "photo.png", { type: "image/png" })],
-      },
-    });
-  }
 
   it("普通空车位显示酒店客、临停和免费，不显示长租", () => {
     renderForm();

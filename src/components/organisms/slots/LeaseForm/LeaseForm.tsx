@@ -5,7 +5,13 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useState } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { leaseText } from "config/leaseText";
 import type { SlotDetail } from "internal/parking";
@@ -23,6 +29,11 @@ import {
   validYuanAmount,
   type PaymentMethod,
 } from "organisms/parkingSessions/PaymentOperationParts";
+import { PlatePhotoInput } from "organisms/parkingSessions/PlatePhotoInput/PlatePhotoInput";
+import {
+  usePlatePhotoInput,
+  type PlatePhotoStory,
+} from "organisms/parkingSessions/PlatePhotoInput/usePlatePhotoInput";
 import { designTokens } from "theme/designTokens";
 
 type FormAction = (
@@ -36,6 +47,7 @@ type Props = {
   today: string;
   action: FormAction;
   initialState?: SlotActionState;
+  storyPhoto?: PlatePhotoStory;
 };
 
 const buttonSx = { minHeight: designTokens.size.touchTargetMin };
@@ -46,6 +58,7 @@ export function LeaseForm({
   today,
   action,
   initialState,
+  storyPhoto,
 }: Props) {
   const router = useRouter();
   const { showNotice } = useOperationFeedback();
@@ -57,7 +70,7 @@ export function LeaseForm({
   const redirectedLease = useRef<string | null>(null);
   const [tenantName, setTenantName] = useState(detail?.lease?.tenantName ?? "");
   const [phone, setPhone] = useState(detail?.lease?.phone ?? "");
-  const [plate, setPlate] = useState(detail?.lease?.plate ?? "");
+  const capture = usePlatePhotoInput(detail?.lease?.plate ?? "", storyPhoto);
   const [note, setNote] = useState(detail?.lease?.note ?? "");
   const [startsOn, setStartsOn] = useState(today);
   const [paidThrough, setPaidThrough] = useState(
@@ -147,7 +160,12 @@ export function LeaseForm({
 
   return (
     <>
-      <form action={submit}>
+      <form
+        action={(data) => {
+          capture.markSubmitted();
+          startTransition(() => submit(data));
+        }}
+      >
         <Stack spacing={3}>
           <Typography component="h2" variant="h2">
             {detail.name}
@@ -168,13 +186,22 @@ export function LeaseForm({
             name="phone"
             slotProps={{ htmlInput: { inputMode: "tel" } }}
           />
-          <TextField
-            fullWidth
-            label={leaseText.plate}
-            value={plate}
-            onChange={(event) => setPlate(event.target.value.toUpperCase())}
-            name="plate"
-          />
+          {creating ? (
+            <PlatePhotoInput
+              capture={capture}
+              disabled={isPending}
+              label={leaseText.plate}
+              purpose="lease"
+            />
+          ) : (
+            <TextField
+              fullWidth
+              label={leaseText.plate}
+              value={capture.plate}
+              onChange={(event) => capture.changePlate(event.target.value)}
+              name="plate"
+            />
+          )}
           <TextField
             fullWidth
             label={leaseText.note}
