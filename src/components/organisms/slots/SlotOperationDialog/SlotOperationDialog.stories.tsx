@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { slotStatusColors } from "theme/slotStatusTokens";
+
 import { SlotDetail } from "../SlotDetail/SlotDetail";
 import { detailDisplay, emptyDetail } from "../SlotDetail/SlotDetail.fixtures";
 import { SlotOperationDialog } from "./SlotOperationDialog";
@@ -26,3 +28,30 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const EmptySlot: Story = {};
+
+export const FromMapPosition: Story = {
+  decorators: [
+    (Story) => (
+      <>
+        <svg width="100%" height="240" aria-label="车位地图">
+          <a
+            href={"/slots/" + meta.args.code}
+            data-slot-operation-origin="280px 100px"
+          >
+            <rect
+              x="240"
+              y="70"
+              width="80"
+              height="60"
+              fill={slotStatusColors.empty.background}
+            />
+            <text x="280" y="105" textAnchor="middle">
+              7
+            </text>
+          </a>
+        </svg>
+        <Story />
+      </>
+    ),
+  ],
+};

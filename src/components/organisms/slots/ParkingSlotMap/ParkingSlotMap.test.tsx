@@ -239,6 +239,20 @@ describe("ParkingSlotMap", () => {
     expect(link.querySelector("g")).toHaveAttribute("opacity", "1");
   });
 
+  it("点击车位记录实际视口坐标，键盘打开使用车位中心", () => {
+    render(<ParkingSlotMap slots={slots} />);
+    const link = screen.getByRole("link", { name: "7号，空" });
+    vi.spyOn(link, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(240, 100, 80, 60),
+    );
+
+    fireEvent.click(link, { detail: 1, clientX: 310, clientY: 115 });
+    expect(link).toHaveAttribute("data-slot-operation-origin", "310px 115px");
+
+    fireEvent.click(link, { detail: 0 });
+    expect(link).toHaveAttribute("data-slot-operation-origin", "280px 130px");
+  });
+
   it("Ctrl 或 Cmd 点击保留浏览器原生新标签页操作", () => {
     render(<ParkingSlotMap slots={slots} />);
     const link = screen.getByRole("link", { name: "7号，空" });

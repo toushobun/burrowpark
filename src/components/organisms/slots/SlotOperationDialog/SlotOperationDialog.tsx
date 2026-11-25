@@ -8,7 +8,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import Zoom from "@mui/material/Zoom";
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { slotDetailText } from "config/slotDetailText";
 import { designTokens } from "theme/designTokens";
@@ -25,6 +25,7 @@ export function SlotOperationDialog({ code, children }: Props) {
   const [open, setOpen] = useState(true);
   const [pending, setPending] = useState(false);
   const duration = reducedMotion ? 0 : theme.transitions.duration.standard;
+  const origin = useRef<string | null>(null);
 
   const close = () => {
     if (!pending) setOpen(false);
@@ -35,16 +36,16 @@ export function SlotOperationDialog({ code, children }: Props) {
       (element) =>
         element.getAttribute("href") === "/slots/" + encodeURIComponent(code),
     );
-    if (!anchor) return;
-    const slot = anchor.getBoundingClientRect();
-    // Zoom 的初始缩放会影响测量，先读取未缩放的弹窗位置再恢复动画。
-    const transform = node.style.transform;
-    node.style.transform = "none";
-    const paper = node.getBoundingClientRect();
-    node.style.transform = transform;
-    const originX = slot.left + slot.width / 2 - paper.left;
-    const originY = slot.top + slot.height / 2 - paper.top;
-    node.style.transformOrigin = `${originX}px ${originY}px`;
+    if (origin.current === null && anchor) {
+      const slot = anchor.getBoundingClientRect();
+      origin.current =
+        anchor.getAttribute("data-slot-operation-origin") ??
+        `${slot.left + slot.width / 2}px ${slot.top + slot.height / 2}px`;
+      anchor.removeAttribute("data-slot-operation-origin");
+    }
+    // Zoom 作用于覆盖整个视口的 Dialog container，而不是 Paper。
+    // 直接使用视口坐标，避免测量已经缩放的节点；退出沿用同一原点。
+    if (origin.current !== null) node.style.transformOrigin = origin.current;
   }
 
   return (
