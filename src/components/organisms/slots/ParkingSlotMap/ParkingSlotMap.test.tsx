@@ -65,6 +65,8 @@ describe("ParkingSlotMap", () => {
     expect(left).toBeEnabled();
     expect(track).toHaveStyle({ transform: "translateX(-100%)" });
     expect(indicator).toHaveStyle({ transform: "translateX(100%)" });
+    expect(track.children[0]).toHaveAttribute("inert");
+    expect(track.children[1]).not.toHaveAttribute("inert");
     expect(screen.getAllByRole("link")).toHaveLength(15);
 
     fireEvent.click(left);
@@ -75,9 +77,8 @@ describe("ParkingSlotMap", () => {
     expect(inner).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(outer);
     expect(screen.getAllByRole("link")).toHaveLength(14);
-    expect(track.querySelector("[aria-hidden='true']")).toHaveAttribute(
-      "inert",
-    );
+    expect(track.children[0]).not.toHaveAttribute("inert");
+    expect(track.children[1]).toHaveAttribute("inert");
 
     const legend = within(screen.getByRole("group", { name: "状态图例" }));
     for (const label of [
