@@ -21,6 +21,7 @@ import type { RenewActionState } from "internal/parking/adapter/next/renewAction
 import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/FailureFeedbackDialog";
 import { OperationRedirecting } from "molecules/feedback/OperationRedirecting/OperationRedirecting";
 import { useOperationFeedback } from "providers/OperationFeedbackProvider";
+import { useSlotOperationPending } from "organisms/slots/SlotOperationDialog/slotOperationDialogContext";
 import { designTokens } from "theme/designTokens";
 import {
   PaymentAmountField,
@@ -44,6 +45,7 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
   const { showNotice } = useOperationFeedback();
   const redirected = useRef<string | null>(null);
   const [state, submit, isPending] = useActionState(action, initialState ?? {});
+  useSlotOperationPending(isPending);
   const [initialForm] = useState(currentForm);
   // 续费完成后页面可能重读出不再可续费的状态，跳转前保留提交时的事实。
   const form = currentForm ?? (state.result ? initialForm : null);

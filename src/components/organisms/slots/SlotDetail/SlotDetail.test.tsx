@@ -1,4 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SlotDetail as SlotDetailData } from "internal/parking";
@@ -7,7 +13,7 @@ const push = vi.fn();
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }) }));
 
-import { SlotDetail } from "./SlotDetail";
+import { SlotDetail, type SlotFormAction } from "./SlotDetail";
 import {
   detailDisplay,
   emptyDetail,
@@ -237,6 +243,31 @@ describe("SlotDetail", () => {
     expect(screen.queryByText("功能开发中")).toBeNull();
   });
 
+  it("弹窗内选择操作显示第二步，返回后恢复原有操作", () => {
+    render(
+      <SlotDetail
+        detail={emptyDetail}
+        display={detailDisplay}
+        modalForms={{
+          "check-in": <div>登记表单</div>,
+          "lease/new": <div>长租表单</div>,
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "登记进场" }));
+    expect(screen.getByText("登记表单")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "登记进场" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "返回上一步" }));
+    fireEvent.click(screen.getByRole("button", { name: "预留" }));
+    expect(screen.getByRole("textbox", { name: "预留人" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "设为长租" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "返回上一步" }));
+    fireEvent.click(screen.getByRole("link", { name: "设为长租" }));
+    expect(screen.getByText("长租表单")).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("私人位再借10分钟和再借30分钟分别位于主操作和更多操作", () => {
     renderDetail(privateBorrowedDetail);
     expect(
@@ -281,6 +312,38 @@ describe("SlotDetail 预留、退租和成功结果", () => {
     expect(
       screen.getByRole("button", { name: "确定退租" }),
     ).toBeInTheDocument();
+  });
+
+  it("退租提交期间不能关闭确认框或触发其他车位操作", async () => {
+    let finish: (state: Awaited<ReturnType<SlotFormAction>>) => void = () => {};
+    const end = vi.fn<SlotFormAction>(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const noop = async () => ({});
+    render(
+      <SlotDetail
+        detail={leaseAwayDetail}
+        display={detailDisplay}
+        today="2026-11-19"
+        operations={{
+          reserve: noop,
+          cancelReservation: noop,
+          extendBorrow: noop,
+          endLease: end,
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "退租" }));
+    fireEvent.click(screen.getByRole("button", { name: "确定退租" }));
+    await waitFor(() => expect(end).toHaveBeenCalledOnce());
+    expect(screen.getByRole("button", { name: "返回" })).toBeDisabled();
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await act(async () => finish({}));
+    expect(screen.getByRole("button", { name: "返回" })).toBeEnabled();
   });
 
   it("取消预留必须先经过 Dialog", () => {

@@ -8,7 +8,7 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { SlotStatusBadge } from "atoms/slots/SlotStatusBadge/SlotStatusBadge";
 import { slotLayouts } from "config/slotLayout";
@@ -39,6 +39,7 @@ type ParkingSlotMapProps = {
 /** 布局坐标完全由定稿 JSON 决定；SVG 统一按 viewBox 等比缩放。 */
 export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
   const router = useRouter();
+  const [opening, startOpening] = useTransition();
   const { yard, setYard, ...gestureHandlers } =
     useYardNavigation(highlightCode);
   const yardIndex = yards.indexOf(yard);
@@ -349,8 +350,13 @@ export function ParkingSlotMap({ slots, highlightCode }: ParkingSlotMapProps) {
                             }
                             event.preventDefault();
                             setPressedCode(null);
-                            router.push(
-                              "/slots/" + encodeURIComponent(shape.code),
+                            if (opening) return;
+                            event.currentTarget.focus({ preventScroll: true });
+                            startOpening(() =>
+                              router.push(
+                                "/slots/" + encodeURIComponent(shape.code),
+                                { scroll: false },
+                              ),
                             );
                           }}
                         >

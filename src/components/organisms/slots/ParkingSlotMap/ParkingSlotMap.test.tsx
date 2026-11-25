@@ -235,7 +235,7 @@ describe("ParkingSlotMap", () => {
     expect(prefetch).toHaveBeenCalledWith("/slots/7");
     expect(link.querySelector("g")).toHaveAttribute("opacity", "0.8");
     fireEvent.click(link);
-    expect(push).toHaveBeenCalledWith("/slots/7");
+    expect(push).toHaveBeenCalledWith("/slots/7", { scroll: false });
     expect(link.querySelector("g")).toHaveAttribute("opacity", "1");
   });
 

@@ -27,8 +27,23 @@ describe("业务页面底部返回导航", () => {
       expect(pages).toContain(path);
     }
 
+    const modalPages = new Set([
+      join("(tabs)", "(parking)", "@operation", "page.tsx"),
+      join(
+        "(tabs)",
+        "(parking)",
+        "@operation",
+        "(.)slots",
+        "[code]",
+        "page.tsx",
+      ),
+    ]);
+    for (const path of modalPages) expect(pages).toContain(path);
+
     const missing: string[] = [];
     for (const path of pages) {
+      // 弹窗路由由共享 Dialog 提供返回地图入口，不再嵌套 PageShell。
+      if (modalPages.has(path)) continue;
       const source = readFileSync(join(appDirectory, path), "utf8");
       const file = ts.createSourceFile(
         path,

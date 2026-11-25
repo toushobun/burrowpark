@@ -19,6 +19,7 @@ import type { CheckOutActionState } from "internal/parking/adapter/next/checkOut
 import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/FailureFeedbackDialog";
 import { OperationRedirecting } from "molecules/feedback/OperationRedirecting/OperationRedirecting";
 import { useOperationFeedback } from "providers/OperationFeedbackProvider";
+import { useSlotOperationPending } from "organisms/slots/SlotOperationDialog/slotOperationDialogContext";
 import { designTokens } from "theme/designTokens";
 import {
   PaymentAmountField,
@@ -46,6 +47,7 @@ export function CheckOutForm({
   const { showNotice } = useOperationFeedback();
   const redirected = useRef<string | null>(null);
   const [state, submit, isPending] = useActionState(action, initialState ?? {});
+  useSlotOperationPending(isPending);
   const [initialForm] = useState(currentForm);
   // 离场成功后车位已清空，跳转前仍保留提交时的车牌和车位。
   const form = currentForm ?? (state.result ? initialForm : null);

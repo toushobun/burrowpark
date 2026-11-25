@@ -9,6 +9,8 @@ export const billingTypeLabels: Record<ParkingBillingType, string> = {
 
 export const slotDetailText = {
   pageTitle: "车位详情",
+  backToMap: "返回地图",
+  backToActions: "返回上一步",
   missing: "没有这个车位",
   inactive: "停用",
   plate: "车牌",
