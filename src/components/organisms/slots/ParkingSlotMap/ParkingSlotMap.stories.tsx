@@ -1,4 +1,5 @@
 import Box from "@mui/material/Box";
+import GlobalStyles from "@mui/material/GlobalStyles";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { slotStatuses } from "theme/slotStatusTokens";
@@ -12,8 +13,14 @@ const meta = {
   args: { slots: emptySlots },
   component: ParkingSlotMap,
   decorators: [
-    (Story) => (
-      <Box sx={{ maxWidth: "100%", px: 2, width: 390 }}>
+    (Story, context) => (
+      <Box
+        sx={{
+          maxWidth: "100%",
+          px: 2,
+          width: context.parameters.legendWidth ?? 390,
+        }}
+      >
         <Story />
       </Box>
     ),
@@ -61,11 +68,17 @@ export const InnerYard: Story = {
 };
 
 export const NarrowScreen: Story = {
+  parameters: { legendWidth: 360 },
+};
+
+export const EnlargedText: Story = {
+  parameters: { legendWidth: 360 },
   decorators: [
     (Story) => (
-      <Box sx={{ maxWidth: "100%", width: 360 }}>
+      <>
+        <GlobalStyles styles={{ html: { fontSize: "200%" } }} />
         <Story />
-      </Box>
+      </>
     ),
   ],
 };
