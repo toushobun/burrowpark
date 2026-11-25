@@ -140,8 +140,8 @@ describe("LeaseForm", () => {
     await waitFor(() => expect(plate).toHaveValue("辽A12345"));
     expect(screen.getByRole("img", { name: "车头照片" })).toBeInTheDocument();
     fireEvent.change(plate, { target: { value: "粤b11111" } });
-    fireEvent.click(screen.getByRole("button", { name: "删除照片" }));
     expect(plate).toHaveValue("粤B11111");
+    expect(screen.getByRole("img", { name: "车头照片" })).toBeInTheDocument();
 
     fireEvent.change(screen.getByRole("textbox", { name: "租户名" }), {
       target: { value: "王先生" },

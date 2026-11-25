@@ -36,6 +36,12 @@ export function PlatePhotoInput({ capture, label, purpose, disabled }: Props) {
     changePlate,
     applySuggestion,
   } = capture;
+  const busyText =
+    recognitionStatus === "loading"
+      ? platePhotoText.loadingModels[purpose]
+      : recognitionStatus === "recognizing"
+        ? platePhotoText.recognizing
+        : null;
 
   return (
     <>
@@ -100,24 +106,10 @@ export function PlatePhotoInput({ capture, label, purpose, disabled }: Props) {
           </Stack>
         </Stack>
       )}
-      {recognitionStatus === "loading" && (
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ alignItems: "center" }}
-        >
+      {busyText && (
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <CircularProgress size={24} />
-          <Typography>{platePhotoText.loadingModels[purpose]}</Typography>
-        </Stack>
-      )}
-      {recognitionStatus === "recognizing" && (
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ alignItems: "center" }}
-        >
-          <CircularProgress size={24} />
-          <Typography>{platePhotoText.recognizing}</Typography>
+          <Typography>{busyText}</Typography>
         </Stack>
       )}
       {recognitionStatus === "failed" && (
@@ -132,6 +124,7 @@ export function PlatePhotoInput({ capture, label, purpose, disabled }: Props) {
       )}
       {recognitionStatus === "suggestion" && recognizedPlate && (
         <Button
+          disabled={disabled}
           fullWidth
           onClick={applySuggestion}
           size="large"
