@@ -10,8 +10,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
-import { useRouter } from "next/navigation";
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 
 import { slotSettingsText } from "config/slotSettingsText";
 import type { SlotSettingsRow } from "internal/parking";
@@ -35,14 +34,14 @@ type Props = {
 const buttonSx = { minHeight: designTokens.size.touchTargetMin };
 
 export function SlotSettingsList({ rows, action }: Props) {
-  const router = useRouter();
+  const triggerRef = useRef<HTMLInputElement | null>(null);
   const [change, setChange] = useState<SlotSettingsChange | null>(null);
   const [state, submit, pending] = useActionState(
     async (previous: ActionState, formData: FormData) => {
       const result = await action(previous, formData);
       if (result.success) {
         setChange(null);
-        router.refresh();
+        // Server Action 已重新验证页面，无需再次触发路由刷新。
       }
       return result;
     },
@@ -73,7 +72,8 @@ export function SlotSettingsList({ rows, action }: Props) {
                       slotProps={{
                         input: { "aria-label": slot.name + " 私人位" },
                       }}
-                      onChange={() =>
+                      onChange={(event) => {
+                        triggerRef.current = event.target;
                         setChange({
                           code: slot.code,
                           name: slot.name,
@@ -83,8 +83,8 @@ export function SlotSettingsList({ rows, action }: Props) {
                             slot.kind === "private"
                               ? slotSettingsText.setRegular(slot.name)
                               : slotSettingsText.setPrivate(slot.name),
-                        })
-                      }
+                        });
+                      }}
                     />
                   }
                   sx={{ minHeight: designTokens.size.touchTargetMin }}
@@ -98,7 +98,8 @@ export function SlotSettingsList({ rows, action }: Props) {
                       slotProps={{
                         input: { "aria-label": slot.name + " 启用" },
                       }}
-                      onChange={() =>
+                      onChange={(event) => {
+                        triggerRef.current = event.target;
                         setChange({
                           code: slot.code,
                           name: slot.name,
@@ -107,8 +108,8 @@ export function SlotSettingsList({ rows, action }: Props) {
                           message: slot.isActive
                             ? slotSettingsText.disable(slot.name)
                             : slotSettingsText.enable(slot.name),
-                        })
-                      }
+                        });
+                      }}
                     />
                   }
                   sx={{ minHeight: designTokens.size.touchTargetMin }}
@@ -123,7 +124,23 @@ export function SlotSettingsList({ rows, action }: Props) {
           );
         })}
       </Stack>
-      <Dialog open={Boolean(change)} fullWidth onClose={() => setChange(null)}>
+      <Dialog
+        open={Boolean(change)}
+        fullWidth
+        onClose={() => setChange(null)}
+        disableRestoreFocus
+        slotProps={{
+          transition: {
+            onExited: () => {
+              if (!change) {
+                // 恢复开关焦点时不触发浏览器自动滚动。
+                triggerRef.current?.focus({ preventScroll: true });
+                triggerRef.current = null;
+              }
+            },
+          },
+        }}
+      >
         <DialogTitle>{change?.message}</DialogTitle>
         <form action={submit}>
           <DialogContent>
