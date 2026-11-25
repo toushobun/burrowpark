@@ -27,6 +27,7 @@ import { CheckInForm } from "organisms/parkingSessions/CheckInForm/CheckInForm";
 import { CheckOutForm } from "organisms/parkingSessions/CheckOutForm/CheckOutForm";
 import { RenewForm } from "organisms/parkingSessions/RenewForm/RenewForm";
 import { LeaseForm } from "organisms/slots/LeaseForm/LeaseForm";
+import { SlotOperationDialog } from "organisms/slots/SlotOperationDialog/SlotOperationDialog";
 import { SlotDetail } from "./SlotDetail";
 
 export async function SlotDetailContent({
@@ -71,7 +72,7 @@ export async function SlotDetailContent({
         ])
       : [null, null, null];
 
-  return (
+  const content = (
     <>
       {!modal && detail?.kind === "private" && detail.presentVehicle && (
         <ReminderRefresh />
@@ -118,5 +119,12 @@ export async function SlotDetailContent({
         }}
       />
     </>
+  );
+
+  // 详情和表单读取完成后才挂载 Dialog，避免先播放骨架屏的进入动画。
+  return modal ? (
+    <SlotOperationDialog code={code}>{content}</SlotOperationDialog>
+  ) : (
+    content
   );
 }
