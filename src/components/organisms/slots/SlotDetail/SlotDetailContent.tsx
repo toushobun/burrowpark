@@ -59,15 +59,15 @@ export async function SlotDetailContent({
     : null;
 
   const today = getBusinessDate(now);
+  const canRenew =
+    detail?.kind === "regular" &&
+    (detail.lease || vehicle?.billingType === "hotel_daily");
   const [checkIn, checkOut, renew] =
     modal && detail?.isActive
       ? await Promise.all([
           loadCheckInForm(code, now),
           vehicle ? loadCheckOutForm(code) : null,
-          detail.kind === "regular" &&
-          (detail.lease || vehicle?.billingType === "hotel_daily")
-            ? loadRenewForm(code)
-            : null,
+          canRenew ? loadRenewForm(code) : null,
         ])
       : [null, null, null];
 
@@ -84,7 +84,9 @@ export async function SlotDetailContent({
         modalForms={
           modal
             ? {
-                "check-in": <CheckInForm action={checkInAction} form={checkIn} />,
+                "check-in": (
+                  <CheckInForm action={checkInAction} form={checkIn} />
+                ),
                 "check-out": (
                   <CheckOutForm action={checkOutAction} form={checkOut} />
                 ),

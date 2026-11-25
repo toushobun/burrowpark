@@ -117,6 +117,7 @@ export function SlotDetail({
   initialState,
 }: SlotDetailProps) {
   const router = useRouter();
+  const inModal = Boolean(modalForms);
   const { showNotice } = useOperationFeedback();
   const redirectedOperation = useRef<string | null>(null);
   const redirectedReservation = useRef<string | null>(null);
@@ -174,9 +175,9 @@ export function SlotDetail({
       slot: detail.code,
       id,
     });
-    if (modalForms) router.replace("/?" + params.toString());
+    if (inModal) router.replace("/?" + params.toString());
     else router.push("/?" + params.toString());
-  }, [detail, modalForms, reserveState.result?.id, reserveState.success, router]);
+  }, [detail, inModal, reserveState.result?.id, reserveState.success, router]);
 
   const completionId = completed?.result.id;
   const completionKind = completed?.kind;
@@ -286,6 +287,9 @@ export function SlotDetail({
     !detail.lease &&
     !detail.reservation;
   const showNewLease = showReserve;
+  const reserveBackLabel = inModal
+    ? slotDetailText.backToActions
+    : slotDetailText.cancel;
   const showEditLease = detail.isActive && Boolean(detail.lease?.id);
   const showEndLease = showEditLease && !vehicle;
   const hasMore = showEditLease || showEndLease || privateBorrowed;
@@ -638,9 +642,7 @@ export function SlotDetail({
                 sx={buttonSx}
                 onClick={() => setReserveOpen(false)}
               >
-                {modalForms
-                  ? slotDetailText.backToActions
-                  : slotDetailText.cancel}
+                {reserveBackLabel}
               </Button>
             </Stack>
           </form>

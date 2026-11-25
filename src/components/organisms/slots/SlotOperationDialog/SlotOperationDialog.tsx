@@ -24,6 +24,7 @@ export function SlotOperationDialog({ code, children }: Props) {
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [open, setOpen] = useState(true);
   const [pending, setPending] = useState(false);
+  const duration = reducedMotion ? 0 : theme.transitions.duration.standard;
 
   const close = () => {
     if (!pending) setOpen(false);
@@ -41,8 +42,9 @@ export function SlotOperationDialog({ code, children }: Props) {
     node.style.transform = "none";
     const paper = node.getBoundingClientRect();
     node.style.transform = transform;
-    node.style.transformOrigin =
-      `${slot.left + slot.width / 2 - paper.left}px ${slot.top + slot.height / 2 - paper.top}px`;
+    const originX = slot.left + slot.width / 2 - paper.left;
+    const originY = slot.top + slot.height / 2 - paper.top;
+    node.style.transformOrigin = `${originX}px ${originY}px`;
   }
 
   return (
@@ -50,7 +52,7 @@ export function SlotOperationDialog({ code, children }: Props) {
       <Dialog
         open={open}
         onClose={close}
-        aria-labelledby="slot-operation-title"
+        aria-labelledby="slot-title"
         fullWidth
         maxWidth={false}
         scroll="paper"
@@ -69,13 +71,9 @@ export function SlotOperationDialog({ code, children }: Props) {
             onExited: () => router.back(),
           },
         }}
-        transitionDuration={
-          reducedMotion ? 0 : theme.transitions.duration.standard
-        }
+        transitionDuration={duration}
       >
-        <DialogTitle id="slot-operation-title">
-          {slotDetailText.pageTitle}
-        </DialogTitle>
+        <DialogTitle id="slot-title">{slotDetailText.pageTitle}</DialogTitle>
         <DialogContent dividers>{children}</DialogContent>
         <DialogActions>
           <Button
