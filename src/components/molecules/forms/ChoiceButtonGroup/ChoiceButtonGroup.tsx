@@ -37,7 +37,8 @@ export function ChoiceButtonGroup<T extends string | number>({
           type="button"
           variant={value === option.value ? "contained" : "outlined"}
           sx={{
-            height: designTokens.size.touchTargetMin,
+            minHeight: designTokens.size.touchTargetMin,
+            overflowWrap: "anywhere",
             minWidth: 0,
             px: 1,
             fontSize: designTokens.typography.minSize,

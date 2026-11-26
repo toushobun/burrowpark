@@ -7,7 +7,9 @@ import { PageSkeleton } from "./PageSkeleton";
 describe("PageSkeleton", () => {
   it("按指定列数渲染选择按钮的骨架", () => {
     render(<PageSkeleton title="登记进场" rowColumns={[3, 4, 1]} />);
-    const skeletons = screen.getByRole("main").querySelectorAll(".MuiSkeleton-root");
+    const skeletons = screen
+      .getByRole("main")
+      .querySelectorAll(".MuiSkeleton-root");
     expect(skeletons).toHaveLength(9);
     expect(skeletons[1].parentElement).toBe(skeletons[3].parentElement);
     expect(skeletons[4].parentElement).toBe(skeletons[7].parentElement);

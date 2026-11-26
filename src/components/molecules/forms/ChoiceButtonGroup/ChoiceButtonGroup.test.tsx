@@ -11,7 +11,9 @@ describe("ChoiceButtonGroup", () => {
 
   it("显示当前选项并返回点击的值", () => {
     const onChange = vi.fn();
-    render(<ChoiceButtonGroup options={options} value={1} onChange={onChange} />);
+    render(
+      <ChoiceButtonGroup options={options} value={1} onChange={onChange} />,
+    );
     expect(screen.getByRole("button", { name: "1 天" })).toHaveAttribute(
       "aria-pressed",
       "true",

@@ -145,10 +145,13 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
                   <ChoiceButtonGroup
                     options={[1, 2, 3, 0].map((value) => ({
                       value,
-                      label: value ? value + " " + checkInText.dayUnit : renewText.custom,
+                      label: value
+                        ? value + " " + checkInText.dayUnit
+                        : renewText.custom,
                     }))}
                     value={custom ? 0 : days}
                     onChange={(value) => chooseDays(value || days, value === 0)}
+                    disabled={isPending}
                   />
                   {custom && (
                     <TextField
@@ -167,7 +170,9 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
                   <NoticeBox
                     title={
                       paidUntil &&
-                      renewText.paidUntil + "：" + formatBusinessDateTime(paidUntil)
+                      renewText.paidUntil +
+                        "：" +
+                        formatBusinessDateTime(paidUntil)
                     }
                   >
                     {renewText.suggested}：

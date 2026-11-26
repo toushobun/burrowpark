@@ -628,7 +628,7 @@ export function SlotDetail({
       )}
 
       {reserveOpen && showReserve && (
-        <Paper variant="outlined" sx={{ p: 2 }}>
+        <InfoCard>
           <form action={submitReserve}>
             <Stack spacing={2}>
               <TextField
@@ -671,7 +671,7 @@ export function SlotDetail({
               </Button>
             </Stack>
           </form>
-        </Paper>
+        </InfoCard>
       )}
 
       <Dialog

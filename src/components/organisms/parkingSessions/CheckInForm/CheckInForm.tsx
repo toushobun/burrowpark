@@ -210,6 +210,7 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
                     }))}
                     value={billingType}
                     onChange={setBillingType}
+                    disabled={isPending}
                     columns={
                       allowedBilling.length === 4 ? 2 : allowedBilling.length
                     }
@@ -227,6 +228,7 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
                       }))}
                       value={borrowMinutes}
                       onChange={setBorrowMinutes}
+                      disabled={isPending}
                     />
                   </Stack>
                 )}
@@ -247,6 +249,7 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
                         onChange={(value) =>
                           setHotelDays(value || days, value === 0)
                         }
+                        disabled={isPending}
                       />
                       {customDays && (
                         <TextField
@@ -263,7 +266,9 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
                         />
                       )}
                       <NoticeBox
-                        title={paidUntil && checkInText.paidUntil + " " + paidUntil}
+                        title={
+                          paidUntil && checkInText.paidUntil + " " + paidUntil
+                        }
                       >
                         {checkInText.suggestedAmount}：
                         {(suggestedCents / 100).toFixed(2)} 元

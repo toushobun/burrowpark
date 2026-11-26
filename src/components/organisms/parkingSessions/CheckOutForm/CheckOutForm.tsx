@@ -36,7 +36,6 @@ type Props = {
   ) => Promise<CheckOutActionState>;
   initialState?: CheckOutActionState;
 };
-const buttonSx = { minHeight: designTokens.size.touchTargetMin };
 
 export function CheckOutForm({
   form: currentForm,

@@ -169,9 +169,7 @@ export const formatElapsedDuration = (
   const hours = Math.floor(elapsedMinutes / 60);
   const minutes = elapsedMinutes % 60;
 
-  return hours
-    ? hours + " 小时 " + minutes + " 分"
-    : minutes + " 分";
+  return hours ? hours + " 小时 " + minutes + " 分" : minutes + " 分";
 };
 
 export const formatElapsed = (
