@@ -3,7 +3,6 @@
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
@@ -15,6 +14,7 @@ import {
   shiftBusinessMonth,
   type MonthlyStats as MonthlyStatsData,
 } from "internal/parking";
+import { InfoCard } from "molecules/display/InfoCard/InfoCard";
 import { designTokens } from "theme/designTokens";
 
 type Props = {
@@ -81,12 +81,9 @@ export function MonthlyStats({ month, currentMonth, stats }: Props) {
         )}
       </Box>
 
-      <Paper
-        variant="outlined"
-        sx={{ borderRadius: `${designTokens.radius.lg}px`, p: 2 }}
-      >
+      <InfoCard>
         <Stack spacing={1}>
-          <Typography variant="body1" color="textSecondary">
+          <Typography variant="body2" color="textSecondary">
             {monthlyStatsText.total}
           </Typography>
           <Typography component="p" variant="h1">
@@ -96,16 +93,13 @@ export function MonthlyStats({ month, currentMonth, stats }: Props) {
             {monthlyStatsText.entryCount(stats.entryCount)}
           </Typography>
         </Stack>
-      </Paper>
+      </InfoCard>
 
       <Stack component="section" spacing={1.5}>
-        <Typography component="h2" variant="h2">
+        <Typography component="h2" variant="h6">
           {monthlyStatsText.byMethod}
         </Typography>
-        <Paper
-          variant="outlined"
-          sx={{ borderRadius: `${designTokens.radius.lg}px`, p: 2 }}
-        >
+        <InfoCard>
           <Stack spacing={1.5}>
             {methods.map((method) => (
               <AmountRow
@@ -115,17 +109,14 @@ export function MonthlyStats({ month, currentMonth, stats }: Props) {
               />
             ))}
           </Stack>
-        </Paper>
+        </InfoCard>
       </Stack>
 
       <Stack component="section" spacing={1.5}>
-        <Typography component="h2" variant="h2">
+        <Typography component="h2" variant="h6">
           {monthlyStatsText.byBillingType}
         </Typography>
-        <Paper
-          variant="outlined"
-          sx={{ borderRadius: `${designTokens.radius.lg}px`, p: 2 }}
-        >
+        <InfoCard>
           <Stack spacing={1.5}>
             {billingTypes.map((billingType) => (
               <AmountRow
@@ -141,20 +132,17 @@ export function MonthlyStats({ month, currentMonth, stats }: Props) {
               />
             )}
           </Stack>
-        </Paper>
+        </InfoCard>
       </Stack>
 
       <Stack component="section" spacing={1.5}>
-        <Typography component="h2" variant="h2">
+        <Typography component="h2" variant="h6">
           {monthlyStatsText.details}
         </Typography>
         {stats.payments.length === 0 ? (
           <Typography variant="body1">{monthlyStatsText.empty}</Typography>
         ) : (
-          <Paper
-            variant="outlined"
-            sx={{ borderRadius: `${designTokens.radius.lg}px`, p: 2 }}
-          >
+          <InfoCard>
             <Stack divider={<Divider flexItem />} spacing={2}>
               {stats.payments.map((payment) => (
                 <Stack key={payment.id} spacing={0.5}>
@@ -178,7 +166,7 @@ export function MonthlyStats({ month, currentMonth, stats }: Props) {
                 </Stack>
               ))}
             </Stack>
-          </Paper>
+          </InfoCard>
         )}
       </Stack>
     </Stack>

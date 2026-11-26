@@ -1,12 +1,11 @@
 "use client";
 
 import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import Divider from "@mui/material/Divider";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -25,6 +24,7 @@ import {
   normalizePlate,
 } from "internal/parking";
 import type { RecordResults, RecordsFilter } from "internal/parking";
+import { InfoCard } from "molecules/display/InfoCard/InfoCard";
 import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/FailureFeedbackDialog";
 import { designTokens } from "theme/designTokens";
 import type { ActionState } from "types/actions";
@@ -47,6 +47,13 @@ type Props = {
   action: (state: ActionState, data: FormData) => Promise<ActionState>;
 };
 const touch = { minHeight: designTokens.size.touchTargetMin };
+const compactButton = {
+  ...touch,
+  flex: 1,
+  minWidth: 0,
+  px: 1,
+  fontSize: designTokens.typography.minSize,
+};
 const money = (cents: number) => (cents / 100).toFixed(2);
 
 export function RecordsView({
@@ -82,51 +89,60 @@ export function RecordsView({
     {} as ActionState,
   );
 
-  function paymentRow(
-    payment: RecordResults["sessions"][number]["session_payments"][number],
-    key: string,
-  ) {
+  type Payment = RecordResults["sessions"][number]["session_payments"][number];
+
+  function paymentActions(payment: Payment) {
     return (
-      <Stack key={key} spacing={0.5} sx={{ py: 1 }}>
+      <>
+        <Button
+          variant="text"
+          sx={compactButton}
+          onClick={() => {
+            setChange({
+              operation: "payment",
+              paymentId: payment.id,
+              amount: payment.amount_cents,
+              method: payment.method,
+            });
+            setAmount(money(payment.amount_cents));
+            setMethod(payment.method);
+          }}
+        >
+          {text.correctAmount}
+        </Button>
+        {payment.paid_until === null && (
+          <Button
+            variant="text"
+            color="error"
+            sx={compactButton}
+            onClick={() =>
+              setChange({
+                operation: "delete",
+                paymentId: payment.id,
+                amount: payment.amount_cents,
+              })
+            }
+          >
+            {text.delete}
+          </Button>
+        )}
+      </>
+    );
+  }
+
+  function paymentRow(payment: Payment, showActions = true) {
+    return (
+      <Stack key={payment.id} spacing={0.5} sx={{ py: 1 }}>
         <Typography variant="body1">
           {formatBusinessDateTime(payment.paid_at)} ·{" "}
           {text.purpose[payment.purpose]} · {money(payment.amount_cents)} 元 ·{" "}
           {paymentMethodLabels[payment.method]}
         </Typography>
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="text"
-            sx={touch}
-            onClick={() => {
-              setChange({
-                operation: "payment",
-                paymentId: payment.id,
-                amount: payment.amount_cents,
-                method: payment.method,
-              });
-              setAmount(money(payment.amount_cents));
-              setMethod(payment.method);
-            }}
-          >
-            {text.correctAmount}
-          </Button>
-          {payment.paid_until === null && (
-            <Button
-              variant="text"
-              color="error"
-              sx={touch}
-              onClick={() =>
-                setChange({
-                  operation: "delete",
-                  paymentId: payment.id,
-                  amount: payment.amount_cents,
-                })
-              }
-            >
-              {text.delete}
-            </Button>
-          )}
-        </Stack>
+        {showActions && (
+          <Stack direction="row" spacing={1}>
+            {paymentActions(payment)}
+          </Stack>
+        )}
       </Stack>
     );
   }
@@ -154,56 +170,51 @@ export function RecordsView({
         <Button
           component={Link}
           href="/records"
-          size="large"
           variant={filter.kind === "date" ? "contained" : "outlined"}
-          sx={{ ...touch, flex: 1 }}
+          sx={compactButton}
         >
           {text.byDate}
         </Button>
         <Button
           component={Link}
           href="/records?mode=plate"
-          size="large"
           variant={filter.kind === "plate" ? "contained" : "outlined"}
-          sx={{ ...touch, flex: 1 }}
+          sx={compactButton}
         >
           {text.byPlate}
         </Button>
         <Button
           component={Link}
           href="/records?mode=lease"
-          size="large"
           variant={filter.kind === "lease" ? "contained" : "outlined"}
-          sx={{ ...touch, flex: 1 }}
+          sx={compactButton}
         >
           {text.byLease}
         </Button>
       </Stack>
       {filter.kind === "date" ? (
-        <Stack spacing={1}>
-          <Typography variant="h3">{filter.date}</Typography>
-          <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+          <Typography variant="h6" sx={{ mr: "auto", whiteSpace: "nowrap" }}>
+            {filter.date}
+          </Typography>
+          <Button
+            component={Link}
+            href={`/records?date=${previousDate}`}
+            variant="outlined"
+            sx={{ ...compactButton, flex: "0 0 auto" }}
+          >
+            {text.previous}
+          </Button>
+          {nextDate && (
             <Button
               component={Link}
-              href={`/records?date=${previousDate}`}
-              size="large"
+              href={`/records?date=${nextDate}`}
               variant="outlined"
-              sx={{ ...touch, flex: 1 }}
+              sx={{ ...compactButton, flex: "0 0 auto" }}
             >
-              {text.previous}
+              {text.next}
             </Button>
-            {nextDate && (
-              <Button
-                component={Link}
-                href={`/records?date=${nextDate}`}
-                size="large"
-                variant="outlined"
-                sx={{ ...touch, flex: 1 }}
-              >
-                {text.next}
-              </Button>
-            )}
-          </Stack>
+          )}
         </Stack>
       ) : filter.kind === "plate" ? (
         <Stack
@@ -269,69 +280,81 @@ export function RecordsView({
         {filter.kind === "lease" ? null : records.sessions.length === 0 ? (
           <Typography>{text.noSessions}</Typography>
         ) : (
-          records.sessions.map((session) => (
-            <Card key={session.id}>
-              <CardContent>
+          records.sessions.map((session) => {
+            const singlePayment =
+              session.session_payments.length === 1
+                ? session.session_payments[0]
+                : undefined;
+            return (
+              <InfoCard key={session.id}>
                 <Stack spacing={1}>
-                  <Typography variant="h3">
+                  <Typography variant="h6">
                     {session.slotName} ·{" "}
                     {formatPlateForDisplay(session.plate) || commonText.noPlate}
                   </Typography>
                   {session.phone && (
-                    <Typography>
+                    <Typography variant="body1">
                       {commonText.phone}：{session.phone}
                     </Typography>
                   )}
-                  <Typography>
+                  <Typography variant="body1">
                     {billingTypeLabels[session.billing_type]}
                   </Typography>
-                  <Typography>
+                  <Typography variant="body1">
                     {text.enteredAt}
                     {formatBusinessDateTime(session.entered_at)}
                   </Typography>
-                  <Typography>
+                  <Typography variant="body1">
                     {text.leftAt}
                     {session.left_at
                       ? formatBusinessDateTime(session.left_at)
                       : text.present}
                   </Typography>
-                  <Button
-                    variant="text"
-                    sx={{ ...touch, alignSelf: "flex-start" }}
-                    onClick={() => {
-                      setNewPlate(session.plate ?? "");
-                      setChange({
-                        operation: "plate",
-                        sessionId: session.id,
-                        before: session.plate ?? "",
-                      });
-                    }}
-                  >
-                    {text.correctPlate}
-                  </Button>
                   {session.session_payments.map((payment) =>
-                    paymentRow(payment, payment.id),
+                    paymentRow(payment, !singlePayment),
                   )}
+                  <Divider />
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      variant="text"
+                      sx={compactButton}
+                      onClick={() => {
+                        setNewPlate(session.plate ?? "");
+                        setChange({
+                          operation: "plate",
+                          sessionId: session.id,
+                          before: session.plate ?? "",
+                        });
+                      }}
+                    >
+                      {text.correctPlate}
+                    </Button>
+                    {singlePayment && paymentActions(singlePayment)}
+                  </Stack>
                 </Stack>
-              </CardContent>
-            </Card>
-          ))
+              </InfoCard>
+            );
+          })
         )}
       </Stack>
-      <Typography variant="h3">{text.leasePayments}</Typography>
-      {records.leasePayments.length === 0 ? (
-        <Typography>{text.noLeasePayments}</Typography>
-      ) : (
-        records.leasePayments.map((payment) => (
-          <Card key={payment.id}>
-            <CardContent>
-              <Typography variant="h3">
-                {payment.slotName} · {payment.tenantName}
-              </Typography>
-              {paymentRow(payment, payment.id)}
-            </CardContent>
-          </Card>
-        ))
+      {(filter.kind === "lease" || records.leasePayments.length > 0) && (
+        <>
+          <Typography variant="h6" component="h2">
+            {text.leasePayments}
+          </Typography>
+          {records.leasePayments.length === 0 ? (
+            <Typography>{text.noLeasePayments}</Typography>
+          ) : (
+            records.leasePayments.map((payment) => (
+              <InfoCard key={payment.id}>
+                <Typography variant="h6">
+                  {payment.slotName} · {payment.tenantName}
+                </Typography>
+                {paymentRow(payment)}
+              </InfoCard>
+            ))
+          )}
+        </>
       )}
       <Dialog open={change !== null} onClose={() => setChange(null)} fullWidth>
         <DialogTitle>{confirmation}</DialogTitle>

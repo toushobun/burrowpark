@@ -1,6 +1,5 @@
 "use client";
 
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
@@ -9,6 +8,7 @@ import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 
+import { checkInText } from "config/checkInText";
 import { renewText } from "config/renewAndCheckOutText";
 import type { RenewFormData } from "internal/parking";
 import {
@@ -18,6 +18,8 @@ import {
   leaseDateToPaidUntil,
 } from "internal/parking";
 import type { RenewActionState } from "internal/parking/adapter/next/renewActions";
+import { NoticeBox } from "molecules/display/NoticeBox/NoticeBox";
+import { ChoiceButtonGroup } from "molecules/forms/ChoiceButtonGroup/ChoiceButtonGroup";
 import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/FailureFeedbackDialog";
 import { OperationRedirecting } from "molecules/feedback/OperationRedirecting/OperationRedirecting";
 import { useOperationFeedback } from "providers/OperationFeedbackProvider";
@@ -38,7 +40,6 @@ type Props = {
   ) => Promise<RenewActionState>;
   initialState?: RenewActionState;
 };
-const buttonSx = { minHeight: designTokens.size.touchTargetMin };
 
 export function RenewForm({ form: currentForm, action, initialState }: Props) {
   const router = useRouter();
@@ -138,40 +139,17 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
             <Stack spacing={3}>
               {hotel ? (
                 <>
-                  <Typography variant="h3">{renewText.days}</Typography>
-                  <Box
-                    sx={{
-                      display: "grid",
-                      gap: 2,
-                      gridTemplateColumns: "repeat(2,minmax(0,1fr))",
-                    }}
-                  >
-                    {([1, 2, 3] as const).map((value) => (
-                      <Button
-                        key={value}
-                        size="large"
-                        type="button"
-                        aria-pressed={!custom && days === value}
-                        variant={
-                          !custom && days === value ? "contained" : "outlined"
-                        }
-                        sx={buttonSx}
-                        onClick={() => chooseDays(value, false)}
-                      >
-                        {value} 天
-                      </Button>
-                    ))}
-                    <Button
-                      size="large"
-                      type="button"
-                      aria-pressed={custom}
-                      variant={custom ? "contained" : "outlined"}
-                      sx={buttonSx}
-                      onClick={() => chooseDays(days, true)}
-                    >
-                      {renewText.custom}
-                    </Button>
-                  </Box>
+                  <Typography component="h3" variant="h6">
+                    {renewText.days}
+                  </Typography>
+                  <ChoiceButtonGroup
+                    options={[1, 2, 3, 0].map((value) => ({
+                      value,
+                      label: value ? value + " " + checkInText.dayUnit : renewText.custom,
+                    }))}
+                    value={custom ? 0 : days}
+                    onChange={(value) => chooseDays(value || days, value === 0)}
+                  />
                   {custom && (
                     <TextField
                       type="number"
@@ -186,10 +164,15 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
                       }
                     />
                   )}
-                  <Typography variant="body1">
+                  <NoticeBox
+                    title={
+                      paidUntil &&
+                      renewText.paidUntil + "：" + formatBusinessDateTime(paidUntil)
+                    }
+                  >
                     {renewText.suggested}：
                     {((days * form.hotelDailyPriceCents) / 100).toFixed(2)} 元
-                  </Typography>
+                  </NoticeBox>
                   <input type="hidden" name="days" value={days} />
                 </>
               ) : (
@@ -209,15 +192,15 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
                   }
                 />
               )}
-              {paidUntil && (
+              {!hotel && paidUntil && (
                 <Typography variant="h3">
                   {renewText.paidUntil}：
-                  {hotel
-                    ? formatBusinessDateTime(paidUntil)
-                    : formatBusinessDate(paidUntil)}
+                  {formatBusinessDate(paidUntil)}
                 </Typography>
               )}
-              <Typography variant="h3">{renewText.method}</Typography>
+              <Typography component="h3" variant="h6">
+                {renewText.method}
+              </Typography>
               <PaymentMethodChoices
                 value={method}
                 onChange={setMethod}

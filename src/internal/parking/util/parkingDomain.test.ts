@@ -15,6 +15,7 @@ import {
   formatBusinessDateTime,
   formatBusinessTime,
   formatElapsed,
+  formatElapsedDuration,
   formatPlateForDisplay,
   formatVehicleIdentity,
   isValidCheckInPhone,
@@ -565,5 +566,25 @@ describe("月收款整数聚合", () => {
         payment({ billingType: null, amountCents: 10 }),
       ]),
     ).toMatchObject({ totalCents: 10, byMethod: { wechat: 10 } });
+  });
+});
+
+describe("formatElapsedDuration", () => {
+  it("不足一小时仅显示分钟", () => {
+    expect(
+      formatElapsedDuration("2026-11-25T00:00:00Z", "2026-11-25T00:15:59Z"),
+    ).toBe("15 分");
+  });
+
+  it("整小时保留零分钟", () => {
+    expect(
+      formatElapsedDuration("2026-11-25T00:00:00Z", "2026-11-25T02:00:00Z"),
+    ).toBe("2 小时 0 分");
+  });
+
+  it("跨天累计总小时数", () => {
+    expect(
+      formatElapsedDuration("2026-11-25T00:00:00Z", "2026-11-26T05:09:00Z"),
+    ).toBe("29 小时 9 分");
   });
 });

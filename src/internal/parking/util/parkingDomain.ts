@@ -156,7 +156,7 @@ export const formatBusinessDate = (instant: ParkingTimestamp): string => {
 };
 
 /** 按完整经过的分钟显示停车时长，不足一分钟时向下取整。 */
-export const formatElapsed = (
+export const formatElapsedDuration = (
   from: ParkingTimestamp,
   now: ParkingTimestamp,
 ): string => {
@@ -170,9 +170,14 @@ export const formatElapsed = (
   const minutes = elapsedMinutes % 60;
 
   return hours
-    ? "已停 " + hours + " 小时 " + minutes + " 分"
-    : "已停 " + minutes + " 分";
+    ? hours + " 小时 " + minutes + " 分"
+    : minutes + " 分";
 };
+
+export const formatElapsed = (
+  from: ParkingTimestamp,
+  now: ParkingTimestamp,
+): string => slotDetailText.elapsed + " " + formatElapsedDuration(from, now);
 
 /** 将业务日期的指定整点转换为 UTC ISO 时间，可直接作为 timestamptz 使用。 */
 export const getBusinessDateTime = (

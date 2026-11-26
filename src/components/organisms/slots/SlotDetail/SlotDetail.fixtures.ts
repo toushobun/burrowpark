@@ -5,7 +5,7 @@ import type { SlotDetailDisplay } from "./SlotDetail";
 export const detailDisplay: SlotDetailDisplay = {
   enteredAt: "11月19日 10:00",
   paidUntil: "11月19日 12:00",
-  elapsed: "已停 2 小时 15 分",
+  elapsed: "2 小时 15 分",
   borrowUntil: "12:30",
   leasePaidUntil: "11月30日",
 };

@@ -14,7 +14,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <Box sx={{ width: 390, maxWidth: "100%", px: 2 }}>
+      <Box sx={{ width: 393, maxWidth: "100%", px: 2 }}>
         <Story />
       </Box>
     ),

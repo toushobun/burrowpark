@@ -93,47 +93,53 @@ export function CheckOutForm({
         <Typography variant="h2" component="h2">
           {form.name}
         </Typography>
-        <Typography variant="h3">
-          {checkOutText.plate}：
-          {formatPlateForDisplay(form.plate) || commonText.noPlate}
-        </Typography>
-        {form.phone && (
-          <Typography variant="body1">
-            {commonText.phone}：{form.phone}
+        <Stack spacing={1.5}>
+          <Typography variant="body1" sx={{ fontWeight: 700 }}>
+            {checkOutText.plate}：
+            {formatPlateForDisplay(form.plate) || commonText.noPlate}
           </Typography>
-        )}
-        <Typography variant="body1">
-          {formatElapsed(form.enteredAt, form.now)}
-        </Typography>
-        {form.totalPaidCents !== null && (
-          <Typography variant="body1">
-            {checkOutText.paidTotal}：{(form.totalPaidCents / 100).toFixed(2)}{" "}
-            元
+          {form.phone && (
+            <Typography variant="body1">
+              {commonText.phone}：{form.phone}
+            </Typography>
+          )}
+          <Typography variant="body1" color="textSecondary">
+            {formatElapsed(form.enteredAt, form.now)}
           </Typography>
-        )}
-        {form.overstayHours > 0 && (
-          <Typography variant="h3" color="error">
-            {checkOutText.overstay(form.overstayHours)}
+          {form.totalPaidCents !== null && (
+            <Typography variant="body1" color="textSecondary">
+              {checkOutText.paidTotal}：{(form.totalPaidCents / 100).toFixed(2)}{" "}
+              元
+            </Typography>
+          )}
+          {form.overstayHours > 0 && (
+            <Typography variant="h3" color="error">
+              {checkOutText.overstay(form.overstayHours)}
+            </Typography>
+          )}
+          <Typography variant="h3">
+            {checkOutText.suggested}：
+            {(form.suggestedAmountCents / 100).toFixed(2)} 元
           </Typography>
-        )}
-        <Typography variant="h3">
-          {checkOutText.suggested}：
-          {(form.suggestedAmountCents / 100).toFixed(2)} 元
-        </Typography>
+        </Stack>
         <form action={submit}>
           <Stack spacing={3}>
-            <Typography variant="h3">{checkOutText.method}</Typography>
-            <PaymentMethodChoices
-              disabled={isPending}
-              value={method}
-              onChange={setMethod}
-            />
-            <PaymentAmountField
-              disabled={isPending}
-              value={amount}
-              onChange={setAmount}
-              label={checkOutText.amount}
-            />
+            <Stack spacing={1.5}>
+              <Typography component="h3" variant="h6">
+                {checkOutText.method}
+              </Typography>
+              <PaymentMethodChoices
+                disabled={isPending}
+                value={method}
+                onChange={setMethod}
+              />
+              <PaymentAmountField
+                disabled={isPending}
+                value={amount}
+                onChange={setAmount}
+                label={checkOutText.amount}
+              />
+            </Stack>
             <input type="hidden" name="sessionId" value={form.sessionId} />
             <input type="hidden" name="paymentMethod" value={method ?? ""} />
             <input type="hidden" name="amountYuan" value={amount} />

@@ -1,6 +1,5 @@
 "use client";
 
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
@@ -30,6 +29,8 @@ import {
   normalizePlate,
 } from "internal/parking";
 import type { CheckInActionState } from "internal/parking/adapter/next/checkInActions";
+import { NoticeBox } from "molecules/display/NoticeBox/NoticeBox";
+import { ChoiceButtonGroup } from "molecules/forms/ChoiceButtonGroup/ChoiceButtonGroup";
 import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/FailureFeedbackDialog";
 import { useSlotOperationPending } from "organisms/slots/SlotOperationDialog/slotOperationDialogContext";
 import { designTokens } from "theme/designTokens";
@@ -39,6 +40,7 @@ import {
   usePlatePhotoInput,
   type PlatePhotoStory,
 } from "../PlatePhotoInput/usePlatePhotoInput";
+import { PaymentMethodChoices } from "../PaymentOperationParts";
 import { photoUploadFailed } from "./photoUploadStatus";
 
 type Props = {
@@ -50,35 +52,6 @@ type Props = {
   initialState?: CheckInActionState;
   storyPhoto?: PlatePhotoStory;
 };
-
-const bigButtonSx = { minHeight: designTokens.size.touchTargetMin };
-
-function ChoiceButton({
-  label,
-  selected,
-  disabled,
-  onClick,
-}: {
-  label: string;
-  selected: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <Button
-      aria-pressed={selected}
-      disabled={disabled}
-      fullWidth
-      onClick={onClick}
-      size="large"
-      sx={bigButtonSx}
-      type="button"
-      variant={selected ? "contained" : "outlined"}
-    >
-      {label}
-    </Button>
-  );
-}
 
 /** 提供给长辈的大号登记按钮；成功后直接回地图。 */
 export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
@@ -181,9 +154,16 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
     <>
       {state.result ? null : (
         <Stack spacing={3}>
-          <Typography component="h2" variant="h2">
-            {form.name}
-          </Typography>
+          <Stack spacing={0.5}>
+            <Typography component="h2" variant="h2">
+              {form.name}
+            </Typography>
+            {form.isActive && !form.occupied && (
+              <Typography variant="body2" color="textSecondary">
+                {checkInText.identityHint}
+              </Typography>
+            )}
+          </Stack>
           {!form.isActive || form.occupied ? (
             <Typography color="error" variant="h3">
               {checkInText.unavailable}
@@ -202,145 +182,112 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
                     {checkInText.hasReservation}
                   </Typography>
                 )}
-                <Typography>{checkInText.identityHint}</Typography>
-                <PlatePhotoInput
-                  capture={capture}
-                  disabled={isPending}
-                  label={checkInText.plate}
-                  purpose="checkin"
-                />
-                <TextField
-                  fullWidth
-                  label={commonText.phone}
-                  name="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                  slotProps={{ htmlInput: { maxLength: 21 } }}
-                />
-                <Typography component="h3" variant="h3">
-                  {checkInText.billingType}
-                </Typography>
-                <Box
-                  sx={{
-                    display: "grid",
-                    gap: 2,
-                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                  }}
-                >
-                  {allowedBilling.map((value) => (
-                    <ChoiceButton
-                      key={value}
-                      label={billingTypeLabels[value]}
-                      onClick={() => setBillingType(value)}
-                      selected={billingType === value}
-                    />
-                  ))}
-                </Box>
+                <Stack spacing={1.5}>
+                  <PlatePhotoInput
+                    capture={capture}
+                    disabled={isPending}
+                    label={checkInText.plate}
+                    purpose="checkin"
+                  />
+                  <TextField
+                    fullWidth
+                    label={commonText.phone}
+                    name="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    slotProps={{ htmlInput: { maxLength: 21 } }}
+                  />
+                </Stack>
+                <Stack spacing={1.5}>
+                  <Typography component="h3" variant="h6">
+                    {checkInText.billingType}
+                  </Typography>
+                  <ChoiceButtonGroup
+                    options={allowedBilling.map((value) => ({
+                      value,
+                      label: billingTypeLabels[value],
+                    }))}
+                    value={billingType}
+                    onChange={setBillingType}
+                    columns={
+                      allowedBilling.length === 4 ? 2 : allowedBilling.length
+                    }
+                  />
+                </Stack>
                 {isPrivate && (
-                  <Stack spacing={2}>
-                    <Typography component="h3" variant="h3">
+                  <Stack spacing={1.5}>
+                    <Typography component="h3" variant="h6">
                       {checkInText.borrowDuration}
                     </Typography>
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gap: 2,
-                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                      }}
-                    >
-                      {([10, 30] as const).map((minutes) => (
-                        <ChoiceButton
-                          key={minutes}
-                          label={minutes + " " + checkInText.minuteUnit}
-                          onClick={() => setBorrowMinutes(minutes)}
-                          selected={borrowMinutes === minutes}
-                        />
-                      ))}
-                    </Box>
+                    <ChoiceButtonGroup<10 | 30>
+                      options={([10, 30] as const).map((value) => ({
+                        value,
+                        label: value + " " + checkInText.minuteUnit,
+                      }))}
+                      value={borrowMinutes}
+                      onChange={setBorrowMinutes}
+                    />
                   </Stack>
                 )}
                 {isHotel && (
-                  <Stack spacing={2}>
-                    <Typography component="h3" variant="h3">
-                      {checkInText.days}
-                    </Typography>
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gap: 2,
-                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                      }}
-                    >
-                      {([1, 2, 3] as const).map((value) => (
-                        <ChoiceButton
-                          key={value}
-                          label={value + " " + checkInText.dayUnit}
-                          onClick={() => setHotelDays(value, false)}
-                          selected={!customDays && days === value}
-                        />
-                      ))}
-                      <ChoiceButton
-                        label={checkInText.customDays}
-                        onClick={() => setHotelDays(days, true)}
-                        selected={customDays}
+                  <>
+                    <Stack spacing={1.5}>
+                      <Typography component="h3" variant="h6">
+                        {checkInText.days}
+                      </Typography>
+                      <ChoiceButtonGroup
+                        options={[1, 2, 3, 0].map((value) => ({
+                          value,
+                          label: value
+                            ? value + " " + checkInText.dayUnit
+                            : checkInText.customDays,
+                        }))}
+                        value={customDays ? 0 : days}
+                        onChange={(value) =>
+                          setHotelDays(value || days, value === 0)
+                        }
                       />
-                    </Box>
-                    {customDays && (
+                      {customDays && (
+                        <TextField
+                          fullWidth
+                          label={checkInText.days}
+                          onChange={(event) =>
+                            setHotelDays(Number(event.target.value), true)
+                          }
+                          slotProps={{
+                            htmlInput: { min: 1, max: 30, inputMode: "numeric" },
+                          }}
+                          type="number"
+                          value={days}
+                        />
+                      )}
+                      <NoticeBox
+                        title={paidUntil && checkInText.paidUntil + " " + paidUntil}
+                      >
+                        {checkInText.suggestedAmount}：
+                        {(suggestedCents / 100).toFixed(2)} 元
+                      </NoticeBox>
+                    </Stack>
+                    <Stack spacing={1.5}>
+                      <Typography component="h3" variant="h6">
+                        {checkInText.paymentMethod}
+                      </Typography>
+                      <PaymentMethodChoices
+                        value={method}
+                        onChange={setMethod}
+                        disabled={isPending}
+                      />
                       <TextField
                         fullWidth
-                        label={checkInText.days}
-                        onChange={(event) =>
-                          setHotelDays(Number(event.target.value), true)
-                        }
-                        slotProps={{
-                          htmlInput: { min: 1, max: 30, inputMode: "numeric" },
-                        }}
-                        type="number"
-                        value={days}
+                        label={checkInText.receivedAmount}
+                        onChange={(event) => setAmountYuan(event.target.value)}
+                        slotProps={{ htmlInput: { inputMode: "decimal" } }}
+                        type="text"
+                        value={amountYuan}
                       />
-                    )}
-                    {paidUntil && (
-                      <Typography variant="h3">
-                        {checkInText.paidUntil} {paidUntil}
-                      </Typography>
-                    )}
-                    <Typography variant="body1">
-                      {checkInText.suggestedAmount}：
-                      {(suggestedCents / 100).toFixed(2)} 元
-                    </Typography>
-                    <Typography component="h3" variant="h3">
-                      {checkInText.paymentMethod}
-                    </Typography>
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gap: 2,
-                        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                      }}
-                    >
-                      {(
-                        Object.keys(
-                          paymentMethodLabels,
-                        ) as (keyof typeof paymentMethodLabels)[]
-                      ).map((value) => (
-                        <ChoiceButton
-                          key={value}
-                          label={paymentMethodLabels[value]}
-                          onClick={() => setMethod(value)}
-                          selected={method === value}
-                        />
-                      ))}
-                    </Box>
-                    <TextField
-                      fullWidth
-                      label={checkInText.receivedAmount}
-                      onChange={(event) => setAmountYuan(event.target.value)}
-                      slotProps={{ htmlInput: { inputMode: "decimal" } }}
-                      type="text"
-                      value={amountYuan}
-                    />
-                  </Stack>
+                    </Stack>
+                  </>
                 )}
                 <input name="slotCode" type="hidden" value={form.code} />
                 <input name="billingType" type="hidden" value={billingType} />

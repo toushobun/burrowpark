@@ -5,7 +5,7 @@ export default function Loading() {
   return (
     <PageSkeleton
       title={monthlyStatsText.title}
-      rows={5}
+      rowColumns={[3, 1, 1, 1, 1]}
       backHref="/settings"
     />
   );

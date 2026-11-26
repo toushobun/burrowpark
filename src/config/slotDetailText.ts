@@ -16,6 +16,7 @@ export const slotDetailText = {
   plate: "车牌",
   billingType: "计费方式",
   enteredAt: "进场时间",
+  elapsed: "已停",
   guestName: "预留人",
   note: "备注",
   tenantName: "租户名",
