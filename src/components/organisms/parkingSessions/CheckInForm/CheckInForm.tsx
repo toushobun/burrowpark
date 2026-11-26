@@ -259,7 +259,11 @@ export function CheckInForm({ form, action, initialState, storyPhoto }: Props) {
                             setHotelDays(Number(event.target.value), true)
                           }
                           slotProps={{
-                            htmlInput: { min: 1, max: 30, inputMode: "numeric" },
+                            htmlInput: {
+                              min: 1,
+                              max: 30,
+                              inputMode: "numeric",
+                            },
                           }}
                           type="number"
                           value={days}
