@@ -113,11 +113,12 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
     : validDate
       ? leasePaidUntil
       : null;
-  const hotelPaidUntilLabel =
-    hotel && paidUntil
-      ? `${renewText.paidUntil}：${formatBusinessDateTime(paidUntil)}`
-      : undefined;
-  const suggestedAmount = ((days * form.hotelDailyPriceCents) / 100).toFixed(2);
+  const paidUntilLabel = hotel && paidUntil
+    ? renewText.paidUntil + "：" + formatBusinessDateTime(paidUntil)
+    : undefined;
+  const dailyCents = form.hotelDailyPriceCents;
+  const suggestedAmount = ((days * dailyCents) / 100).toFixed(2);
+  const suggestedLabel = renewText.suggested + "：" + suggestedAmount + " 元";
   const canSubmit =
     !isPending &&
     method !== null &&
@@ -127,7 +128,7 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
   const chooseDays = (value: number, isCustom: boolean) => {
     setDays(value);
     setCustom(isCustom);
-    setAmount(((value * form.hotelDailyPriceCents) / 100).toFixed(2));
+    setAmount(((value * dailyCents) / 100).toFixed(2));
   };
 
   return (
@@ -172,8 +173,8 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
                       }
                     />
                   )}
-                  <NoticeBox title={hotelPaidUntilLabel}>
-                    {renewText.suggested}：{suggestedAmount} 元
+                  <NoticeBox title={paidUntilLabel}>
+                    {suggestedLabel}
                   </NoticeBox>
                   <input type="hidden" name="days" value={days} />
                 </>
@@ -196,8 +197,7 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
               )}
               {!hotel && paidUntil && (
                 <Typography variant="h3">
-                  {renewText.paidUntil}：
-                  {formatBusinessDate(paidUntil)}
+                  {renewText.paidUntil + "：" + formatBusinessDate(paidUntil)}
                 </Typography>
               )}
               <Typography component="h3" variant="h6">
