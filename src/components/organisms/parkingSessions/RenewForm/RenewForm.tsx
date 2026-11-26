@@ -113,9 +113,10 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
     : validDate
       ? leasePaidUntil
       : null;
-  const paidUntilLabel = hotel && paidUntil
-    ? renewText.paidUntil + "：" + formatBusinessDateTime(paidUntil)
-    : undefined;
+  const paidUntilLabel =
+    hotel && paidUntil
+      ? renewText.paidUntil + "：" + formatBusinessDateTime(paidUntil)
+      : undefined;
   const dailyCents = form.hotelDailyPriceCents;
   const suggestedAmount = ((days * dailyCents) / 100).toFixed(2);
   const suggestedLabel = renewText.suggested + "：" + suggestedAmount + " 元";
@@ -173,9 +174,7 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
                       }
                     />
                   )}
-                  <NoticeBox title={paidUntilLabel}>
-                    {suggestedLabel}
-                  </NoticeBox>
+                  <NoticeBox title={paidUntilLabel}>{suggestedLabel}</NoticeBox>
                   <input type="hidden" name="days" value={days} />
                 </>
               ) : (
