@@ -32,6 +32,11 @@ import {
   type PaymentMethod,
 } from "../PaymentOperationParts";
 
+const dayOptions = [1, 2, 3, 0].map((value) => ({
+  value,
+  label: value ? value + " " + checkInText.dayUnit : renewText.custom,
+}));
+
 type Props = {
   form: RenewFormData | null;
   action: (
@@ -112,6 +117,7 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
     hotel && paidUntil
       ? `${renewText.paidUntil}：${formatBusinessDateTime(paidUntil)}`
       : undefined;
+  const suggestedAmount = ((days * form.hotelDailyPriceCents) / 100).toFixed(2);
   const canSubmit =
     !isPending &&
     method !== null &&
@@ -147,14 +153,9 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
                     {renewText.days}
                   </Typography>
                   <ChoiceButtonGroup
-                    options={[1, 2, 3, 0].map((value) => ({
-                      value,
-                      label: value
-                        ? value + " " + checkInText.dayUnit
-                        : renewText.custom,
-                    }))}
+                    options={dayOptions}
                     value={custom ? 0 : days}
-                    onChange={(value) => chooseDays(value || days, value === 0)}
+                    onChange={(value) => chooseDays(value || days, !value)}
                     disabled={isPending}
                   />
                   {custom && (
@@ -172,8 +173,7 @@ export function RenewForm({ form: currentForm, action, initialState }: Props) {
                     />
                   )}
                   <NoticeBox title={hotelPaidUntilLabel}>
-                    {renewText.suggested}：
-                    {((days * form.hotelDailyPriceCents) / 100).toFixed(2)} 元
+                    {renewText.suggested}：{suggestedAmount} 元
                   </NoticeBox>
                   <input type="hidden" name="days" value={days} />
                 </>
