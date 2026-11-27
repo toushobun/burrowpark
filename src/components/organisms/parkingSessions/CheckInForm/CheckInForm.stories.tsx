@@ -33,7 +33,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <Box sx={{ maxWidth: "100%", px: 2, width: 390 }}>
+      <Box sx={{ maxWidth: "100%", px: 2, width: 393 }}>
         <Story />
       </Box>
     ),

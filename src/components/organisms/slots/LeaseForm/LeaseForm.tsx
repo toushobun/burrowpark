@@ -243,7 +243,7 @@ export function LeaseForm({
                 name="paidThrough"
                 slotProps={{ inputLabel: { shrink: true } }}
               />
-              <Typography component="h3" variant="h3">
+              <Typography component="h3" variant="h6">
                 {leaseText.paymentMethod}
               </Typography>
               <PaymentMethodChoices

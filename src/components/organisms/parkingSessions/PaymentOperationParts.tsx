@@ -1,10 +1,8 @@
 "use client";
 
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import { paymentMethodLabels } from "config/checkInText";
-import { designTokens } from "theme/designTokens";
+import { ChoiceButtonGroup } from "molecules/forms/ChoiceButtonGroup/ChoiceButtonGroup";
 
 export type PaymentMethod = keyof typeof paymentMethodLabels;
 export const validYuanAmount = (value: string): boolean =>
@@ -22,28 +20,14 @@ export function PaymentMethodChoices({
   disabled: boolean;
 }) {
   return (
-    <Box
-      sx={{
-        display: "grid",
-        gap: 2,
-        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-      }}
-    >
-      {(Object.keys(paymentMethodLabels) as PaymentMethod[]).map((method) => (
-        <Button
-          key={method}
-          aria-pressed={method === value}
-          disabled={disabled}
-          onClick={() => onChange(method)}
-          size="large"
-          sx={{ minHeight: designTokens.size.touchTargetMin }}
-          type="button"
-          variant={method === value ? "contained" : "outlined"}
-        >
-          {paymentMethodLabels[method]}
-        </Button>
-      ))}
-    </Box>
+    <ChoiceButtonGroup
+      options={(Object.keys(paymentMethodLabels) as PaymentMethod[]).map(
+        (method) => ({ value: method, label: paymentMethodLabels[method] }),
+      )}
+      value={value}
+      onChange={onChange}
+      disabled={disabled}
+    />
   );
 }
 

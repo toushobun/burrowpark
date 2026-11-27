@@ -115,7 +115,8 @@ describe("SlotDetail", () => {
         ...hourlyDetail,
         presentVehicle: { ...hourlyDetail.presentVehicle!, billingType },
       });
-      expect(screen.getByText("已停 2 小时 15 分")).toBeInTheDocument();
+      expect(screen.getByText("已停")).toBeInTheDocument();
+      expect(screen.getByText("2 小时 15 分")).toBeInTheDocument();
       expect(
         screen.getByText(billingType === "hourly" ? "临停" : "免费（装卸）"),
       ).toBeInTheDocument();

@@ -4,7 +4,7 @@ import {
   formatBusinessDate,
   formatBusinessDateTime,
   formatBusinessTime,
-  formatElapsed,
+  formatElapsedDuration,
   getBusinessDate,
   type SlotOperationView,
 } from "internal/parking";
@@ -48,7 +48,7 @@ export async function SlotDetailContent({
             ? formatBusinessDate(vehicle.paidUntil)
             : formatBusinessDateTime(vehicle.paidUntil)
           : null,
-        elapsed: vehicle ? formatElapsed(vehicle.enteredAt, now) : null,
+        elapsed: vehicle ? formatElapsedDuration(vehicle.enteredAt, now) : null,
         borrowUntil: vehicle?.borrowUntil
           ? formatBusinessTime(vehicle.borrowUntil)
           : null,

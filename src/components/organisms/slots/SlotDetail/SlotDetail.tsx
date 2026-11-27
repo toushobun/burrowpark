@@ -6,7 +6,6 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -32,6 +31,7 @@ import {
   formatPlateForDisplay,
 } from "internal/parking";
 import type { SlotActionState } from "internal/parking/adapter/next/slotOperationsActions";
+import { InfoCard } from "molecules/display/InfoCard/InfoCard";
 import { FailureFeedbackDialog } from "molecules/feedback/FailureFeedbackDialog/FailureFeedbackDialog";
 import { OperationRedirecting } from "molecules/feedback/OperationRedirecting/OperationRedirecting";
 import { useOperationFeedback } from "providers/OperationFeedbackProvider";
@@ -90,19 +90,25 @@ const unavailableAction: SlotFormAction = async () => ({
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <Stack
-      direction="row"
-      spacing={1}
-      sx={{ alignItems: "baseline", flexWrap: "wrap" }}
-      useFlexGap
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: "5em minmax(0, 1fr)",
+        alignItems: "baseline",
+        gap: 1,
+      }}
     >
-      <Typography color="textSecondary" variant="body2">
+      <Typography
+        color="textSecondary"
+        variant="body1"
+        sx={{ whiteSpace: "nowrap" }}
+      >
         {label}
       </Typography>
       <Typography sx={{ overflowWrap: "anywhere" }} variant="body1">
         {value}
       </Typography>
-    </Stack>
+    </Box>
   );
 }
 
@@ -362,10 +368,7 @@ export function SlotDetail({
           detail.reservation?.guestName ||
           detail.reservation?.note,
         ) && (
-          <Paper
-            variant="outlined"
-            sx={{ borderRadius: String(designTokens.radius.lg) + "px", p: 2 }}
-          >
+          <InfoCard>
             <Stack spacing={2}>
               {vehicle && (
                 <>
@@ -400,7 +403,10 @@ export function SlotDetail({
                     vehicle.billingType === "free") &&
                     !privateBorrowed &&
                     display?.elapsed && (
-                      <Typography variant="body1">{display.elapsed}</Typography>
+                      <DetailRow
+                        label={slotDetailText.elapsed}
+                        value={display.elapsed}
+                      />
                     )}
                   {vehicle.borrowUntil && display?.borrowUntil && (
                     <DetailRow
@@ -415,20 +421,6 @@ export function SlotDetail({
                     >
                       {describeBorrowRemaining(vehicle.borrowUntil, now)}
                     </Typography>
-                  )}
-                  {vehicle.photoUrl && (
-                    <Box
-                      alt={slotDetailText.photo}
-                      component="img"
-                      src={vehicle.photoUrl}
-                      sx={{
-                        borderRadius: String(designTokens.radius.md) + "px",
-                        display: "block",
-                        maxHeight: designTokens.size.primaryActionHeight * 2,
-                        objectFit: "cover",
-                        width: "100%",
-                      }}
-                    />
                   )}
                 </>
               )}
@@ -494,8 +486,23 @@ export function SlotDetail({
                 </>
               )}
             </Stack>
-          </Paper>
+          </InfoCard>
         )}
+
+      {!reserveStep && detail.isActive && vehicle?.photoUrl && (
+        <Box
+          alt={slotDetailText.photo}
+          component="img"
+          src={vehicle.photoUrl}
+          sx={{
+            borderRadius: String(designTokens.radius.md) + "px",
+            display: "block",
+            maxHeight: designTokens.size.primaryActionHeight * 2,
+            objectFit: "cover",
+            width: "100%",
+          }}
+        />
+      )}
 
       {detail.isActive && !reserveStep && (
         <Stack spacing={2}>
@@ -621,7 +628,7 @@ export function SlotDetail({
       )}
 
       {reserveOpen && showReserve && (
-        <Paper variant="outlined" sx={{ p: 2 }}>
+        <InfoCard>
           <form action={submitReserve}>
             <Stack spacing={2}>
               <TextField
@@ -664,7 +671,7 @@ export function SlotDetail({
               </Button>
             </Stack>
           </form>
-        </Paper>
+        </InfoCard>
       )}
 
       <Dialog

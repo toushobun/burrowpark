@@ -51,7 +51,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <Box sx={{ width: 390, maxWidth: "100%", p: 2 }}>
+      <Box sx={{ width: 393, maxWidth: "100%", p: 2 }}>
         <Story />
       </Box>
     ),
@@ -60,6 +60,20 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const ByDate: Story = {};
+export const SingleSettlement: Story = {
+  args: {
+    nextDate: "2026-11-22",
+    records: {
+      ...sample,
+      sessions: [
+        {
+          ...sample.sessions[0],
+          session_payments: [sample.sessions[0].session_payments[1]],
+        },
+      ],
+    },
+  },
+};
 export const ByPlate: Story = {
   args: { filter: { kind: "plate", plate: "辽A12345" } },
 };

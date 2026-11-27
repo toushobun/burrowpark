@@ -39,6 +39,7 @@ export {
   formatBusinessDateTime,
   formatBusinessTime,
   formatElapsed,
+  formatElapsedDuration,
   formatPlateForDisplay,
   formatVehicleIdentity,
   getBusinessDate,
