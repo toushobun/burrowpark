@@ -25,6 +25,25 @@ describe("ChoiceButtonGroup", () => {
     expect(onChange).toHaveBeenCalledWith(2);
   });
 
+  it.each([
+    { columns: 1, fontSize: "18px" },
+    { columns: 2, fontSize: "18px" },
+    { columns: 3, fontSize: "18px" },
+    { columns: 4, fontSize: "16px" },
+  ])("$columns 列时使用对应字号", ({ columns, fontSize }) => {
+    render(
+      <ChoiceButtonGroup
+        options={options}
+        value={1}
+        onChange={vi.fn()}
+        columns={columns}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "1 天" })).toHaveStyle({
+      fontSize,
+    });
+  });
+
   it("禁用时不能切换选项", () => {
     const onChange = vi.fn();
     render(

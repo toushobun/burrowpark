@@ -81,6 +81,14 @@ describe("RecordsView", () => {
     expect(screen.getByText("在场", { exact: false })).toBeInTheDocument();
     expect(screen.getByText("30.00 元", { exact: false })).toBeInTheDocument();
     expect(screen.queryByText("后一天")).toBeNull();
+    const previous = screen.getByRole("link", { name: "前一天" });
+    const date = screen.getByText("2026-11-21", { exact: true });
+    expect(previous.parentElement?.parentElement).toBe(date.parentElement);
+    expect(date.parentElement).toHaveStyle({ justifyContent: "space-between" });
+    expect(previous).toHaveStyle({ fontSize: "16px" });
+    expect(screen.getByRole("link", { name: "按日期" })).toHaveStyle({
+      fontSize: "18px",
+    });
   });
   it("无车牌的停车记录展示手机号并可补录车牌", () => {
     render(
@@ -173,7 +181,11 @@ describe("RecordsView", () => {
   });
   it("带交到时间的收款不显示删除按钮，结算收款可删除", () => {
     mount();
-    expect(screen.getAllByRole("button", { name: "改金额" })).toHaveLength(2);
+    const amountButtons = screen.getAllByRole("button", { name: "改金额" });
+    expect(amountButtons).toHaveLength(2);
+    for (const button of amountButtons) {
+      expect(button).toHaveStyle({ flex: "0 0 auto", fontSize: "18px" });
+    }
     expect(screen.getAllByRole("button", { name: "删除" })).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "删除" }));
     expect(screen.getByRole("dialog")).toHaveTextContent("5.00 元");
@@ -181,6 +193,7 @@ describe("RecordsView", () => {
   it("单笔结算收款的三个操作位于同一行", () => {
     mount(false, false, true);
     const plateButton = screen.getByRole("button", { name: "改车牌" });
+    expect(plateButton).toHaveStyle({ fontSize: "18px" });
     expect(plateButton.parentElement).toBe(
       screen.getByRole("button", { name: "改金额" }).parentElement,
     );

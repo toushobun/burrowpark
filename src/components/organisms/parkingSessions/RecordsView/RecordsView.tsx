@@ -49,9 +49,14 @@ type Props = {
 const touch = { minHeight: designTokens.size.touchTargetMin };
 const compactButton = {
   ...touch,
-  flex: 1,
   minWidth: 0,
   px: 1,
+  fontSize: designTokens.typography.bodySize,
+};
+const equalWidthButton = { ...compactButton, flex: 1 };
+const inlineButton = { ...compactButton, flex: "0 0 auto" };
+const dateButton = {
+  ...inlineButton,
   fontSize: designTokens.typography.minSize,
 };
 const money = (cents: number) => (cents / 100).toFixed(2);
@@ -91,12 +96,13 @@ export function RecordsView({
 
   type Payment = RecordResults["sessions"][number]["session_payments"][number];
 
-  function paymentActions(payment: Payment) {
+  function paymentActions(payment: Payment, equalWidth = false) {
+    const buttonSx = equalWidth ? equalWidthButton : inlineButton;
     return (
       <>
         <Button
           variant="text"
-          sx={compactButton}
+          sx={buttonSx}
           onClick={() => {
             setChange({
               operation: "payment",
@@ -114,7 +120,7 @@ export function RecordsView({
           <Button
             variant="text"
             color="error"
-            sx={compactButton}
+            sx={buttonSx}
             onClick={() =>
               setChange({
                 operation: "delete",
@@ -171,7 +177,7 @@ export function RecordsView({
           component={Link}
           href="/records"
           variant={filter.kind === "date" ? "contained" : "outlined"}
-          sx={compactButton}
+          sx={equalWidthButton}
         >
           {text.byDate}
         </Button>
@@ -179,7 +185,7 @@ export function RecordsView({
           component={Link}
           href="/records?mode=plate"
           variant={filter.kind === "plate" ? "contained" : "outlined"}
-          sx={compactButton}
+          sx={equalWidthButton}
         >
           {text.byPlate}
         </Button>
@@ -187,34 +193,40 @@ export function RecordsView({
           component={Link}
           href="/records?mode=lease"
           variant={filter.kind === "lease" ? "contained" : "outlined"}
-          sx={compactButton}
+          sx={equalWidthButton}
         >
           {text.byLease}
         </Button>
       </Stack>
       {filter.kind === "date" ? (
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-          <Typography variant="h6" sx={{ mr: "auto", whiteSpace: "nowrap" }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ alignItems: "center", justifyContent: "space-between" }}
+        >
+          <Typography variant="h6" sx={{ whiteSpace: "nowrap" }}>
             {filter.date}
           </Typography>
-          <Button
-            component={Link}
-            href={`/records?date=${previousDate}`}
-            variant="outlined"
-            sx={{ ...compactButton, flex: "0 0 auto" }}
-          >
-            {text.previous}
-          </Button>
-          {nextDate && (
+          <Stack direction="row" spacing={1}>
             <Button
               component={Link}
-              href={`/records?date=${nextDate}`}
+              href={`/records?date=${previousDate}`}
               variant="outlined"
-              sx={{ ...compactButton, flex: "0 0 auto" }}
+              sx={dateButton}
             >
-              {text.next}
+              {text.previous}
             </Button>
-          )}
+            {nextDate && (
+              <Button
+                component={Link}
+                href={`/records?date=${nextDate}`}
+                variant="outlined"
+                sx={dateButton}
+              >
+                {text.next}
+              </Button>
+            )}
+          </Stack>
         </Stack>
       ) : filter.kind === "plate" ? (
         <Stack
@@ -317,7 +329,7 @@ export function RecordsView({
                   <Stack direction="row" spacing={1}>
                     <Button
                       variant="text"
-                      sx={compactButton}
+                      sx={equalWidthButton}
                       onClick={() => {
                         setNewPlate(session.plate ?? "");
                         setChange({
@@ -329,7 +341,7 @@ export function RecordsView({
                     >
                       {text.correctPlate}
                     </Button>
-                    {singlePayment && paymentActions(singlePayment)}
+                    {singlePayment && paymentActions(singlePayment, true)}
                   </Stack>
                 </Stack>
               </InfoCard>

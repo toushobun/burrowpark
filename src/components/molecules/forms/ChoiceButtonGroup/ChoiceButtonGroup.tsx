@@ -41,7 +41,10 @@ export function ChoiceButtonGroup<T extends string | number>({
             overflowWrap: "anywhere",
             minWidth: 0,
             px: 1,
-            fontSize: designTokens.typography.minSize,
+            fontSize:
+              columns <= 3
+                ? designTokens.typography.bodySize
+                : designTokens.typography.minSize,
             lineHeight: 1.25,
             whiteSpace: "normal",
           }}
